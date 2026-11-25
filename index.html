@@ -77,6 +77,15 @@
       margin: 12mm;
     }
 
+    /* إخفاء شريط التمرير مع الحفاظ على السحب السلس للفئات على الموبايل والكمبيوتر */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
     @media print {
       html, body {
         width: 210mm;
@@ -310,7 +319,7 @@
       <!-- مبدل عرض الموبايل بين المنتجات والسلة لراحة الاستخدام دون زحام -->
       <div class="grid grid-cols-2 gap-2 lg:hidden bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
         <button type="button" id="mobile-pos-tab-products" onclick="setMobilePosView('products')" class="py-2.5 px-3 rounded-xl text-xs font-extrabold bg-marine-700 text-white transition">
-          🛍 المنتجات والباركود
+          🛍 كتالوج المنتجات
         </button>
         <button type="button" id="mobile-pos-tab-cart" onclick="setMobilePosView('cart')" class="py-2.5 px-3 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 transition flex items-center justify-center gap-1.5">
           <span>🧾 الفاتورة</span>
@@ -319,21 +328,32 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
-        <!-- المنتجات والبحث -->
+        <!-- المنتجات والبحث وشريط الفئات الاحترافي -->
         <div id="pos-products-column" class="lg:col-span-7 space-y-4">
           <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between gap-2 pb-1 border-b border-slate-100">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span>
+                <h2 class="text-xs sm:text-sm font-extrabold text-marine-950">اختيار المنتجات حسب الفئة أو الباركود</h2>
+              </div>
+              <span id="pos-products-count-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-marine-50 text-marine-800 border border-marine-200">
+                0 صنف
+              </span>
+            </div>
+
             <div class="flex flex-col sm:flex-row gap-2">
               <input type="text" id="pos-barcode-input" onkeydown="handleBarcodeEnter(event)" placeholder="مسح أو إدخال باركود المنتج ثم Enter..."
-                class="flex-1 px-3.5 py-2.5 bg-marine-50/60 border border-marine-200 rounded-xl text-sm font-mono font-bold" />
+                class="flex-1 px-3.5 py-2.5 bg-marine-50/60 border border-marine-200 rounded-xl text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-cyan-500" />
               <div class="grid grid-cols-2 sm:flex gap-2">
-                <button type="button" onclick="scanBarcodeValue()" class="px-3.5 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold whitespace-nowrap">
+                <button type="button" onclick="scanBarcodeValue()" class="px-3.5 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold whitespace-nowrap transition">
                   إضافة بالباركود
                 </button>
-                <button type="button" id="btn-toggle-camera-scan" onclick="toggleCameraBarcodeScanner()" class="px-3.5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold whitespace-nowrap">
+                <button type="button" id="btn-toggle-camera-scan" onclick="toggleCameraBarcodeScanner()" class="px-3.5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold whitespace-nowrap transition">
                   📷 سكان بالكاميرا
                 </button>
               </div>
             </div>
+
             <div id="pos-camera-scanner-box" class="hidden p-3 rounded-2xl bg-slate-900 border border-cyan-400/30 space-y-2">
               <div class="flex items-center justify-between text-xs text-cyan-200 font-bold">
                 <span>وجّه كاميرا الهاتف نحو باركود المنتج</span>
@@ -341,9 +361,17 @@
               </div>
               <div id="pos-camera-reader" class="w-full max-w-sm mx-auto rounded-xl overflow-hidden bg-black"></div>
             </div>
-            <input type="text" id="pos-search-input" oninput="renderPosGrid()" placeholder="ابحث باسم المنتج أو الباركود..."
-              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
-            <div id="pos-categories-bar" class="flex items-center gap-1.5 overflow-x-auto pb-1"></div>
+
+            <div class="relative flex items-center gap-2">
+              <input type="text" id="pos-search-input" oninput="renderPosGrid()" placeholder="ابحث باسم الصنف، المقاس، أو رقم الباركود..."
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-marine-600" />
+              <button type="button" onclick="clearPosSearch()" title="مسح البحث" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold shrink-0 transition">
+                مسح
+              </button>
+            </div>
+
+            <!-- شريط الفئات التفاعلي مع عداد الأصناف لكل فئة -->
+            <div id="pos-categories-bar" class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5"></div>
           </div>
 
           <div id="pos-products-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
@@ -2181,117 +2209,117 @@
     // =================================================
     function openReturnModal() {
       const sel = document.getElementById('ret-product-select');
-      if (!products.length) {
-        showToast('لا توجد منتجات متاحة للمرتجع', 'error');
-        return;
-      }
-      sel.innerHTML = products.map(p => `<option value="${esc(p.id)}">${esc(p.name)} (${fmt(p.price)})</option>`).join('');
-      document.getElementById('ret-qty-input').value = '1';
-      document.getElementById('ret-invoice-input').value = '';
-      updateReturnPreview();
-      const m = document.getElementById('modal-return');
-      m.classList.remove('hidden');
-      m.classList.add('flex');
-    }
-
-    function closeReturnModal() {
-      const m = document.getElementById('modal-return');
-      m.classList.add('hidden');
-      m.classList.remove('flex');
-    }
-
-    function updateReturnPreview() {
-      const pid = document.getElementById('ret-product-select').value;
-      const qty = Math.max(1, parseInt(document.getElementById('ret-qty-input').value, 10) || 1);
-      const prod = products.find(p => p.id === pid);
-      const amount = prod ? Number(prod.price || 0) * qty : 0;
-      document.getElementById('ret-amount-preview').textContent = fmt(amount);
-    }
-
-    function submitReturnItem(e) {
-      e.preventDefault();
-      const pid = document.getElementById('ret-product-select').value;
-      const qty = Math.max(1, parseInt(document.getElementById('ret-qty-input').value, 10) || 1);
-      const invoiceRef = document.getElementById('ret-invoice-input').value.trim();
-      const prod = products.find(p => p.id === pid);
-      if (!prod) {
-        showToast('اختر منتجاً صحيحاً', 'error');
-        return;
-      }
-
-      prod.stock = Number(prod.stock || 0) + qty;
-      const refundAmount = Number(prod.price || 0) * qty;
-      const refundCost = Number(prod.cost || 0) * qty;
-
-      const retRecord = {
-        id: 'RET-' + Date.now().toString().slice(-6),
-        date: new Date().toLocaleString('ar-EG'),
-        dateISO: new Date().toISOString(),
-        productId: prod.id,
-        productName: prod.name,
-        qty,
-        invoiceRef: invoiceRef || 'مرتجع مباشر',
-        cashier: session.cashier,
-        shift: session.shift,
-        amount: refundAmount,
-        profitDeduction: refundAmount - refundCost,
-      };
-
-      returnsLog.unshift(retRecord);
-      saveState(true);
-      closeReturnModal();
+    function clearPosSearch() {
+      const searchInp = document.getElementById('pos-search-input');
+      const barcodeInp = document.getElementById('pos-barcode-input');
+      if (searchInp) searchInp.value = '';
+      if (barcodeInp) barcodeInp.value = '';
       renderPosGrid();
-      renderInventory();
-      renderReports();
-      showToast(`تم تسجيل مرتجع (${qty} × ${prod.name}) وإعادة الكمية للمخزون`, 'success');
     }
 
-    // =================================================
-    // المخزون وطباعة ملصق الباركود
-    // =================================================
-    function renderInventory() {
-      const q = (document.getElementById('inv-search-input').value || '').trim().toLowerCase();
-      const filter = document.getElementById('inv-stock-filter').value;
-      document.getElementById('inv-stat-count').textContent = products.length;
-      document.getElementById('inv-stat-units').textContent = products.reduce((s, p) => s + Number(p.stock || 0), 0);
-      document.getElementById('inv-stat-cost').textContent = fmt(products.reduce((s, p) => s + Number(p.cost || 0) * Number(p.stock || 0), 0));
-      document.getElementById('inv-stat-low').textContent = products.filter(p => p.stock <= p.minStock).length;
+    function renderPosCategories() {
+      const bar = document.getElementById('pos-categories-bar');
+      if (!bar) return;
+      const cats = Array.isArray(settings.categories) && settings.categories.length ? settings.categories : CATEGORIES;
+      if (selectedCategory !== 'الكل' && !cats.includes(selectedCategory)) {
+        selectedCategory = 'الكل';
+      }
+      const allCats = ['الكل', ...cats];
+      bar.innerHTML = allCats.map(c => {
+        const count = c === 'الكل'
+          ? products.length
+          : products.filter(p => p.category === c).length;
+        const active = selectedCategory === c;
+        return `
+          <button type="button" onclick="selectedCategory='${esc(c)}';renderPosCategories();renderPosGrid();"
+            class="px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap flex items-center gap-1.5 border transition ${
+              active
+                ? 'bg-marine-900 text-white border-marine-900 shadow-sm'
+                : 'bg-slate-50 hover:bg-marine-50 text-slate-700 border-slate-200'
+            }">
+            <span>${esc(c)}</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
+              active ? 'bg-cyan-400/20 text-cyan-200' : 'bg-white text-slate-500 border border-slate-200'
+            }">${count}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderPosGrid() {
+      const q = (document.getElementById('pos-search-input')?.value || '').trim().toLowerCase();
+      const grid = document.getElementById('pos-products-grid');
+      const countBadge = document.getElementById('pos-products-count-badge');
+      if (!grid) return;
 
       const list = products.filter(p => {
-        const okQ = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
-        if (!okQ) return false;
-        if (filter === 'available') return p.stock > p.minStock;
-        if (filter === 'low') return p.stock > 0 && p.stock <= p.minStock;
-        if (filter === 'out') return p.stock <= 0;
-        return true;
+        const okCat = selectedCategory === 'الكل' || p.category === selectedCategory;
+        const okQ = !q ||
+          String(p.name || '').toLowerCase().includes(q) ||
+          String(p.sku || '').toLowerCase().includes(q) ||
+          String(p.category || '').toLowerCase().includes(q);
+        return okCat && okQ;
       });
 
-      document.getElementById('inventory-tbody').innerHTML = list.map(p => {
-        const st = p.stock <= 0
-          ? '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700">نافذ</span>'
-          : p.stock <= p.minStock
-          ? '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">منخفض</span>'
-          : '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">متاح</span>';
+      if (countBadge) {
+        countBadge.textContent = `${list.length} صنف`;
+      }
+
+      if (!list.length) {
+        grid.innerHTML = `
+          <div class="col-span-full bg-white rounded-2xl p-8 border border-slate-200 text-center space-y-2">
+            <div class="text-sm font-extrabold text-slate-700">لا توجد منتجات مطابقة للبحث أو الفئة المحددة</div>
+            <button type="button" onclick="selectedCategory='الكل';clearPosSearch();renderPosCategories();" class="px-4 py-2 rounded-xl bg-marine-700 text-white text-xs font-bold">
+              عرض كل المنتجات
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = list.map(p => {
+        const inCartItem = cart.find(c => c.id === p.id);
+        const cartQty = inCartItem ? Number(inCartItem.qty || 0) : 0;
+        const outOfStock = Number(p.stock || 0) <= 0;
+        const lowStock = !outOfStock && Number(p.stock || 0) <= Number(p.minStock || 3);
 
         return `
-          <tr>
-            <td class="py-3 px-4 font-mono text-xs">${esc(p.sku)}</td>
-            <td class="py-3 px-4 font-bold">${esc(p.name)}</td>
-            <td class="py-3 px-4 text-xs">${esc(p.category)}</td>
-            ${isAdmin() ? `<td class="py-3 px-4 font-mono text-xs">${fmt(p.cost)}</td>` : ''}
-            <td class="py-3 px-4 font-mono text-xs font-bold">${fmt(p.price)}</td>
-            <td class="py-3 px-4 font-mono font-bold">${p.stock}</td>
-            <td class="py-3 px-4">${st}</td>
-            <td class="py-3 px-4 text-center space-x-1 space-x-reverse whitespace-nowrap">
-              <button type="button" onclick="openBarcodeLabelModal('${p.id}')" class="px-2.5 py-1 rounded-lg bg-cyan-50 hover:bg-cyan-600 hover:text-white text-cyan-900 text-xs font-bold">
-                🏷 ملصق
+          <div class="group bg-white rounded-2xl p-3.5 border ${
+            cartQty > 0 ? 'border-cyan-500 ring-1 ring-cyan-500/20' : 'border-slate-200 hover:border-marine-400'
+          } shadow-sm hover:shadow-md flex flex-col justify-between gap-2.5 transition">
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between gap-1 text-[11px]">
+                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-bold truncate max-w-[58%]">${esc(p.category || 'عام')}</span>
+                <span class="${
+                  outOfStock
+                    ? 'px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-extrabold'
+                    : lowStock
+                    ? 'px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-extrabold'
+                    : 'px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold'
+                }">
+                  ${outOfStock ? 'نافذ' : 'متاح: ' + p.stock}
+                </span>
+              </div>
+
+              <div class="font-extrabold text-sm text-slate-900 leading-snug line-clamp-2">${esc(p.name)}</div>
+              <div class="text-[11px] font-mono text-slate-400">باركود: ${esc(p.sku)}</div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2.5 border-t border-slate-100 gap-2">
+              <div>
+                <span class="font-mono font-extrabold text-marine-950 text-sm">${fmt(p.price)}</span>
+                ${cartQty > 0 ? `<span class="block text-[10px] font-bold text-cyan-700">في الفاتورة: ${cartQty}</span>` : ''}
+              </div>
+              <button type="button" ${outOfStock ? 'disabled' : ''} onclick="addToCart('${p.id}')"
+                class="px-3.5 py-2 rounded-xl text-xs font-extrabold transition shrink-0 ${
+                  outOfStock
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    : 'bg-marine-700 group-hover:bg-marine-900 text-white shadow-2xs'
+                }">
+                ${cartQty > 0 ? '+ إضافة (' + cartQty + ')' : '+ إضافة'}
               </button>
-              <button type="button" onclick="requireAdminPin(() => openProductForm('${p.id}'), 'تعديل المخزون يتطلب رمز PIN للإدارة:')"
-                class="px-2.5 py-1 rounded-lg bg-marine-50 hover:bg-marine-700 hover:text-white text-marine-800 text-xs font-bold">
-                ${isAdmin() ? 'تعديل' : 'تعديل (PIN)'}
-              </button>
-            </td>
-          </tr>
+            </div>
+          </div>
         `;
       }).join('');
     }
