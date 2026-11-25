@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <script>
+    // إعداد ألوان الهوية البحرية لمتجر شبكة وصنارة
     if (typeof tailwind !== 'undefined') {
       tailwind.config = {
         theme: {
@@ -29,6 +30,31 @@
         }
       };
     }
+
+    // إلغاء تسجيل أي Service Worker قديم قد يحتفظ بنسخة قديمة
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      }).catch(function () {});
+    }
+
+    // تحميل مكتبة المسح الضوئي للباركود بالكاميرا مع مصدر احتياطي
+    function loadCameraBarcodeLibrary() {
+      if (window.Html5Qrcode) return;
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
+      s.async = true;
+      s.onerror = function () {
+        const fb = document.createElement('script');
+        fb.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+        fb.async = true;
+        document.head.appendChild(fb);
+      };
+      document.head.appendChild(s);
+    }
+    loadCameraBarcodeLibrary();
   </script>
   <style>
     body {
@@ -37,12 +63,19 @@
       color: #0f172a;
       margin: 0;
     }
+
     .sea-gate-bg {
       background:
         radial-gradient(circle at 15% 20%, rgba(34, 211, 238, 0.25), transparent 42%),
         radial-gradient(circle at 85% 80%, rgba(14, 165, 233, 0.28), transparent 45%),
         linear-gradient(135deg, #041c2c 0%, #082f49 52%, #0c4a6e 100%);
     }
+
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+
     @media print {
       html, body {
         width: 210mm;
@@ -121,6 +154,74 @@
 
   <!-- شريط إشعارات مدمج بدون alert -->
   <div id="toast-box" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[92vw] max-w-md text-center px-4 py-2.5 rounded-2xl shadow-xl text-xs sm:text-sm font-extrabold text-white bg-slate-900 border border-white/15 no-print"></div>
+
+  <!-- ================================================= -->
+  <!-- بوابة الدخول الرئيسية (PIN للكاشير والإدارة) -->
+  <!-- ================================================= -->
+  <div id="gate-screen" class="fixed inset-0 z-[80] sea-gate-bg flex items-center justify-center p-4 overflow-y-auto no-print">
+    <div class="w-full max-w-4xl bg-slate-950/90 border border-cyan-300/20 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 text-white my-auto">
+
+      <!-- الجانب التعريفي البحري -->
+      <div class="lg:col-span-5 p-5 sm:p-8 bg-gradient-to-b from-cyan-500/15 to-slate-950/90 border-b lg:border-b-0 lg:border-l border-white/10 flex flex-col justify-between gap-4 sm:gap-6">
+        <div class="space-y-3 sm:space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-cyan-400/15 border border-cyan-300/40 flex items-center justify-center overflow-hidden shrink-0">
+              <img id="gate-logo-img" src="" alt="شعار المتجر" class="hidden w-full h-full object-cover" />
+              <span id="gate-logo-emoji" class="text-xl sm:text-2xl font-extrabold text-cyan-300">⚓</span>
+            </div>
+            <div class="min-w-0">
+              <span class="inline-block text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-300/30 mb-1">
+                كاشير ومخزون ومرتجعات ومزامنة سحابية
+              </span>
+              <h2 id="gate-store-title" class="text-xl sm:text-2xl font-extrabold text-white truncate">شبكة وصنارة</h2>
+            </div>
+          </div>
+
+          <p id="gate-store-desc" class="text-xs sm:text-sm text-cyan-100/80 leading-relaxed">
+            إدارة مبيعات ومخزون ومرتجعات مستلزمات الصيد والقصبات والماكينات والسنارات مع صلاحيات PIN لكل كاشير وللإدارة.
+          </p>
+
+          <div class="p-3.5 sm:p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1.5 sm:space-y-2 text-xs font-bold">
+            <div class="text-cyan-200">• دخول الكاشير برمز PIN الخاص بالشيفت والمرتجعات والآجل</div>
+            <div class="text-amber-200">• المخزون والموردون والتقارير وتعديل الفواتير برمز PIN للإدارة</div>
+            <div class="text-emerald-200">• مزامنة سحابية عبر الأجهزة وتصدير Excel عربي سليم</div>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-cyan-200/70 flex items-center justify-between pt-3 border-t border-white/10">
+          <span id="gate-store-addr">كورنيش البحر</span>
+          <span id="gate-clock" class="font-mono">--:--</span>
+        </div>
+      </div>
+
+      <!-- نموذج الدخول الآمن بدون إظهار رموز PIN علناً -->
+      <div class="lg:col-span-7 p-5 sm:p-8 space-y-4 sm:space-y-5">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <h3 class="text-lg sm:text-xl font-extrabold text-white">تسجيل الدخول</h3>
+            <p class="text-xs text-slate-300">اختر نوع الدخول وأدخل رمز PIN السري</p>
+          </div>
+          <span id="gate-sync-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-cyan-200 border border-white/10 shrink-0">
+            سحابي + محلي
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-900 border border-white/10">
+          <button type="button" id="btn-mode-cashier" onclick="switchGateMode('cashier')" class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold bg-cyan-500 text-slate-950 transition">
+            دخول الكاشير (الشيفت)
+          </button>
+          <button type="button" id="btn-mode-admin" onclick="switchGateMode('admin')" class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-slate-300 hover:bg-white/5 transition">
+            دخول الإدارة
+          </button>
+        </div>
+
+        <!-- دخول الكاشير -->
+        <form id="form-gate-cashier" onsubmit="loginAsCashier(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="gate-cashier-select" class="block text-xs font-bold text-cyan-100 mb-1.5">الكاشير</label>
+              <select id="gate-cashier-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white text-sm font-bold"></select>
+            </div>
             <div>
               <label for="gate-shift-select" class="block text-xs font-bold text-cyan-100 mb-1.5">الشيفت</label>
               <select id="gate-shift-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white text-sm font-bold"></select>
@@ -131,7 +232,7 @@
             <label for="gate-cashier-pin" class="block text-xs font-bold text-cyan-100 mb-1.5">رمز PIN الخاص بالكاشير</label>
             <input type="password" id="gate-cashier-pin" inputmode="numeric" required placeholder="أدخل رمز PIN الخاص بالكاشير"
               class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white font-mono text-sm tracking-widest" />
-            <p id="gate-cashier-hint" class="text-[11px] text-slate-400 mt-1.5"></p>
+            <p class="text-[11px] text-slate-400 mt-1.5">يُدخل الكاشير رمز PIN الخاص بحسابه لبدء الشيفت.</p>
           </div>
 
           <button type="submit" class="w-full py-3 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-sm shadow-lg transition">
@@ -147,7 +248,7 @@
 
           <div>
             <label for="gate-admin-pin" class="block text-xs font-bold text-amber-200 mb-1.5">رمز PIN الخاص بالإدارة</label>
-            <input type="password" id="gate-admin-pin" inputmode="numeric" required placeholder="أدخل رمز PIN للإدارة (الافتراضي: 9999)"
+            <input type="password" id="gate-admin-pin" inputmode="numeric" required placeholder="أدخل رمز PIN الخاص بالإدارة"
               class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white font-mono text-sm tracking-widest" />
           </div>
 
@@ -159,293 +260,6 @@
     </div>
   </div>
 
-  <!-- ================================================= -->
-  <!-- الشريط العلوي                                     -->
-  <!-- ================================================= -->
-  <header class="bg-gradient-to-l from-marine-950 via-marine-900 to-marine-800 text-white shadow-lg sticky top-0 z-30 no-print">
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-2xl bg-cyan-400/15 border border-cyan-300/30 flex items-center justify-center overflow-hidden shrink-0">
-          <img id="header-logo-img" src="" alt="شعار" class="hidden w-full h-full object-cover" />
-          <span id="header-logo-emoji" class="text-xl font-extrabold text-cyan-300">⚓</span>
-        </div>
-        <div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <h1 id="header-store-title" class="text-lg sm:text-xl font-extrabold">شبكة وصنارة</h1>
-            <span id="header-role-badge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-cyan-400/15 text-cyan-200 border border-cyan-400/30">
-              كاشير
-            </span>
-          </div>
-          <p id="header-store-desc" class="text-[11px] text-cyan-200/80">مستلزمات الصيد البحري والقصبات والماكينات والاكسسوارات</p>
-        </div>
-      </div>
-
-      <nav class="flex items-center gap-1.5 bg-marine-950/60 p-1 rounded-2xl border border-white/10 overflow-x-auto max-w-full">
-        <button onclick="openTab('pos')" id="tab-btn-pos" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-cyan-500 text-slate-950">نقطة البيع</button>
-        <button onclick="openTab('inventory')" id="tab-btn-inventory" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10">المخزون</button>
-        <button onclick="openTab('reports')" id="tab-btn-reports" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10">التقارير والفواتير</button>
-        <button onclick="openTab('settings')" id="tab-btn-settings" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10">الإعدادات والنسخ</button>
-      </nav>
-
-      <div class="flex items-center gap-2.5">
-        <span id="header-clock" class="hidden md:inline font-mono text-xs text-cyan-100">--:--:--</span>
-        <button type="button" onclick="lockToGate()" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-rose-500 text-white text-xs font-bold border border-white/15 transition">
-          قفل / تبديل
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- ================================================= -->
-  <!-- المحتوى الرئيسي                                   -->
-  <!-- ================================================= -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 space-y-5">
-
-    <!-- 1. نقطة البيع -->
-    <section id="section-pos" class="space-y-4">
-      <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div class="flex flex-wrap items-center gap-4">
-          <div><span class="text-slate-400">الكاشير:</span> <strong id="pos-cashier-name" class="text-slate-800">--</strong></div>
-          <div><span class="text-slate-400">الشيفت:</span> <strong id="pos-shift-name" class="text-slate-800">--</strong></div>
-        </div>
-        <span class="text-emerald-700 font-bold">يُسجل الكاشير والشيفت في كل فاتورة</span>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        <!-- المنتجات والبحث -->
-        <div class="lg:col-span-7 space-y-4">
-          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
-            <div class="flex flex-col sm:flex-row gap-2">
-              <input type="text" id="pos-barcode-input" onkeydown="handleBarcodeEnter(event)" placeholder="مسح أو إدخال باركود المنتج ثم Enter..."
-                class="flex-1 px-3.5 py-2 bg-marine-50/60 border border-marine-200 rounded-xl text-sm font-mono font-bold" />
-              <button type="button" onclick="scanBarcodeValue()" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold">
-                إضافة بالباركود
-              </button>
-            </div>
-            <input type="text" id="pos-search-input" oninput="renderPosGrid()" placeholder="ابحث باسم المنتج أو الباركود..."
-              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
-            <div id="pos-categories-bar" class="flex items-center gap-1.5 overflow-x-auto pb-1"></div>
-          </div>
-
-          <div id="pos-products-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
-        </div>
-
-        <!-- سلة الفاتورة -->
-        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="px-4 py-3 bg-marine-900 text-white font-extrabold text-sm flex items-center justify-between">
-            <span>فاتورة البيع الحالية</span>
-            <button type="button" onclick="clearCart()" class="text-xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-rose-500 transition">تفريغ</button>
-          </div>
-
-          <div class="p-4 space-y-3">
-            <input type="text" id="pos-customer-input" placeholder="اسم العميل (اختياري - الافتراضي: عميل نقدي)"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
-
-            <div id="pos-cart-items" class="max-h-64 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-slate-50/50 text-xs"></div>
-
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <label class="block font-bold text-slate-600 mb-1">خصم (ج.م)</label>
-                <input type="number" id="pos-discount-input" oninput="renderCart()" value="0" min="0" step="0.5"
-                  class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-600 mb-1">طريقة الدفع</label>
-                <select id="pos-payment-select" onchange="togglePaymentProof()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
-                  <option value="كاش">كاش</option>
-                  <option value="محفظة إلكترونية">محفظة إلكترونية</option>
-                  <option value="إنستاباي">إنستاباي</option>
-                </select>
-              </div>
-            </div>
-
-            <div id="pos-wallet-box" class="hidden p-2.5 rounded-xl bg-amber-50 border border-amber-200 space-y-2 text-xs">
-              <select id="pos-wallet-provider" class="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg font-bold">
-                <option value="فودافون كاش">فودافون كاش</option>
-                <option value="أورانج كاش">أورانج كاش</option>
-                <option value="اتصالات كاش">اتصالات كاش</option>
-                <option value="WE Pay">WE Pay</option>
-              </select>
-              <input type="text" id="pos-wallet-phone" placeholder="الرقم المحول منه" class="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg font-mono" />
-            </div>
-
-            <div id="pos-instapay-box" class="hidden p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-xs">
-              <input type="text" id="pos-instapay-ref" placeholder="الرقم المرجعي لإنستاباي" class="w-full px-2.5 py-1.5 bg-white border border-purple-300 rounded-lg font-mono" />
-            </div>
-
-            <div class="p-3 rounded-xl bg-marine-50 border border-marine-100 space-y-1 text-xs">
-              <div class="flex justify-between"><span>المجموع الفرعي:</span><span id="cart-subtotal" class="font-mono font-bold">0.00 ج.م</span></div>
-              <div class="flex justify-between text-rose-600"><span>الخصم:</span><span id="cart-discount-view" class="font-mono font-bold">0.00 ج.م</span></div>
-              <div class="flex justify-between text-sm font-extrabold text-marine-950 pt-1 border-t border-marine-200">
-                <span>الإجمالي النهائي:</span><span id="cart-total" class="font-mono">0.00 ج.م</span>
-              </div>
-            </div>
-
-            <button type="button" onclick="completeSale()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow transition">
-              إتمام البيع وإصدار الفاتورة
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 2. المخزون (مشاهدة وبحث وفلترة للكاشير + إضافة وتعديل للإدارة) -->
-    <section id="section-inventory" class="hidden space-y-4">
-      <div id="inv-role-note" class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm text-xs font-bold text-marine-900"></div>
-
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-          <div class="text-xs text-slate-500 font-bold">عدد الأصناف</div>
-          <div id="inv-stat-count" class="text-2xl font-extrabold font-mono text-marine-900 mt-1">0</div>
-        </div>
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-          <div class="text-xs text-slate-500 font-bold">إجمالي القطع</div>
-          <div id="inv-stat-units" class="text-2xl font-extrabold font-mono text-cyan-700 mt-1">0</div>
-        </div>
-        <div id="inv-cost-box" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-          <div class="text-xs text-slate-500 font-bold">قيمة المخزون (تكلفة)</div>
-          <div id="inv-stat-cost" class="text-xl font-extrabold font-mono text-slate-800 mt-1">0.00 ج.م</div>
-        </div>
-        <div class="bg-white rounded-2xl p-4 border border-rose-200 bg-rose-50/40 shadow-sm">
-          <div class="text-xs text-rose-700 font-bold">أصناف منخفضة / نافذة</div>
-          <div id="inv-stat-low" class="text-2xl font-extrabold font-mono text-rose-600 mt-1">0</div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2.5 justify-between">
-        <div class="flex flex-col sm:flex-row gap-2 flex-1">
-          <input type="text" id="inv-search-input" oninput="renderInventory()" placeholder="ابحث في المخزون بالاسم أو الباركود..."
-            class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
-          <select id="inv-stock-filter" onchange="renderInventory()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
-            <option value="all">كل الاستوك</option>
-            <option value="available">الاستوك المتاح</option>
-            <option value="low">الناقص / منخفض</option>
-            <option value="out">النافذ</option>
-          </select>
-        </div>
-        <button id="inv-add-btn" type="button" onclick="requireAdminPin(() => openProductForm())" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-extrabold">
-          + إضافة منتج (PIN الإدارة)
-        </button>
-      </div>
-
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
-        <table class="w-full text-right border-collapse">
-          <thead>
-            <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
-              <th class="py-3 px-4">الباركود</th>
-              <th class="py-3 px-4">المنتج</th>
-              <th class="py-3 px-4">الفئة</th>
-              <th id="inv-th-cost" class="py-3 px-4">سعر الشراء</th>
-              <th class="py-3 px-4">سعر البيع</th>
-              <th class="py-3 px-4">الكمية</th>
-              <th class="py-3 px-4">الحالة</th>
-              <th class="py-3 px-4 text-center">إجراء</th>
-            </tr>
-          </thead>
-          <tbody id="inventory-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- 3. التقارير والفواتير (قراءة وطباعة للجميع + تعديل الفواتير بـ PIN الإدارة) -->
-    <section id="section-reports" class="hidden space-y-4">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-          <div class="text-xs text-slate-500 font-bold">إجمالي المبيعات</div>
-          <div id="rep-total-sales" class="text-2xl font-extrabold font-mono text-marine-900 mt-1">0.00 ج.م</div>
-        </div>
-        <div id="rep-profit-box" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-          <div class="text-xs text-slate-500 font-bold">صافي الربح التقديري</div>
-          <div id="rep-total-profit" class="text-2xl font-extrabold font-mono text-emerald-700 mt-1">0.00 ج.م</div>
-        </div>
-        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-          <div class="text-xs text-slate-500 font-bold">عدد الفواتير</div>
-          <div id="rep-invoices-count" class="text-2xl font-extrabold font-mono text-slate-800 mt-1">0</div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
-        <table class="w-full text-right border-collapse">
-          <thead>
-            <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
-              <th class="py-3 px-4">رقم الفاتورة</th>
-              <th class="py-3 px-4">الكاشير / الشيفت</th>
-              <th class="py-3 px-4">العميل</th>
-              <th class="py-3 px-4">الدفع</th>
-              <th class="py-3 px-4">الإجمالي</th>
-              <th class="py-3 px-4 text-center">قراءة / طباعة / تعديل</th>
-            </tr>
-          </thead>
-          <tbody id="reports-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- 4. الإعدادات والنسخ الاحتياطي ورموز PIN والمزامنة السحابية -->
-    <section id="section-settings" class="hidden space-y-4">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
-          <h3 class="font-extrabold text-base text-marine-900">بيانات المتجر والشعار والعنوان</h3>
-          <input type="text" id="set-store-name" placeholder="اسم المتجر" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
-          <input type="text" id="set-store-desc" placeholder="وصف المتجر" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
-          <input type="text" id="set-store-addr" placeholder="عنوان المتجر" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
-          <input type="text" id="set-store-phone" placeholder="رقم الهاتف" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono" />
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">رفع شعار المتجر</label>
-            <input type="file" accept="image/*" onchange="handleLogoFile(event)" class="text-xs" />
-          </div>
-          <button type="button" onclick="saveStoreInfo()" class="w-full py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-sm font-bold">
-            حفظ بيانات المتجر
-          </button>
-        </div>
-
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-          <h3 class="font-extrabold text-base text-marine-900">إدارة الكاشير والشيفتات ورموز PIN</h3>
-
-          <div class="flex flex-col sm:flex-row gap-2">
-            <input type="text" id="new-cashier-name" placeholder="اسم الكاشير" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
-            <input type="text" id="new-cashier-pin" inputmode="numeric" placeholder="PIN (مثال: 2222)" class="sm:w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
-            <button type="button" onclick="addCashierProfile()" class="px-4 py-2 rounded-xl bg-marine-700 text-white text-xs font-bold">إضافة</button>
-          </div>
-          <div id="settings-cashiers-list" class="flex flex-wrap gap-2"></div>
-
-          <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
-            <label class="block text-xs font-extrabold text-amber-950">رمز PIN الخاص بالإدارة</label>
-            <div class="flex gap-2">
-              <input type="text" id="set-admin-pin" inputmode="numeric" class="flex-1 px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-mono font-bold" />
-              <button type="button" onclick="saveAdminPin()" class="px-3.5 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-bold">حفظ PIN الإدارة</button>
-            </div>
-          </div>
-
-          <div class="flex gap-2">
-            <input type="text" id="new-shift-name" placeholder="اسم شيفت جديد..." class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
-            <button type="button" onclick="addShiftItem()" class="px-4 py-2 rounded-xl bg-cyan-700 text-white text-xs font-bold">إضافة شيفت</button>
-          </div>
-          <div id="settings-shifts-list" class="flex flex-wrap gap-2"></div>
-        </div>
-
-        <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
-          <h3 class="font-extrabold text-base text-marine-900">المزامنة السحابية والنسخ الاحتياطي JSON</h3>
-          <div class="flex flex-col sm:flex-row gap-2">
-            <input type="text" id="set-cloud-room" placeholder="كود مزامنة المتجر" class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold" />
-            <button type="button" onclick="activateCloudRoom()" class="px-4 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold">
-              تفعيل ومزامنة سحابية الآن
-            </button>
-            <button type="button" onclick="exportBackupJSON()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">
-              تصدير نسخة JSON
-            </button>
-            <label class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer text-center">
-              استيراد JSON
-              <input type="file" accept="application/json" onchange="importBackupJSON(event)" class="hidden" />
-            </label>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- ================================================= -->
-  <!-- النوافذ المنبثقة (PIN الإدارة / منتج / فاتورة)    -->
   <!-- ================================================= -->
   <!-- الشريط العلوي المتجاوب للهاتف والكمبيوتر         -->
   <!-- ================================================= -->
@@ -850,18 +664,18 @@
 
           <div class="flex flex-col sm:flex-row gap-2">
             <input type="text" id="new-cashier-name" placeholder="اسم الكاشير" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
-            <input type="text" id="new-cashier-pin" inputmode="numeric" placeholder="PIN (مثال: 2222)" class="sm:w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
+            <input type="text" id="new-cashier-pin" inputmode="numeric" placeholder="PIN (4 أرقام أو أكثر)" class="sm:w-36 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
             <button type="button" onclick="addCashierProfile()" class="px-4 py-2 rounded-xl bg-marine-700 text-white text-xs font-bold">إضافة</button>
           </div>
           <div id="settings-cashiers-list" class="flex flex-wrap gap-2"></div>
 
           <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
             <div class="flex items-center justify-between">
-              <label class="block text-xs font-extrabold text-amber-950">رمز PIN الخاص بالإدارة</label>
-              <span id="current-admin-pin-label" class="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-white border border-amber-300 text-amber-900"></span>
+              <label class="block text-xs font-extrabold text-amber-950">تغيير رمز PIN الخاص بالإدارة</label>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-white border border-amber-300 text-amber-900">محمي</span>
             </div>
             <div class="flex gap-2">
-              <input type="text" id="set-admin-pin" inputmode="numeric" class="flex-1 px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-mono font-bold" />
+              <input type="password" id="set-admin-pin" inputmode="numeric" placeholder="أدخل رمز PIN الجديد للإدارة" class="flex-1 px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-mono font-bold" />
               <button type="button" onclick="saveAdminPin()" class="px-3.5 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-bold">حفظ PIN الإدارة</button>
             </div>
           </div>
@@ -1088,7 +902,7 @@
       </div>
     </div>
   </div>
-  <!-- بدء التشغيل الفوري -->
+
   <script>
     const KEYS = {
       PRODUCTS: 'shabaka_pos_products_v4',
@@ -1376,16 +1190,6 @@
       if (sSel) {
         sSel.innerHTML = settings.shifts.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
         sSel.value = settings.shifts.includes(settings.activeShift) ? settings.activeShift : settings.shifts[0];
-      }
-      updateGatePinHint();
-    }
-
-    function updateGatePinHint() {
-      const name = document.getElementById('gate-cashier-select')?.value;
-      const prof = settings.cashierProfiles.find(p => p.name === name) || settings.cashierProfiles[0];
-      const hint = document.getElementById('gate-cashier-hint');
-      if (hint && prof) {
-        hint.textContent = `رمز PIN الخاص بـ (${prof.name}) الافتراضي: ${prof.pin}`;
       }
     }
 
@@ -1763,7 +1567,6 @@
         : total;
       const remainingCredit = Math.max(0, total - paidNow);
 
-      // تحديث أو إنشاء سجل العميل
       let custRec = customers.find(c => c.name === custName);
       if (!custRec && custName !== 'عميل نقدي') {
         custRec = { id: 'CUST-' + Date.now().toString().slice(-6), name: custName, phone: custPhone, totalBought: 0, balanceDue: 0 };
@@ -2011,9 +1814,6 @@
       window.open(url, '_blank', 'noopener,noreferrer');
     }
 
-    // =================================================
-    // نظام المرتجعات
-    // =================================================
     function openReturnModal() {
       const sel = document.getElementById('ret-product-select');
       if (!products.length) {
@@ -2507,15 +2307,13 @@
       document.getElementById('set-store-desc').value = settings.storeDesc;
       document.getElementById('set-store-addr').value = settings.storeAddr;
       document.getElementById('set-store-phone').value = settings.storePhone;
-      document.getElementById('set-admin-pin').value = settings.adminPin;
-      const adminLbl = document.getElementById('current-admin-pin-label');
-      if (adminLbl) adminLbl.textContent = 'الحالي: ' + settings.adminPin;
+      document.getElementById('set-admin-pin').value = '';
       document.getElementById('set-cloud-room').value = settings.cloudRoom;
 
       document.getElementById('settings-cashiers-list').innerHTML = settings.cashierProfiles.map((p, idx) => `
         <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-marine-50 border border-marine-200 text-xs font-bold">
           <span>${esc(p.name)}</span>
-          <span class="font-mono text-slate-600 bg-white px-1.5 py-0.5 rounded border border-marine-200">PIN: ${esc(p.pin)}</span>
+          <span class="font-mono text-slate-500 bg-white px-1.5 py-0.5 rounded border border-marine-200">PIN: ••••</span>
           <button type="button" onclick="editCashierProfile(${idx})" class="px-2 py-0.5 rounded-lg bg-marine-700 hover:bg-marine-800 text-white text-[11px] font-bold">
             تعديل
           </button>
@@ -2567,8 +2365,15 @@
 
     function addCashierProfile() {
       const name = document.getElementById('new-cashier-name').value.trim();
-      const pin = (document.getElementById('new-cashier-pin').value || '').trim() || '1111';
-      if (!name) return;
+      const pin = (document.getElementById('new-cashier-pin').value || '').trim();
+      if (!name) {
+        showToast('أدخل اسم الكاشير أولاً', 'error');
+        return;
+      }
+      if (pin.length < 4) {
+        showToast('أدخل رمز PIN للكاشير (4 أرقام على الأقل)', 'error');
+        return;
+      }
       settings.cashierProfiles.push({ name, pin });
       document.getElementById('new-cashier-name').value = '';
       document.getElementById('new-cashier-pin').value = '';
@@ -2590,7 +2395,7 @@
         return;
       }
 
-      const updatedPinRaw = window.prompt(`تعديل رمز PIN الخاص بـ (${updatedName}):`, String(prof.pin));
+      const updatedPinRaw = window.prompt(`أدخل رمز PIN الجديد لـ (${updatedName}):`, '');
       if (updatedPinRaw === null) return;
       const updatedPin = updatedPinRaw.trim();
       if (updatedPin.length < 4) {
@@ -2616,6 +2421,7 @@
         return;
       }
       settings.adminPin = pin;
+      document.getElementById('set-admin-pin').value = '';
       saveState(true);
       fillSettings();
       showToast('تم تحديث رمز PIN للإدارة', 'success');
