@@ -47,6 +47,27 @@
         }
       };
     }
+
+    // إزالة أي Service Worker قديم أو كاش قديم قد يسبب صفحة بيضاء على GitHub Pages
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      }).catch(function () {});
+    }
+
+    // إظهار رسالة واضحة بدلاً من صفحة بيضاء إذا وقع خطأ وقت التشغيل
+    window.addEventListener('error', function (event) {
+      if (event && event.target && event.target.tagName === 'SCRIPT') return;
+      const msg = (event && event.message) ? event.message : 'خطأ غير متوقع أثناء تحميل الصفحة';
+      const fallbackBox = document.getElementById('runtime-error-banner');
+      if (fallbackBox) {
+        fallbackBox.classList.remove('hidden');
+        const textEl = document.getElementById('runtime-error-text');
+        if (textEl) textEl.textContent = msg;
+      }
+    });
   </script>
 
   <style>
@@ -80,6 +101,17 @@
 <!-- ... existing code ... -->
 </head>
 <body class="min-h-screen flex flex-col">
+
+  <!-- شريط تنبيه يظهر فقط عند حدوث خطأ برمجي لمنع الصفحة البيضاء -->
+  <div id="runtime-error-banner" class="hidden fixed bottom-3 left-3 right-3 z-[95] bg-rose-950 text-white border border-rose-400/50 rounded-2xl p-3 shadow-2xl text-xs flex items-center justify-between gap-3">
+    <div>
+      <span class="font-extrabold text-rose-200">تنبيه تشغيلي: </span>
+      <span id="runtime-error-text" class="font-mono"></span>
+    </div>
+    <button type="button" onclick="location.reload()" class="px-3 py-1.5 rounded-xl bg-white text-rose-950 font-extrabold shrink-0">
+      إعادة تحميل
+    </button>
+  </div>
 
   <!-- ========================================== -->
   <!-- بوابة الدخول الرئيسية (Main Login Gate) -->
@@ -868,6 +900,7 @@
 
       const gate = document.getElementById('auth-gate-screen');
       if (gate && !currentSession.authenticated) {
+        gate.style.display = 'flex';
         gate.classList.remove('hidden');
       }
     }
@@ -878,12 +911,11 @@
         bootAppSafely();
       }
     };
-
-    function normalizeCashierProfiles(parsedSettings) {
-      if (Array.isArray(parsedSettings.cashierProfiles) && parsedSettings.cashierProfiles.length > 0) {
-        const cleaned = parsedSettings.cashierProfiles
-          .filter(p => p && String(p.name || '').trim())
-          .map(p => ({
+    setTimeout(function () {
+      if (!document.getElementById('gate-cashier-select')?.options?.length) {
+        bootAppSafely();
+      }
+    }, 120);
             name: String(p.name).trim(),
             pin: String(p.pin || '1111').trim() || '1111'
           }));
@@ -1244,6 +1276,7 @@
 
     function hideAuthGate() {
       const gate = document.getElementById('auth-gate-screen');
+      gate.style.display = 'none';
       gate.classList.add('hidden');
     }
 
@@ -1252,7 +1285,9 @@
       currentSession.authenticated = false;
       populateAuthGateControls();
       setAuthGateMode('cashier');
-      document.getElementById('auth-gate-screen').classList.remove('hidden');
+      const gate = document.getElementById('auth-gate-screen');
+      gate.style.display = 'flex';
+      gate.classList.remove('hidden');
       showToast('تم قفل الجلسة، يمكنك تبديل الكاشير أو الدخول للإدارة', 'info');
     }
 
