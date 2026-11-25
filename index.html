@@ -795,6 +795,12 @@
       </div>
       <form onsubmit="submitReturnItem(event)" class="p-4 space-y-3 text-xs">
         <div>
+          <label class="block font-bold mb-1">رقم الفاتورة (اختياري - يربط السعر والكمية بالفاتورة)</label>
+          <input type="text" id="ret-invoice-input" oninput="onReturnInvoiceChange()" placeholder="مثال: INV-123456"
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+          <p id="ret-invoice-status" class="text-[11px] font-bold text-slate-500 mt-1"></p>
+        </div>
+        <div>
           <label class="block font-bold mb-1">اختر المنتج المرتجع</label>
           <select id="ret-product-select" onchange="updateReturnPreview()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold"></select>
         </div>
@@ -805,9 +811,9 @@
               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold" />
           </div>
           <div>
-            <label class="block font-bold mb-1">رقم الفاتورة (اختياري)</label>
-            <input type="text" id="ret-invoice-input" placeholder="مثال: INV-123456"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+            <label class="block font-bold mb-1">سعر الوحدة في الفاتورة</label>
+            <input type="text" id="ret-unit-price-view" readonly
+              class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm font-mono font-bold text-marine-900" />
           </div>
         </div>
         <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between font-bold text-rose-900">
@@ -1833,12 +1839,175 @@
     }
 
     // =================================================
-    // العملاء والبيع الآجل (الذمم)
+    // نظام المرتجعات (إرجاع منتج أو عدد معين من القطع بدقة حسب الفاتورة)
     // =================================================
-    function refreshCustomersDatalist() {
-      const dl = document.getElementById('pos-customers-datalist');
-      if (!dl) return;
-      dl.innerHTML = customers.map(c => `<option value="${esc(c.name)}"></option>`).join('');
+    function findReturnInvoice(invoiceRef) {
+      const code = String(invoiceRef || '').trim().toLowerCase();
+      if (!code) return null;
+      return sales.find(inv => String(inv.id || '').trim().toLowerCase() === code) || null;
+    }
+
+    function getReturnPricingContext(invoiceRef, productId) {
+      const prod = products.find(p => String(p.id) === String(productId));
+      const inv = findReturnInvoice(invoiceRef);
+
+      if (inv && Array.isArray(inv.items)) {
+        const matchedItems = inv.items.filter(it => String(it.id) === String(productId));
+        if (matchedItems.length) {
+          const soldQty = matchedItems.reduce((sum, it) => sum + Number(it.qty || 0), 0);
+          const alreadyReturnedQty = returnsLog
+            .filter(r => String(r.invoiceRef || '').trim().toLowerCase() === String(inv.id).trim().toLowerCase() && String(r.productId) === String(productId))
+            .reduce((sum, r) => sum + Number(r.qty || 0), 0);
+          const remainingReturnableQty = Math.max(0, soldQty - alreadyReturnedQty);
+
+          const rawLineTotal = matchedItems.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0);
+          const invSubtotal = Number(inv.subtotal || 0);
+          const invDiscount = Number(inv.discount || 0);
+          const netFactor = invSubtotal > 0 ? Math.max(0, (invSubtotal - invDiscount) / invSubtotal) : 1;
+          const effectiveUnitPrice = soldQty > 0 ? (rawLineTotal * netFactor) / soldQty : Number(prod?.price || 0);
+          const effectiveUnitCost = matchedItems.reduce((sum, it) => sum + Number(it.cost ?? prod?.cost ?? 0) * Number(it.qty || 0), 0) / Math.max(1, soldQty);
+
+          return {
+            product: prod,
+            invoice: inv,
+            matchedInInvoice: true,
+            soldQty,
+            remainingReturnableQty,
+            unitPrice: effectiveUnitPrice,
+            unitCost: effectiveUnitCost,
+          };
+        }
+      }
+
+      return {
+        product: prod,
+        invoice: inv,
+        matchedInInvoice: false,
+        soldQty: null,
+        remainingReturnableQty: null,
+        unitPrice: Number(prod?.price || 0),
+        unitCost: Number(prod?.cost || 0),
+      };
+    }
+
+    function populateReturnProductsDropdown(invoiceRef = '') {
+      const sel = document.getElementById('ret-product-select');
+      const statusEl = document.getElementById('ret-invoice-status');
+      const inv = findReturnInvoice(invoiceRef);
+
+      if (inv && Array.isArray(inv.items) && inv.items.length) {
+        const uniqueItems = [];
+        const seenIds = new Set();
+        inv.items.forEach(it => {
+          if (it && it.id && !seenIds.has(String(it.id))) {
+            seenIds.add(String(it.id));
+            uniqueItems.push(it);
+          }
+        });
+
+        sel.innerHTML = uniqueItems.map(it => {
+          const ctx = getReturnPricingContext(inv.id, it.id);
+          return `<option value="${esc(it.id)}">${esc(it.name)} — متاح للمرتجع: ${ctx.remainingReturnableQty} (${fmt(ctx.unitPrice)})</option>`;
+        }).join('');
+
+        if (statusEl) {
+          statusEl.textContent = `تم العثور على الفاتورة ${inv.id} (العميل: ${inv.customer} — الإجمالي: ${fmt(inv.total)})`;
+          statusEl.className = 'text-[11px] font-bold text-emerald-700 mt-1';
+        }
+      } else {
+        sel.innerHTML = products.map(p => `<option value="${esc(p.id)}">${esc(p.name)} (${fmt(p.price)})</option>`).join('');
+        if (statusEl) {
+          if (String(invoiceRef || '').trim()) {
+            statusEl.textContent = 'رقم الفاتورة غير مطابق لفاتورة مسجلة — يُحسب بسعر البيع الحالي للمنتج';
+            statusEl.className = 'text-[11px] font-bold text-amber-700 mt-1';
+          } else {
+            statusEl.textContent = 'أدخل رقم الفاتورة لحساب سعر الصنف الفعلي في الفاتورة';
+            statusEl.className = 'text-[11px] font-bold text-slate-500 mt-1';
+          }
+        }
+      }
+    }
+
+    function onReturnInvoiceChange() {
+      const invoiceRef = document.getElementById('ret-invoice-input').value.trim();
+      populateReturnProductsDropdown(invoiceRef);
+      updateReturnPreview();
+    }
+
+    function openReturnModal() {
+      if (!products.length) {
+        showToast('لا توجد منتجات متاحة للمرتجع', 'error');
+        return;
+      }
+      document.getElementById('ret-qty-input').value = '1';
+      document.getElementById('ret-invoice-input').value = '';
+      populateReturnProductsDropdown('');
+      updateReturnPreview();
+      const m = document.getElementById('modal-return');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeReturnModal() {
+      const m = document.getElementById('modal-return');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function updateReturnPreview() {
+      const invoiceRef = document.getElementById('ret-invoice-input').value.trim();
+      const pid = document.getElementById('ret-product-select').value;
+      const qty = Math.max(1, parseInt(document.getElementById('ret-qty-input').value, 10) || 1);
+      const ctx = getReturnPricingContext(invoiceRef, pid);
+      const amount = Number(ctx.unitPrice || 0) * qty;
+
+      const unitView = document.getElementById('ret-unit-price-view');
+      if (unitView) unitView.value = fmt(ctx.unitPrice || 0);
+      document.getElementById('ret-amount-preview').textContent = fmt(amount);
+    }
+
+    function submitReturnItem(e) {
+      e.preventDefault();
+      const pid = document.getElementById('ret-product-select').value;
+      const qty = Math.max(1, parseInt(document.getElementById('ret-qty-input').value, 10) || 1);
+      const invoiceRef = document.getElementById('ret-invoice-input').value.trim();
+      const prod = products.find(p => String(p.id) === String(pid));
+      if (!prod) {
+        showToast('اختر منتجاً صحيحاً', 'error');
+        return;
+      }
+
+      const ctx = getReturnPricingContext(invoiceRef, pid);
+      if (ctx.matchedInInvoice && qty > ctx.remainingReturnableQty) {
+        showToast(`الكمية المرتجعة (${qty}) أكبر من المتاح في الفاتورة (${ctx.remainingReturnableQty})`, 'error');
+        return;
+      }
+
+      prod.stock = Number(prod.stock || 0) + qty;
+      const refundAmount = Number(ctx.unitPrice || 0) * qty;
+      const refundCost = Number(ctx.unitCost || 0) * qty;
+
+      const retRecord = {
+        id: 'RET-' + Date.now().toString().slice(-6),
+        date: new Date().toLocaleString('ar-EG'),
+        dateISO: new Date().toISOString(),
+        productId: prod.id,
+        productName: prod.name,
+        qty,
+        invoiceRef: ctx.invoice ? ctx.invoice.id : (invoiceRef || 'مرتجع مباشر'),
+        cashier: session.cashier,
+        shift: session.shift,
+        amount: refundAmount,
+        profitDeduction: refundAmount - refundCost,
+      };
+
+      returnsLog.unshift(retRecord);
+      saveState(true);
+      closeReturnModal();
+      renderPosGrid();
+      renderInventory();
+      renderReports();
+      showToast(`تم تسجيل مرتجع (${qty} × ${prod.name}) بقيمة ${fmt(refundAmount)}`, 'success');
     }
 
     function addOrUpdateCustomer(e) {
