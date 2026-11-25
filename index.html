@@ -1,28 +1,13 @@
-<!-- ... existing code ... -->
-  <!-- مكتبة html5-qrcode للمسح الضوئي للباركود بالكاميرا مباشرة مع مصدر احتياطي آمن -->
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" onerror="loadFallbackQrScanner()"></script>
-  <script>
-    function loadFallbackQrScanner() {
-      if (window.Html5Qrcode) return;
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-      script.async = true;
-      script.onerror = function () {
-        console.warn('تعذر تحميل مكتبة مسح الباركود بالكاميرا من الشبكة.');
-      };
-      document.head.appendChild(script);
-    }
-
-    // معالج عام لالتقاط أخطاء تحميل السكربتات الخارجية ومنع توقف واجهة التطبيق
-    window.addEventListener('error', function (event) {
-      const targetTag = event && event.target && event.target.tagName;
-      if (targetTag === 'SCRIPT') {
-        event.preventDefault();
-        console.warn('تم تجاهل خطأ تحميل سكربت خارجي:', event.target.src || 'unknown');
-      }
-    }, true);
-  </script>
-  <!-- إعداد ألوان Tailwind المخصصة لمتجر الصيد البحري -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شبكة وصنارة - نظام كاشير وإدارة مخزون</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <script>
     if (typeof tailwind !== 'undefined') {
       tailwind.config = {
@@ -32,9 +17,6 @@
               marine: {
                 50: '#f0f9ff',
                 100: '#e0f2fe',
-                200: '#bae6fd',
-                300: '#7dd3fc',
-                400: '#38bdf8',
                 500: '#0ea5e9',
                 600: '#0284c7',
                 700: '#0369a1',
@@ -47,2105 +29,1352 @@
         }
       };
     }
-
-    // إزالة أي Service Worker قديم أو كاش قديم قد يسبب صفحة بيضاء على GitHub Pages
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        for (let registration of registrations) {
-          registration.unregister();
-        }
-      }).catch(function () {});
-    }
-
-    // إظهار رسالة واضحة بدلاً من صفحة بيضاء إذا وقع خطأ وقت التشغيل
-    window.addEventListener('error', function (event) {
-      if (event && event.target && event.target.tagName === 'SCRIPT') return;
-      const msg = (event && event.message) ? event.message : 'خطأ غير متوقع أثناء تحميل الصفحة';
-      const fallbackBox = document.getElementById('runtime-error-banner');
-      if (fallbackBox) {
-        fallbackBox.classList.remove('hidden');
-        const textEl = document.getElementById('runtime-error-text');
-        if (textEl) textEl.textContent = msg;
-      }
-    });
   </script>
-
   <style>
     body {
-      font-family: 'Tajawal', 'Inter', sans-serif;
+      font-family: 'Tajawal', sans-serif;
       background-color: #f1f5f9;
       color: #0f172a;
+      margin: 0;
     }
-
-    /* خلفية بوابات الدخول البحرية الجذابة بدون صور خارجية معطوبة */
-    .marine-login-bg {
+    .sea-gate-bg {
       background:
-        radial-gradient(circle at 18% 20%, rgba(34, 211, 238, 0.24), transparent 42%),
-        radial-gradient(circle at 82% 78%, rgba(14, 165, 233, 0.28), transparent 45%),
-        linear-gradient(135deg, #041c2c 0%, #082f49 48%, #0c4a6e 100%);
-      position: relative;
-      overflow-y: auto;
+        radial-gradient(circle at 15% 20%, rgba(34, 211, 238, 0.25), transparent 42%),
+        radial-gradient(circle at 85% 80%, rgba(14, 165, 233, 0.28), transparent 45%),
+        linear-gradient(135deg, #041c2c 0%, #082f49 52%, #0c4a6e 100%);
     }
-
-    .marine-login-bg::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image:
-        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0px, rgba(255, 255, 255, 0.025) 1px, transparent 1px, transparent 22px),
-        repeating-linear-gradient(-45deg, rgba(56, 189, 248, 0.03) 0px, rgba(56, 189, 248, 0.03) 1px, transparent 1px, transparent 22px);
-      pointer-events: none;
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff !important; }
     }
-
-    ::-webkit-scrollbar {
-<!-- ... existing code ... -->
+  </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <!-- شريط تنبيه يظهر فقط عند حدوث خطأ برمجي لمنع الصفحة البيضاء -->
-  <div id="runtime-error-banner" class="hidden fixed bottom-3 left-3 right-3 z-[95] bg-rose-950 text-white border border-rose-400/50 rounded-2xl p-3 shadow-2xl text-xs flex items-center justify-between gap-3">
-    <div>
-      <span class="font-extrabold text-rose-200">تنبيه تشغيلي: </span>
-      <span id="runtime-error-text" class="font-mono"></span>
-    </div>
-    <button type="button" onclick="location.reload()" class="px-3 py-1.5 rounded-xl bg-white text-rose-950 font-extrabold shrink-0">
-      إعادة تحميل
-    </button>
-  </div>
+  <!-- شريط إشعارات مدمج بدون alert -->
+  <div id="toast-box" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-2xl shadow-xl text-xs sm:text-sm font-extrabold text-white bg-slate-900 border border-white/15 no-print"></div>
 
-  <!-- ========================================== -->
-  <!-- بوابة الدخول الرئيسية (Main Login Gate) -->
-  <!-- ========================================== -->
-  <div id="auth-gate-screen" class="fixed inset-0 z-[80] marine-login-bg flex items-center justify-center p-4 no-print">
-    <div class="relative z-10 w-full max-w-4xl bg-slate-950/75 backdrop-blur-xl border border-cyan-300/20 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 text-white">
+  <!-- ================================================= -->
+  <!-- بوابة الدخول الرئيسية (PIN للكاشير والإدارة) -->
+  <!-- ================================================= -->
+  <div id="gate-screen" class="fixed inset-0 z-[80] sea-gate-bg flex items-center justify-center p-4 no-print">
+    <div class="w-full max-w-4xl bg-slate-950/80 border border-cyan-300/20 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 text-white">
 
-      <!-- العمود الأيمن: هوية المتجر وصورة الخلفية البحرية الجذابة -->
-      <div class="lg:col-span-5 p-6 sm:p-8 bg-gradient-to-b from-cyan-500/15 via-marine-900/60 to-slate-950/90 border-b lg:border-b-0 lg:border-l border-white/10 flex flex-col justify-between gap-6">
+      <!-- الجانب التعريفي البحري -->
+      <div class="lg:col-span-5 p-6 sm:p-8 bg-gradient-to-b from-cyan-500/15 to-slate-950/90 border-b lg:border-b-0 lg:border-l border-white/10 flex flex-col justify-between gap-6">
         <div class="space-y-4">
-          <div class="flex items-center gap-3.5">
-            <div class="w-14 h-14 rounded-2xl bg-cyan-400/15 border border-cyan-300/40 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
-              <img id="gate-store-logo" src="" alt="شعار المتجر" class="hidden w-full h-full object-cover" />
-              <i id="gate-default-icon" class="fa-solid fa-fish-fins text-3xl text-cyan-300"></i>
+          <div class="flex items-center gap-3">
+            <div class="w-14 h-14 rounded-2xl bg-cyan-400/15 border border-cyan-300/40 flex items-center justify-center overflow-hidden shrink-0">
+              <img id="gate-logo-img" src="" alt="شعار المتجر" class="hidden w-full h-full object-cover" />
+              <span id="gate-logo-emoji" class="text-2xl font-extrabold text-cyan-300">⚓</span>
             </div>
             <div>
               <span class="inline-block text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-300/30 mb-1">
-                نظام نقاط البيع والمخزون
+                كاشير ومخزون ومزامنة سحابية
               </span>
-              <h2 id="gate-store-name" class="text-2xl font-extrabold tracking-tight text-white">شبكة وصنارة</h2>
+              <h2 id="gate-store-title" class="text-2xl font-extrabold text-white">شبكة وصنارة</h2>
             </div>
           </div>
 
-          <p id="gate-store-subtitle" class="text-xs sm:text-sm text-cyan-100/80 leading-relaxed">
-            مستلزمات الصيد البحري والقصبات والماكينات والاكسسوارات — إدارة شيفتات الكاشير وصلاحيات الإدارة والمزامنة السحابية.
+          <p id="gate-store-desc" class="text-xs sm:text-sm text-cyan-100/80 leading-relaxed">
+            إدارة مبيعات ومخزون مستلزمات الصيد والقصبات والماكينات والسنارات مع صلاحيات PIN لكل كاشير وللإدارة.
           </p>
 
-          <!-- بطاقة زخرفية مستوحاة من الصيد البحري -->
-          <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2.5">
-            <div class="flex items-center gap-2.5 text-xs text-cyan-200 font-bold">
-              <i class="fa-solid fa-shield-halved text-cyan-400"></i>
-              <span>دخول الكاشير برمز PIN خاص لكل شيفت</span>
-            </div>
-            <div class="flex items-center gap-2.5 text-xs text-amber-200 font-bold">
-              <i class="fa-solid fa-user-lock text-amber-400"></i>
-              <span>حماية المخزون والتقارير وتعديل الفواتير برمز الإدارة</span>
-            </div>
-            <div class="flex items-center gap-2.5 text-xs text-emerald-200 font-bold">
-              <i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i>
-              <span>حفظ ومزامنة البيانات عبر الأجهزة عند تفعيل السحابة</span>
-            </div>
+          <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2 text-xs font-bold">
+            <div class="text-cyan-200">• دخول الكاشير برمز PIN الخاص بالشيفت</div>
+            <div class="text-amber-200">• المخزون والتقارير وتعديل الفواتير برمز PIN للإدارة</div>
+            <div class="text-emerald-200">• مزامنة البيانات عبر الأجهزة عند فتح الرابط</div>
           </div>
         </div>
 
-        <div class="text-[11px] text-cyan-200/60 flex items-center justify-between pt-2 border-t border-white/10">
-          <span><i class="fa-solid fa-location-dot ml-1"></i><span id="gate-store-address">كورنيش البحر</span></span>
-          <span class="font-mono" id="gate-live-time">--:--</span>
+        <div class="text-[11px] text-cyan-200/70 flex items-center justify-between pt-3 border-t border-white/10">
+          <span id="gate-store-addr">كورنيش البحر</span>
+          <span id="gate-clock" class="font-mono">--:--</span>
         </div>
       </div>
 
-      <!-- العمود الأيسر: نموذج الدخول (كاشير / إدارة) -->
+      <!-- نموذج الدخول -->
       <div class="lg:col-span-7 p-6 sm:p-8 space-y-5">
         <div class="flex items-center justify-between gap-2">
           <div>
-            <h3 class="text-lg sm:text-xl font-extrabold text-white">تسجيل الدخول إلى النظام</h3>
-            <p class="text-xs text-slate-300 mt-0.5">اختر نوع الدخول وأدخل رمز PIN المخصص</p>
+            <h3 class="text-lg sm:text-xl font-extrabold text-white">تسجيل الدخول</h3>
+            <p class="text-xs text-slate-300">اختر نوع الدخول وأدخل رمز PIN</p>
           </div>
-          <div id="gate-cloud-status" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-white/10">
-            <i class="fa-solid fa-hard-drive ml-1"></i>محلي
-          </div>
+          <span id="gate-sync-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-cyan-200 border border-white/10">
+            سحابي + محلي
+          </span>
         </div>
 
-        <!-- تبديل وضع الدخول: كاشير شيفت أو مدير نظام -->
-        <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-900/90 border border-white/10">
-          <button type="button" id="gate-mode-cashier" onclick="setAuthGateMode('cashier')" class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition bg-cyan-500 text-slate-950 shadow flex items-center justify-center gap-2">
-            <i class="fa-solid fa-cash-register"></i>
-            <span>دخول الكاشير (الشيفت)</span>
+        <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-900 border border-white/10">
+          <button type="button" id="btn-mode-cashier" onclick="switchGateMode('cashier')" class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold bg-cyan-500 text-slate-950 transition">
+            دخول الكاشير (الشيفت)
           </button>
-          <button type="button" id="gate-mode-admin" onclick="setAuthGateMode('admin')" class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition text-slate-300 hover:bg-white/5 flex items-center justify-center gap-2">
-            <i class="fa-solid fa-user-shield"></i>
-            <span>دخول الإدارة</span>
+          <button type="button" id="btn-mode-admin" onclick="switchGateMode('admin')" class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-slate-300 hover:bg-white/5 transition">
+            دخول الإدارة
           </button>
         </div>
 
-        <!-- نموذج دخول الكاشير -->
-        <form id="gate-cashier-form" onsubmit="handleCashierLogin(event)" class="space-y-4">
+        <!-- دخول الكاشير -->
+        <form id="form-gate-cashier" onsubmit="loginAsCashier(event)" class="space-y-4">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label for="gate-cashier-select" class="block text-xs font-bold text-cyan-100 mb-1.5">اختر اسم الكاشير</label>
-              <select id="gate-cashier-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white text-sm font-bold focus:outline-none focus:border-cyan-400">
-              </select>
+              <label for="gate-cashier-select" class="block text-xs font-bold text-cyan-100 mb-1.5">الكاشير</label>
+              <select id="gate-cashier-select" onchange="updateGatePinHint()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white text-sm font-bold"></select>
             </div>
             <div>
-              <label for="gate-shift-select" class="block text-xs font-bold text-cyan-100 mb-1.5">اختر الشيفت / الوردية</label>
-              <select id="gate-shift-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white text-sm font-bold focus:outline-none focus:border-cyan-400">
-              </select>
+              <label for="gate-shift-select" class="block text-xs font-bold text-cyan-100 mb-1.5">الشيفت</label>
+              <select id="gate-shift-select" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white text-sm font-bold"></select>
             </div>
           </div>
 
           <div>
             <label for="gate-cashier-pin" class="block text-xs font-bold text-cyan-100 mb-1.5">رمز PIN الخاص بالكاشير</label>
-            <div class="relative">
-              <i class="fa-solid fa-key absolute right-3.5 top-1/2 -translate-y-1/2 text-cyan-400 text-sm"></i>
-              <input type="password" id="gate-cashier-pin" inputmode="numeric" required placeholder="أدخل رمز PIN الخاص بالكاشير (مثال: 1111)"
-                class="w-full pr-10 pl-4 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white font-mono text-sm tracking-widest focus:outline-none focus:border-cyan-400" />
-            </div>
-            <p id="gate-pin-hint" class="text-[11px] text-slate-400 mt-1.5"></p>
+            <input type="password" id="gate-cashier-pin" inputmode="numeric" required placeholder="أدخل رمز PIN الخاص بالكاشير"
+              class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white font-mono text-sm tracking-widest" />
+            <p id="gate-cashier-hint" class="text-[11px] text-slate-400 mt-1.5"></p>
           </div>
 
-          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-gradient-to-l from-cyan-400 to-sky-500 hover:from-cyan-300 hover:to-sky-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-cyan-500/20 transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-right-to-bracket"></i>
-            <span>بدء الشيفت وفتح نقطة البيع</span>
+          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-sm shadow-lg transition">
+            بدء الشيفت وفتح نقطة البيع
           </button>
         </form>
 
-        <!-- نموذج دخول الإدارة -->
-        <form id="gate-admin-form" onsubmit="handleAdminLogin(event)" class="hidden space-y-4">
-          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 text-xs text-amber-200 leading-relaxed">
-            دخول الإدارة يتيح إدارة المخزون، عرض التقارير والأرباح، تعديل أو حذف الفواتير المصدرة، وتعديل رموز PIN والإعدادات.
+        <!-- دخول الإدارة -->
+        <form id="form-gate-admin" onsubmit="loginAsAdmin(event)" class="hidden space-y-4">
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 text-xs text-amber-200">
+            دخول الإدارة يتيح إضافة/تعديل المخزون، عرض التقارير والأرباح، تعديل الفواتير، وتغيير رموز PIN.
           </div>
 
           <div>
             <label for="gate-admin-pin" class="block text-xs font-bold text-amber-200 mb-1.5">رمز PIN الخاص بالإدارة</label>
-            <div class="relative">
-              <i class="fa-solid fa-lock absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-400 text-sm"></i>
-              <input type="password" id="gate-admin-pin" inputmode="numeric" required placeholder="أدخل رمز PIN للإدارة (الافتراضي: 9999)"
-                class="w-full pr-10 pl-4 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white font-mono text-sm tracking-widest focus:outline-none focus:border-amber-400" />
-            </div>
+            <input type="password" id="gate-admin-pin" inputmode="numeric" required placeholder="أدخل رمز PIN للإدارة (الافتراضي: 9999)"
+              class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white font-mono text-sm tracking-widest" />
           </div>
 
-          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-gradient-to-l from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-unlock-keyhole"></i>
-            <span>دخول لوحة الإدارة الكاملة</span>
+          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm shadow-lg transition">
+            دخول الإدارة الكاملة
           </button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- الشريط العلوي (Top Navigation Bar) -->
-  <!-- ========================================== -->
+  <!-- ================================================= -->
+  <!-- الشريط العلوي                                     -->
+  <!-- ================================================= -->
   <header class="bg-gradient-to-l from-marine-950 via-marine-900 to-marine-800 text-white shadow-lg sticky top-0 z-30 no-print">
-<!-- ... existing code ... -->
-            <h1 id="header-store-name" class="text-lg sm:text-xl font-extrabold tracking-tight">شبكة وصنارة</h1>
-            <span id="session-role-badge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-cyan-400/15 text-cyan-200 border border-cyan-400/30">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-cyan-400/15 border border-cyan-300/30 flex items-center justify-center overflow-hidden shrink-0">
+          <img id="header-logo-img" src="" alt="شعار" class="hidden w-full h-full object-cover" />
+          <span id="header-logo-emoji" class="text-xl font-extrabold text-cyan-300">⚓</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 id="header-store-title" class="text-lg sm:text-xl font-extrabold">شبكة وصنارة</h1>
+            <span id="header-role-badge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-cyan-400/15 text-cyan-200 border border-cyan-400/30">
               كاشير
             </span>
           </div>
-          <p id="header-store-subtitle" class="text-[11px] sm:text-xs text-cyan-200/80">
-            مستلزمات الصيد البحري والقصبات والماكينات والاكسسوارات
-          </p>
+          <p id="header-store-desc" class="text-[11px] text-cyan-200/80">مستلزمات الصيد البحري والقصبات والماكينات والاكسسوارات</p>
         </div>
       </div>
 
-      <!-- أزرار التنقل بين الأقسام -->
-      <nav class="flex items-center gap-1.5 sm:gap-2 bg-marine-950/60 p-1 rounded-2xl border border-white/10 overflow-x-auto max-w-full">
-        <button onclick="switchTab('pos')" id="nav-pos" class="nav-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition bg-cyan-500 text-slate-950 shadow">
-          <i class="fa-solid fa-cash-register"></i>
-          <span>نقطة البيع</span>
-        </button>
-        <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition text-slate-200 hover:bg-white/10 relative">
-          <i class="fa-solid fa-boxes-stacked"></i>
-          <span>المخزون</span>
-          <span id="low-stock-badge" class="hidden -top-1 -left-1 bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">0</span>
-        </button>
-        <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition text-slate-200 hover:bg-white/10">
-          <i class="fa-solid fa-chart-line"></i>
-          <span>التقارير والفواتير</span>
-        </button>
-        <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition text-slate-200 hover:bg-white/10">
-          <i class="fa-solid fa-sliders"></i>
-          <span>الإعدادات والنسخ</span>
-        </button>
+      <nav class="flex items-center gap-1.5 bg-marine-950/60 p-1 rounded-2xl border border-white/10 overflow-x-auto max-w-full">
+        <button onclick="openTab('pos')" id="tab-btn-pos" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-cyan-500 text-slate-950">نقطة البيع</button>
+        <button onclick="openTab('inventory')" id="tab-btn-inventory" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10">المخزون</button>
+        <button onclick="openTab('reports')" id="tab-btn-reports" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10">التقارير والفواتير</button>
+        <button onclick="openTab('settings')" id="tab-btn-settings" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10">الإعدادات والنسخ</button>
       </nav>
 
-      <!-- الوقت والحالة السحابية وزر تبديل المستخدم / قفل الشيفت -->
-      <div class="flex items-center gap-3">
-        <div class="hidden xl:flex flex-col items-end text-xs text-cyan-100/90">
-          <span id="live-clock" class="font-mono font-bold text-sm text-white">--:--:--</span>
-          <span id="live-date" class="text-[11px] text-cyan-200/75">--/--/----</span>
-        </div>
-        <button type="button" onclick="lockSessionToGate()" title="قفل الجلسة / تبديل الكاشير أو الإدارة" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-rose-500/80 text-white text-xs font-bold border border-white/15 transition flex items-center gap-1.5">
-          <i class="fa-solid fa-lock"></i>
-          <span class="hidden sm:inline">قفل / تبديل</span>
+      <div class="flex items-center gap-2.5">
+        <span id="header-clock" class="hidden md:inline font-mono text-xs text-cyan-100">--:--:--</span>
+        <button type="button" onclick="lockToGate()" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-rose-500 text-white text-xs font-bold border border-white/15 transition">
+          قفل / تبديل
         </button>
       </div>
     </div>
   </header>
 
-  <!-- ========================================== -->
-  <!-- المحتوى الرئيسي (Main Content) -->
-  <!-- ========================================== -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5">
+  <!-- ================================================= -->
+  <!-- المحتوى الرئيسي                                   -->
+  <!-- ================================================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 space-y-5">
 
-    <!-- ------------------------------------------ -->
-    <!-- القسم 1: شاشة نقطة البيع (POS Screen) -->
-    <!-- ------------------------------------------ -->
-    <section id="tab-pos" class="tab-section space-y-4">
-
-      <!-- شريط الكاشير والشيفت الحالي -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex flex-wrap items-center gap-3 sm:gap-5">
-          <div class="flex items-center gap-2">
-            <span class="w-8 h-8 rounded-xl bg-marine-50 text-marine-700 flex items-center justify-center text-xs font-bold border border-marine-100">
-              <i class="fa-solid fa-user-tie"></i>
-            </span>
-            <div>
-              <span class="block text-[10px] font-bold text-slate-400">الكاشير الحالي</span>
-              <span id="pos-active-cashier-label" class="text-xs sm:text-sm font-extrabold text-slate-800">--</span>
-            </div>
-          </div>
-
-          <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
-
-          <div class="flex items-center gap-2">
-            <span class="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center text-xs font-bold border border-cyan-100">
-              <i class="fa-solid fa-clock"></i>
-            </span>
-            <div>
-              <span class="block text-[10px] font-bold text-slate-400">الشيفت / الوردية</span>
-              <span id="pos-active-shift-label" class="text-xs sm:text-sm font-extrabold text-slate-800">--</span>
-            </div>
-          </div>
+    <!-- 1. نقطة البيع -->
+    <section id="section-pos" class="space-y-4">
+      <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex flex-wrap items-center gap-4">
+          <div><span class="text-slate-400">الكاشير:</span> <strong id="pos-cashier-name" class="text-slate-800">--</strong></div>
+          <div><span class="text-slate-400">الشيفت:</span> <strong id="pos-shift-name" class="text-slate-800">--</strong></div>
         </div>
-
-        <div class="flex items-center gap-2 text-[11px] text-slate-500">
-          <i class="fa-solid fa-circle-check text-emerald-500"></i>
-          <span>يتم تسجيل اسم الكاشير والشيفت تلقائياً في كل فاتورة</span>
-        </div>
+        <span class="text-emerald-700 font-bold">يُسجل الكاشير والشيفت في كل فاتورة</span>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-<!-- ... existing code ... -->
-    <!-- ------------------------------------------ -->
-    <!-- القسم 2: إدارة المخزون (Inventory Screen) -->
-    <!-- ------------------------------------------ -->
-    <section id="tab-inventory" class="tab-section hidden space-y-4">
+        <!-- المنتجات والبحث -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input type="text" id="pos-barcode-input" onkeydown="handleBarcodeEnter(event)" placeholder="مسح أو إدخال باركود المنتج ثم Enter..."
+                class="flex-1 px-3.5 py-2 bg-marine-50/60 border border-marine-200 rounded-xl text-sm font-mono font-bold" />
+              <button type="button" onclick="scanBarcodeValue()" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold">
+                إضافة بالباركود
+              </button>
+            </div>
+            <input type="text" id="pos-search-input" oninput="renderPosGrid()" placeholder="ابحث باسم المنتج أو الباركود..."
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+            <div id="pos-categories-bar" class="flex items-center gap-1.5 overflow-x-auto pb-1"></div>
+          </div>
 
-      <!-- بانر توضيحي لصلاحيات المخزون (مشاهدة وبحث للكاشير - تعديل وإضافة وحذف للإدارة) -->
-      <div id="inventory-role-banner" class="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div id="pos-products-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+        </div>
+
+        <!-- سلة الفاتورة -->
+        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-4 py-3 bg-marine-900 text-white font-extrabold text-sm flex items-center justify-between">
+            <span>فاتورة البيع الحالية</span>
+            <button type="button" onclick="clearCart()" class="text-xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-rose-500 transition">تفريغ</button>
+          </div>
+
+          <div class="p-4 space-y-3">
+            <input type="text" id="pos-customer-input" placeholder="اسم العميل (اختياري - الافتراضي: عميل نقدي)"
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
+
+            <div id="pos-cart-items" class="max-h-64 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-slate-50/50 text-xs"></div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">خصم (ج.م)</label>
+                <input type="number" id="pos-discount-input" oninput="renderCart()" value="0" min="0" step="0.5"
+                  class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold" />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">طريقة الدفع</label>
+                <select id="pos-payment-select" onchange="togglePaymentProof()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+                  <option value="كاش">كاش</option>
+                  <option value="محفظة إلكترونية">محفظة إلكترونية</option>
+                  <option value="إنستاباي">إنستاباي</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="pos-wallet-box" class="hidden p-2.5 rounded-xl bg-amber-50 border border-amber-200 space-y-2 text-xs">
+              <select id="pos-wallet-provider" class="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg font-bold">
+                <option value="فودافون كاش">فودافون كاش</option>
+                <option value="أورانج كاش">أورانج كاش</option>
+                <option value="اتصالات كاش">اتصالات كاش</option>
+                <option value="WE Pay">WE Pay</option>
+              </select>
+              <input type="text" id="pos-wallet-phone" placeholder="الرقم المحول منه" class="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg font-mono" />
+            </div>
+
+            <div id="pos-instapay-box" class="hidden p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-xs">
+              <input type="text" id="pos-instapay-ref" placeholder="الرقم المرجعي لإنستاباي" class="w-full px-2.5 py-1.5 bg-white border border-purple-300 rounded-lg font-mono" />
+            </div>
+
+            <div class="p-3 rounded-xl bg-marine-50 border border-marine-100 space-y-1 text-xs">
+              <div class="flex justify-between"><span>المجموع الفرعي:</span><span id="cart-subtotal" class="font-mono font-bold">0.00 ج.م</span></div>
+              <div class="flex justify-between text-rose-600"><span>الخصم:</span><span id="cart-discount-view" class="font-mono font-bold">0.00 ج.م</span></div>
+              <div class="flex justify-between text-sm font-extrabold text-marine-950 pt-1 border-t border-marine-200">
+                <span>الإجمالي النهائي:</span><span id="cart-total" class="font-mono">0.00 ج.م</span>
+              </div>
+            </div>
+
+            <button type="button" onclick="completeSale()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow transition">
+              إتمام البيع وإصدار الفاتورة
+            </button>
+          </div>
+        </div>
       </div>
+    </section>
 
-      <!-- بطاقات إحصائيات المخزون -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-          <p class="text-xs font-bold text-slate-500">إجمالي الأصناف</p>
-          <p id="inv-total-items" class="text-2xl font-extrabold text-marine-900 font-mono mt-1">0</p>
+    <!-- 2. المخزون (مشاهدة وبحث وفلترة للكاشير + إضافة وتعديل للإدارة) -->
+    <section id="section-inventory" class="hidden space-y-4">
+      <div id="inv-role-note" class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm text-xs font-bold text-marine-900"></div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">عدد الأصناف</div>
+          <div id="inv-stat-count" class="text-2xl font-extrabold font-mono text-marine-900 mt-1">0</div>
         </div>
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-          <p class="text-xs font-bold text-slate-500">إجمالي القطع بالمخزن</p>
-          <p id="inv-total-units" class="text-2xl font-extrabold text-cyan-700 font-mono mt-1">0</p>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">إجمالي القطع</div>
+          <div id="inv-stat-units" class="text-2xl font-extrabold font-mono text-cyan-700 mt-1">0</div>
         </div>
-        <div id="inv-cost-card" class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-          <p class="text-xs font-bold text-slate-500">قيمة المخزون (بسعر التكلفة)</p>
-          <p id="inv-cost-value" class="text-xl sm:text-2xl font-extrabold text-slate-800 font-mono mt-1">0.00</p>
+        <div id="inv-cost-box" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">قيمة المخزون (تكلفة)</div>
+          <div id="inv-stat-cost" class="text-xl font-extrabold font-mono text-slate-800 mt-1">0.00 ج.م</div>
         </div>
         <div class="bg-white rounded-2xl p-4 border border-rose-200 bg-rose-50/40 shadow-sm">
-          <p class="text-xs font-bold text-rose-700">أصناف أوشكت على النفاد</p>
-          <p id="inv-low-stock-count" class="text-2xl font-extrabold text-rose-600 font-mono mt-1">0</p>
+          <div class="text-xs text-rose-700 font-bold">أصناف منخفضة / نافذة</div>
+          <div id="inv-stat-low" class="text-2xl font-extrabold font-mono text-rose-600 mt-1">0</div>
         </div>
       </div>
 
-      <!-- شريط أدوات المخزون -->
-      <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        <div class="flex flex-col sm:flex-row gap-2.5 flex-1">
-          <div class="relative flex-1">
-            <i class="fa-solid fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input type="text" id="inv-search-input" oninput="renderInventoryTable()" placeholder="ابحث في المخزون بالاسم أو الباركود..."
-              class="w-full pr-10 pl-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-marine-500" />
-          </div>
-          <select id="inv-category-filter" onchange="renderInventoryTable()" class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:border-marine-500">
-            <option value="الكل">كل الفئات</option>
-          </select>
-          <select id="inv-stock-status-filter" onchange="renderInventoryTable()" class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:border-marine-500">
-            <option value="all">كل حالات الاستوك</option>
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2.5 justify-between">
+        <div class="flex flex-col sm:flex-row gap-2 flex-1">
+          <input type="text" id="inv-search-input" oninput="renderInventory()" placeholder="ابحث في المخزون بالاسم أو الباركود..."
+            class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+          <select id="inv-stock-filter" onchange="renderInventory()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+            <option value="all">كل الاستوك</option>
             <option value="available">الاستوك المتاح</option>
-            <option value="low">الناقص / أوشك على النفاد</option>
-            <option value="out">النافذ بالكامل</option>
+            <option value="low">الناقص / منخفض</option>
+            <option value="out">النافذ</option>
           </select>
         </div>
-
-        <button id="inv-add-product-btn" onclick="requestAdminAction(() => openProductModal())" class="px-4 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-sm font-bold shadow transition flex items-center justify-center gap-2">
-          <i class="fa-solid fa-plus-circle"></i>
-          <span>إضافة منتج صيد جديد</span>
+        <button id="inv-add-btn" type="button" onclick="requireAdminPin(() => openProductForm())" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-extrabold">
+          + إضافة منتج (PIN الإدارة)
         </button>
       </div>
 
-      <!-- جدول المخزون -->
-      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-right border-collapse">
-            <thead>
-              <tr class="bg-slate-100/90 text-slate-700 text-xs font-extrabold border-b border-slate-200">
-                <th class="py-3 px-4">الباركود</th>
-                <th class="py-3 px-4">اسم المنتج</th>
-                <th class="py-3 px-4">الفئة</th>
-                <th id="inv-th-cost" class="py-3 px-4">سعر الشراء</th>
-                <th class="py-3 px-4">سعر البيع</th>
-                <th class="py-3 px-4">الكمية</th>
-                <th class="py-3 px-4">الحالة</th>
-                <th class="py-3 px-4 text-center">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody id="inventory-table-body" class="divide-y divide-slate-100 text-sm">
-            </tbody>
-          </table>
-        </div>
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+        <table class="w-full text-right border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
+              <th class="py-3 px-4">الباركود</th>
+              <th class="py-3 px-4">المنتج</th>
+              <th class="py-3 px-4">الفئة</th>
+              <th id="inv-th-cost" class="py-3 px-4">سعر الشراء</th>
+              <th class="py-3 px-4">سعر البيع</th>
+              <th class="py-3 px-4">الكمية</th>
+              <th class="py-3 px-4">الحالة</th>
+              <th class="py-3 px-4 text-center">إجراء</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+        </table>
       </div>
     </section>
 
-    <!-- ------------------------------------------ -->
-    <!-- القسم 3: التقارير والفواتير (Reports Screen) -->
-    <!-- ------------------------------------------ -->
-    <section id="tab-reports" class="tab-section hidden space-y-4">
-
-      <!-- ملخص المبيعات والأرباح (الأرباح والتقارير المالية محمية للإدارة) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-500">إجمالي المبيعات</span>
-            <i class="fa-solid fa-coins text-amber-500"></i>
-          </div>
-          <p id="rep-total-sales" class="text-2xl font-extrabold text-marine-900 font-mono mt-1.5">0.00 ج.م</p>
+    <!-- 3. التقارير والفواتير (قراءة وطباعة للجميع + تعديل الفواتير بـ PIN الإدارة) -->
+    <section id="section-reports" class="hidden space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">إجمالي المبيعات</div>
+          <div id="rep-total-sales" class="text-2xl font-extrabold font-mono text-marine-900 mt-1">0.00 ج.م</div>
         </div>
-        <div id="rep-profit-card" class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-500">صافي الربح التقديري</span>
-            <i class="fa-solid fa-sack-dollar text-emerald-600"></i>
-          </div>
-          <p id="rep-total-profit" class="text-2xl font-extrabold text-emerald-700 font-mono mt-1.5">0.00 ج.م</p>
+        <div id="rep-profit-box" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">صافي الربح التقديري</div>
+          <div id="rep-total-profit" class="text-2xl font-extrabold font-mono text-emerald-700 mt-1">0.00 ج.م</div>
         </div>
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-500">عدد الفواتير</span>
-            <i class="fa-solid fa-file-invoice text-marine-600"></i>
-          </div>
-          <p id="rep-invoices-count" class="text-2xl font-extrabold text-slate-800 font-mono mt-1.5">0</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-500">متوسط قيمة الفاتورة</span>
-            <i class="fa-solid fa-receipt text-cyan-600"></i>
-          </div>
-          <p id="rep-avg-invoice" class="text-2xl font-extrabold text-cyan-800 font-mono mt-1.5">0.00 ج.م</p>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">عدد الفواتير</div>
+          <div id="rep-invoices-count" class="text-2xl font-extrabold font-mono text-slate-800 mt-1">0</div>
         </div>
       </div>
 
-      <!-- جرد تفصيلي حسب وسيلة الدفع (كاش / محافظ / إنستاباي) -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-        <div class="bg-white rounded-2xl p-4 border border-emerald-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <span class="text-xs font-bold text-emerald-800">مبيعات الكاش</span>
-            <p id="rep-cash-sales" class="text-lg font-extrabold text-emerald-700 font-mono mt-1">0.00 ج.م</p>
-          </div>
-          <span class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-            <i class="fa-solid fa-money-bill-wave"></i>
-          </span>
-        </div>
-
-        <div class="bg-white rounded-2xl p-4 border border-amber-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <span class="text-xs font-bold text-amber-900">المحافظ الإلكترونية (فودافون/أورانج/اتصالات/WE)</span>
-            <p id="rep-wallet-sales" class="text-lg font-extrabold text-amber-700 font-mono mt-1">0.00 ج.م</p>
-          </div>
-          <span class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
-            <i class="fa-solid fa-wallet"></i>
-          </span>
-        </div>
-
-        <div class="bg-white rounded-2xl p-4 border border-purple-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <span class="text-xs font-bold text-purple-900">تحويلات إنستاباي (InstaPay)</span>
-            <p id="rep-instapay-sales" class="text-lg font-extrabold text-purple-700 font-mono mt-1">0.00 ج.م</p>
-          </div>
-          <span class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
-            <i class="fa-solid fa-building-columns"></i>
-          </span>
-        </div>
-      </div>
-
-      <!-- أزرار التصفية وتصدير CSV -->
-      <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-3">
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="setReportFilter('all')" id="filter-rep-all" class="rep-filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-marine-700 text-white transition">
-            كل الفواتير
-          </button>
-          <button onclick="setReportFilter('today')" id="filter-rep-today" class="rep-filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
-            مبيعات اليوم
-          </button>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <button onclick="requestAdminAction(() => exportSalesCSV())" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5">
-            <i class="fa-solid fa-file-csv"></i>
-            <span>تصدير Excel / CSV (إدارة)</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- سجل الفواتير -->
-      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-right border-collapse">
-            <thead>
-              <tr class="bg-slate-100/90 text-slate-700 text-xs font-extrabold border-b border-slate-200">
-                <th class="py-3 px-4">رقم الفاتورة</th>
-                <th class="py-3 px-4">التاريخ والوقت</th>
-                <th class="py-3 px-4">الكاشير / الشيفت</th>
-                <th class="py-3 px-4">العميل</th>
-                <th class="py-3 px-4">الدفع والإثبات المحاسبي</th>
-                <th class="py-3 px-4">الإجمالي</th>
-                <th class="py-3 px-4 text-center">قراءة / طباعة / تعديل</th>
-              </tr>
-            </thead>
-            <tbody id="sales-history-body" class="divide-y divide-slate-100 text-sm">
-            </tbody>
-          </table>
-        </div>
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+        <table class="w-full text-right border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
+              <th class="py-3 px-4">رقم الفاتورة</th>
+              <th class="py-3 px-4">الكاشير / الشيفت</th>
+              <th class="py-3 px-4">العميل</th>
+              <th class="py-3 px-4">الدفع</th>
+              <th class="py-3 px-4">الإجمالي</th>
+              <th class="py-3 px-4 text-center">قراءة / طباعة / تعديل</th>
+            </tr>
+          </thead>
+          <tbody id="reports-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+        </table>
       </div>
     </section>
 
-    <!-- ------------------------------------------ -->
-    <!-- القسم 4: الإعدادات والنسخ الاحتياطي (Settings) -->
-    <!-- ------------------------------------------ -->
-    <section id="tab-settings" class="tab-section hidden space-y-4">
+    <!-- 4. الإعدادات والنسخ الاحتياطي ورموز PIN والمزامنة السحابية -->
+    <section id="section-settings" class="hidden space-y-4">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-        <!-- بيانات المتجر والشعار والعنوان -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
-<!-- ... existing code ... -->
-            <button onclick="saveStoreSettings()" class="w-full py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-sm font-bold transition">
-              حفظ بيانات المتجر والعنوان
-            </button>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+          <h3 class="font-extrabold text-base text-marine-900">بيانات المتجر والشعار والعنوان</h3>
+          <input type="text" id="set-store-name" placeholder="اسم المتجر" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
+          <input type="text" id="set-store-desc" placeholder="وصف المتجر" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+          <input type="text" id="set-store-addr" placeholder="عنوان المتجر" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+          <input type="text" id="set-store-phone" placeholder="رقم الهاتف" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono" />
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">رفع شعار المتجر</label>
+            <input type="file" accept="image/*" onchange="handleLogoFile(event)" class="text-xs" />
           </div>
+          <button type="button" onclick="saveStoreInfo()" class="w-full py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-sm font-bold">
+            حفظ بيانات المتجر
+          </button>
         </div>
 
-        <!-- إدارة الكاشير والشيفتات ورموز PIN -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-5">
-          <h3 class="font-extrabold text-base text-marine-900 flex items-center gap-2">
-            <i class="fa-solid fa-users-gear text-cyan-600"></i>
-            <span>إدارة الكاشير والشيفتات ورموز PIN</span>
-          </h3>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+          <h3 class="font-extrabold text-base text-marine-900">إدارة الكاشير والشيفتات ورموز PIN</h3>
 
-          <!-- إضافة وحذف أسماء الكاشير مع PIN خاص بكل كاشير -->
-          <div class="space-y-2.5">
-            <label class="block text-xs font-extrabold text-slate-700">أسماء الكاشير ورمز PIN الخاص بكل كاشير</label>
-            <div class="flex flex-col sm:flex-row gap-2">
-              <input type="text" id="new-cashier-name" placeholder="اسم الكاشير الجديد..."
-                class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-marine-500" />
-              <input type="text" id="new-cashier-pin" inputmode="numeric" maxlength="8" placeholder="PIN (مثال: 2222)"
-                class="sm:w-36 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-marine-500" />
-              <button type="button" onclick="addCashier()" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold transition flex items-center justify-center gap-1.5">
-                <i class="fa-solid fa-plus"></i>
-                <span>إضافة</span>
-              </button>
-            </div>
-            <div id="cashiers-list-container" class="flex flex-wrap gap-2 pt-1">
-            </div>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="new-cashier-name" placeholder="اسم الكاشير" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
+            <input type="text" id="new-cashier-pin" inputmode="numeric" placeholder="PIN (مثال: 2222)" class="sm:w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
+            <button type="button" onclick="addCashierProfile()" class="px-4 py-2 rounded-xl bg-marine-700 text-white text-xs font-bold">إضافة</button>
           </div>
+          <div id="settings-cashiers-list" class="flex flex-wrap gap-2"></div>
 
-          <hr class="border-slate-100" />
-
-          <!-- تعديل رمز PIN الخاص بالإدارة -->
-          <div class="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-2">
-            <label for="admin-pin-input" class="block text-xs font-extrabold text-amber-950">
-              <i class="fa-solid fa-user-shield text-amber-600 ml-1"></i>
-              رمز PIN الخاص بالإدارة (للمخزون، التقارير، وتعديل الفواتير)
-            </label>
+          <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
+            <label class="block text-xs font-extrabold text-amber-950">رمز PIN الخاص بالإدارة</label>
             <div class="flex gap-2">
-              <input type="text" id="admin-pin-input" inputmode="numeric" maxlength="10"
-                class="flex-1 px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-sm font-mono font-bold focus:outline-none focus:border-amber-600" />
-              <button type="button" onclick="updateAdminPin()" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition">
-                حفظ PIN الإدارة
-              </button>
+              <input type="text" id="set-admin-pin" inputmode="numeric" class="flex-1 px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-mono font-bold" />
+              <button type="button" onclick="saveAdminPin()" class="px-3.5 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-bold">حفظ PIN الإدارة</button>
             </div>
           </div>
-
-          <hr class="border-slate-100" />
-
-          <!-- إضافة وحذف الشيفتات -->
-          <div class="space-y-2.5">
-            <label class="block text-xs font-extrabold text-slate-700">الشيفتات / الورديات</label>
-            <div class="flex gap-2">
-              <input type="text" id="new-shift-name" placeholder="مثال: شيفت صباحي / شيفت مسائي..."
-                class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-marine-500" />
-              <button type="button" onclick="addShift()" class="px-4 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold transition flex items-center gap-1.5">
-                <i class="fa-solid fa-plus"></i>
-                <span>إضافة</span>
-              </button>
-            </div>
-            <div id="shifts-list-container" class="flex flex-wrap gap-2 pt-1">
-            </div>
-          </div>
-        </div>
-
-        <!-- إدارة فئات مستلزمات الصيد والمزامنة السحابية -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
-          <h3 class="font-extrabold text-base text-marine-900 flex items-center gap-2">
-            <i class="fa-solid fa-tags text-marine-600"></i>
-            <span>فئات مستلزمات الصيد والمزامنة السحابية</span>
-          </h3>
 
           <div class="flex gap-2">
-            <input type="text" id="new-category-input" placeholder="أضف فئة جديدة (مثال: عوامات، أقفاص...)"
-              class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-marine-500" />
-            <button onclick="addNewCategory()" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-sm font-bold transition">
-              إضافة
-            </button>
+            <input type="text" id="new-shift-name" placeholder="اسم شيفت جديد..." class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
+            <button type="button" onclick="addShiftItem()" class="px-4 py-2 rounded-xl bg-cyan-700 text-white text-xs font-bold">إضافة شيفت</button>
           </div>
-
-          <div id="categories-list-container" class="flex flex-wrap gap-2">
-          </div>
-
-          <hr class="border-slate-100" />
-
-          <!-- إعدادات المزامنة السحابية بين الأجهزة -->
-          <div class="p-3.5 rounded-2xl bg-sky-50/80 border border-sky-200 space-y-2.5">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-extrabold text-sky-950 flex items-center gap-1.5">
-                <i class="fa-solid fa-cloud-arrow-up text-sky-600"></i>
-                المزامنة السحابية (العمل وحفظ البيانات من أي جهاز يفتح الرابط)
-              </span>
-              <span id="settings-cloud-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">غير متصل</span>
-            </div>
-            <p class="text-[11px] text-slate-600 leading-relaxed">
-              أدخل كود مزامنة سحابية خاص بمتجرك (مثلاً: <span class="font-mono font-bold">shabaka-w-senara-2026</span>) أو بيانات السحابة لتتم مزامنة المنتجات والفواتير والشيفتات تلقائياً عبر أي جهاز يفتح الرابط.
-            </p>
-            <div class="flex flex-col sm:flex-row gap-2">
-              <input type="text" id="cloud-room-code-input" placeholder="كود مزامنة المتجر (مثال: shabaka-w-senara-main)"
-                class="flex-1 px-3 py-1.5 bg-white border border-sky-300 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-sky-600" />
-              <button type="button" onclick="saveAndConnectCloud()" class="px-3.5 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold transition whitespace-nowrap">
-                تفعيل ومزامنة الآن
-              </button>
-            </div>
-          </div>
+          <div id="settings-shifts-list" class="flex flex-wrap gap-2"></div>
         </div>
 
-        <!-- النسخ الاحتياطي واستعادة البيانات -->
-<!-- ... existing code ... -->
-  <!-- 2. نافذة معاينة وطباعة الفاتورة -->
-  <div id="receipt-modal" class="fixed inset-0 bg-slate-950/65 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200">
-      <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between no-print">
-        <span class="font-bold text-sm flex items-center gap-2">
-          <i class="fa-solid fa-print text-cyan-400"></i>
-          معاينة وطباعة الفاتورة
-        </span>
-        <button onclick="closeReceiptModal()" class="text-white/70 hover:text-white">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+          <h3 class="font-extrabold text-base text-marine-900">المزامنة السحابية والنسخ الاحتياطي JSON</h3>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="set-cloud-room" placeholder="كود مزامنة المتجر" class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold" />
+            <button type="button" onclick="activateCloudRoom()" class="px-4 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold">
+              تفعيل ومزامنة سحابية الآن
+            </button>
+            <button type="button" onclick="exportBackupJSON()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">
+              تصدير نسخة JSON
+            </button>
+            <label class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer text-center">
+              استيراد JSON
+              <input type="file" accept="application/json" onchange="importBackupJSON(event)" class="hidden" />
+            </label>
+          </div>
+        </div>
       </div>
+    </section>
+  </main>
 
-      <!-- منطقة الطباعة الحرارية -->
-      <div id="print-receipt-area" class="p-5 text-xs text-slate-800 space-y-3 bg-white">
+  <!-- ================================================= -->
+  <!-- النوافذ المنبثقة (PIN الإدارة / منتج / فاتورة)    -->
+  <!-- ================================================= -->
+  <div id="modal-admin-pin" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="px-4 py-3 bg-amber-900 text-white font-extrabold text-xs flex justify-between items-center">
+        <span>تأكيد رمز PIN للإدارة</span>
+        <button type="button" onclick="closeAdminModal()">✕</button>
       </div>
-
-      <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 flex gap-2 no-print">
-        <button onclick="window.print()" class="flex-1 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-print"></i>
-          <span>طباعة للعميل</span>
-        </button>
-        <button onclick="closeReceiptModal()" class="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold">
-          إغلاق
-        </button>
-      </div>
+      <form onsubmit="submitAdminModal(event)" class="p-4 space-y-3">
+        <p id="modal-admin-reason" class="text-xs font-bold text-slate-600"></p>
+        <input type="password" id="modal-admin-pin-input" inputmode="numeric" required placeholder="أدخل رمز PIN للإدارة"
+          class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono font-bold" />
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closeAdminModal()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 text-xs font-bold">إلغاء</button>
+          <button type="submit" class="px-4 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-bold">تأكيد</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- 2.5 نافذة تعديل فاتورة مصدرة (محمية برمز PIN للإدارة) -->
-  <div id="edit-invoice-modal" class="fixed inset-0 bg-slate-950/65 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-      <div class="px-5 py-3.5 bg-amber-900 text-white flex items-center justify-between">
-        <h3 class="font-extrabold text-sm flex items-center gap-2">
-          <i class="fa-solid fa-file-pen text-amber-300"></i>
-          <span>تعديل فاتورة مصدرة (صلاحية الإدارة)</span>
-        </h3>
-        <button onclick="closeEditInvoiceModal()" class="text-white/70 hover:text-white">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+  <div id="modal-product" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="px-4 py-3 bg-marine-900 text-white font-extrabold text-xs flex justify-between items-center">
+        <span id="modal-product-title">إضافة / تعديل منتج</span>
+        <button type="button" onclick="closeProductModal()">✕</button>
       </div>
-
-      <form onsubmit="saveEditedInvoice(event)" class="p-5 space-y-3.5 text-xs">
-        <input type="hidden" id="edit-inv-id" />
-        <div class="flex justify-between bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
-          <span class="font-bold text-slate-500">رقم الفاتورة:</span>
-          <span id="edit-inv-code-label" class="font-mono font-extrabold text-marine-900">--</span>
-        </div>
-
+      <form onsubmit="saveProductForm(event)" class="p-4 space-y-3 text-xs">
+        <input type="hidden" id="prod-edit-id" />
         <div>
-          <label class="block font-bold text-slate-700 mb-1">اسم العميل</label>
-          <input type="text" id="edit-inv-customer" required
-            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:border-amber-600" />
+          <label class="block font-bold mb-1">اسم المنتج</label>
+          <input type="text" id="prod-name-input" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
         </div>
-
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">طريقة الدفع</label>
-            <select id="edit-inv-payment-method" onchange="toggleEditInvoiceProofFields()"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-amber-600">
+            <label class="block font-bold mb-1">الباركود</label>
+            <input type="text" id="prod-sku-input" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">الفئة</label>
+            <select id="prod-cat-input" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block font-bold mb-1">سعر الشراء</label>
+            <input type="number" id="prod-cost-input" step="0.5" min="0" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">سعر البيع</label>
+            <input type="number" id="prod-price-input" step="0.5" min="0" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">الكمية</label>
+            <input type="number" id="prod-stock-input" min="0" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeProductModal()" class="px-4 py-2 rounded-xl bg-slate-100 font-bold">إلغاء</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-marine-700 text-white font-bold">حفظ المنتج</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-edit-invoice" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="px-4 py-3 bg-amber-900 text-white font-extrabold text-xs flex justify-between items-center">
+        <span>تعديل فاتورة مصدرة (PIN الإدارة)</span>
+        <button type="button" onclick="closeEditInvoiceModal()">✕</button>
+      </div>
+      <form onsubmit="saveInvoiceEdits(event)" class="p-4 space-y-3 text-xs">
+        <input type="hidden" id="edit-inv-id" />
+        <div class="font-mono font-bold text-marine-900" id="edit-inv-code"></div>
+        <div>
+          <label class="block font-bold mb-1">اسم العميل</label>
+          <input type="text" id="edit-inv-customer" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold mb-1">طريقة الدفع</label>
+            <select id="edit-inv-method" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold">
               <option value="كاش">كاش</option>
               <option value="محفظة إلكترونية">محفظة إلكترونية</option>
               <option value="إنستاباي">إنستاباي</option>
             </select>
           </div>
           <div>
-            <label class="block font-bold text-slate-700 mb-1">خصم الفاتورة (ج.م)</label>
-            <input type="number" id="edit-inv-discount" min="0" step="0.5"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-amber-600" />
+            <label class="block font-bold mb-1">الخصم (ج.م)</label>
+            <input type="number" id="edit-inv-discount" min="0" step="0.5" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
           </div>
         </div>
-
-        <div id="edit-inv-wallet-fields" class="hidden space-y-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
-          <div>
-            <label class="block font-bold text-amber-950 mb-1">نوع المحفظة</label>
-            <select id="edit-inv-wallet-provider" class="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold">
-              <option value="فودافون كاش">فودافون كاش</option>
-              <option value="أورانج كاش">أورانج كاش</option>
-              <option value="اتصالات كاش">اتصالات كاش</option>
-              <option value="WE Pay">WE Pay</option>
-            </select>
-          </div>
-          <div>
-            <label class="block font-bold text-amber-950 mb-1">الرقم الذي تم التحويل منه</label>
-            <input type="text" id="edit-inv-sender-phone" class="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-mono font-bold" />
-          </div>
-        </div>
-
-        <div id="edit-inv-instapay-fields" class="hidden p-3 rounded-xl bg-purple-50 border border-purple-200">
-          <label class="block font-bold text-purple-950 mb-1">الرقم المرجعي لإنستاباي</label>
-          <input type="text" id="edit-inv-ref-number" class="w-full px-3 py-1.5 bg-white border border-purple-300 rounded-lg text-xs font-mono font-bold" />
-        </div>
-
-        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" onclick="closeEditInvoiceModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">
-            إلغاء
-          </button>
-          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold shadow">
-            حفظ تعديل الفاتورة
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- 2.8 نافذة إدخال رمز PIN للإدارة عند طلب صلاحية إدارية أثناء جلسة الكاشير -->
-  <div id="admin-pin-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-[65] hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200">
-      <div class="px-5 py-3.5 bg-amber-900 text-white flex items-center justify-between">
-        <span class="font-extrabold text-sm flex items-center gap-2">
-          <i class="fa-solid fa-user-lock text-amber-300"></i>
-          تأكيد رمز PIN للإدارة
-        </span>
-        <button onclick="closeAdminPinModal()" class="text-white/70 hover:text-white">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-      <form onsubmit="submitAdminPinModal(event)" class="p-5 space-y-3.5">
-        <p id="admin-pin-modal-reason" class="text-xs text-slate-600 font-bold">
-          هذا الإجراء مخصص للإدارة فقط. أدخل رمز PIN الخاص بالمدير للمتابعة:
-        </p>
-        <input type="password" id="admin-pin-modal-input" inputmode="numeric" required placeholder="أدخل رمز PIN للإدارة"
-          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono font-bold tracking-widest focus:outline-none focus:border-amber-600" />
         <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeAdminPinModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">
-            إلغاء
-          </button>
-          <button type="submit" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold">
-            تأكيد الدخول
-          </button>
+          <button type="button" onclick="closeEditInvoiceModal()" class="px-4 py-2 rounded-xl bg-slate-100 font-bold">إلغاء</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-amber-600 text-white font-bold">حفظ التعديل</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- 3. نافذة تأكيد مخصصة -->
-<!-- ... existing code ... -->
-  <!-- ========================================== -->
-  <!-- الكود البرمجي (JavaScript Application Logic) -->
-  <!-- ========================================== -->
+  <div id="modal-receipt" class="fixed inset-0 bg-slate-950/70 z-[75] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="px-4 py-3 bg-slate-900 text-white font-extrabold text-xs flex justify-between items-center no-print">
+        <span>معاينة وطباعة الفاتورة</span>
+        <button type="button" onclick="closeReceipt()">✕</button>
+      </div>
+      <div id="receipt-body" class="p-5 text-xs space-y-2.5 bg-white"></div>
+      <div class="px-4 py-3 bg-slate-50 border-t flex gap-2 no-print">
+        <button type="button" onclick="window.print()" class="flex-1 py-2 rounded-xl bg-marine-700 text-white text-xs font-bold">طباعة للعميل</button>
+        <button type="button" onclick="closeReceipt()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // ==========================================
-    // 1. مفاتيح التخزين والبيانات الافتراضية
-    // ==========================================
-    const STORAGE_KEYS = {
-      PRODUCTS: 'fishing_pos_products_v1',
-      SALES: 'fishing_pos_sales_v1',
-      CATEGORIES: 'fishing_pos_categories_v1',
-      SETTINGS: 'fishing_pos_settings_v1',
+    const KEYS = {
+      PRODUCTS: 'shabaka_pos_products_v2',
+      SALES: 'shabaka_pos_sales_v2',
+      SETTINGS: 'shabaka_pos_settings_v2',
     };
 
-    const DEFAULT_CATEGORIES = [
-      'قصبات الصيد',
-      'ماكينات الصيد',
-      'خيوط وضفائر',
-      'سنارات وخطاطيف',
-      'طعوم صناعية وطبيعية',
-      'اكسسوارات وعدة صيد',
-    ];
+    const CATEGORIES = ['قصبات الصيد', 'ماكينات الصيد', 'خيوط وضفائر', 'سنارات وخطاطيف', 'طعوم صناعية', 'اكسسوارات'];
 
     const DEFAULT_PRODUCTS = [
-      { id: 'p-1', sku: '6221001', name: 'قصبة كربون بحري 3.6 متر أكشن 100-200g', category: 'قصبات الصيد', cost: 650, price: 950, stock: 12, minStock: 3 },
-      { id: 'p-2', sku: '6221002', name: 'قصبة تسقيط خفيفة 2.4 متر كربون', category: 'قصبات الصيد', cost: 320, price: 490, stock: 8, minStock: 3 },
-      { id: 'p-3', sku: '6222001', name: 'ماكينة صيد مقاس 6000 دولاب معدني 12 رولمان', category: 'ماكينات الصيد', cost: 580, price: 850, stock: 9, minStock: 2 },
-      { id: 'p-4', sku: '6222002', name: 'ماكينة صيد مقاس 4000 خفيفة للغلة والسبيننج', category: 'ماكينات الصيد', cost: 410, price: 620, stock: 2, minStock: 3 },
-      { id: 'p-5', sku: '6223001', name: 'ضفيرة صيد 4 خيوط 300 متر مقاس 0.30mm', category: 'خيوط وضفائر', cost: 140, price: 230, stock: 25, minStock: 5 },
-      { id: 'p-6', sku: '6223002', name: 'خيط نايلون شفاف مقاوم للقطع 500 متر 0.40mm', category: 'خيوط وضفائر', cost: 85, price: 140, stock: 30, minStock: 6 },
-      { id: 'p-7', sku: '6224001', name: 'علبة سنارات صلب ياباني مقاسات متنوعة (100 قطعة)', category: 'سنارات وخطاطيف', cost: 75, price: 125, stock: 18, minStock: 5 },
-      { id: 'p-8', sku: '6225001', name: 'طعم صناعي سيلكون جمبري مضيء (5 قطع)', category: 'طعوم صناعية وطبيعية', cost: 60, price: 110, stock: 15, minStock: 4 },
-      { id: 'p-9', sku: '6225002', name: 'طعم صناعي ربل فيش أكشن سباحة 9 سم', category: 'طعوم صناعية وطبيعية', cost: 45, price: 85, stock: 2, minStock: 4 },
-      { id: 'p-10', sku: '6226001', name: 'شنطة عدة صيد مقاومة للماء متعددة الجيوب', category: 'اكسسوارات وعدة صيد', cost: 260, price: 390, stock: 7, minStock: 2 },
-      { id: 'p-11', sku: '6226002', name: 'ميزان ديجيتال لوزن الأسماك حتى 50 كجم', category: 'اكسسوارات وعدة صيد', cost: 95, price: 160, stock: 10, minStock: 3 },
-      { id: 'p-12', sku: '6226003', name: 'مقص ضفيرة ستانلس ستيل + زرادية فك السنارة', category: 'اكسسوارات وعدة صيد', cost: 70, price: 120, stock: 14, minStock: 3 },
+      { id: '1', sku: '6221001', name: 'قصبة صيد بحري كربون 3.6 متر', category: 'قصبات الصيد', cost: 650, price: 950, stock: 12, minStock: 3 },
+      { id: '2', sku: '6222001', name: 'ماكينة صيد مقاس 6000 دولاب معدني', category: 'ماكينات الصيد', cost: 580, price: 850, stock: 8, minStock: 2 },
+      { id: '3', sku: '6223001', name: 'ضفيرة صيد 4 خيوط 300 متر', category: 'خيوط وضفائر', cost: 140, price: 230, stock: 25, minStock: 5 },
+      { id: '4', sku: '6224001', name: 'علبة سنارات صلب متنوعة (100 قطعة)', category: 'سنارات وخطاطيف', cost: 75, price: 125, stock: 2, minStock: 4 },
+      { id: '5', sku: '6225001', name: 'طعم صناعي جمبري مضيء (5 قطع)', category: 'طعوم صناعية', cost: 60, price: 110, stock: 0, minStock: 3 },
     ];
 
     const DEFAULT_SETTINGS = {
       storeName: 'شبكة وصنارة',
-      storeSubtitle: 'مستلزمات الصيد البحري والقصبات والماكينات والاكسسوارات',
+      storeDesc: 'مستلزمات الصيد البحري والقصبات والماكينات والاكسسوارات',
+      storeAddr: 'كورنيش البحر',
+      storePhone: '01000000000',
       storeLogo: '',
-      phone: '01000000000',
-      address: 'كورنيش البحر - بجوار مرسى الصيادين',
-      footerNote: 'صيداً وفيراً ورحلة موفقة! يُرجى مراجعة الفاتورة قبل المغادرة.',
       adminPin: '9999',
       cashierProfiles: [
         { name: 'كاشير 1', pin: '1111' },
         { name: 'أحمد حسن', pin: '1234' },
       ],
-      cashiers: ['كاشير 1', 'أحمد حسن'],
       shifts: ['الشيفت الصباحي', 'الشيفت المسائي'],
       activeCashier: 'كاشير 1',
       activeShift: 'الشيفت الصباحي',
-      cloudRoomCode: 'shabaka-w-senara-pos',
+      cloudRoom: 'shabaka-w-senara-live',
     };
 
-    // ==========================================
-    // 2. حالة التطبيق والجلسة والمزامنة السحابية
-    // ==========================================
     let products = [];
     let sales = [];
-    let categories = [];
     let settings = { ...DEFAULT_SETTINGS };
     let cart = [];
-    let selectedPosCategory = 'الكل';
-    let selectedPaymentMethod = 'كاش';
-    let selectedWalletProvider = 'فودافون كاش';
-    let reportFilter = 'all';
+    let selectedCategory = 'الكل';
+    let session = { authenticated: false, role: 'cashier', cashier: 'كاشير 1', shift: 'الشيفت الصباحي' };
+    let pendingAdminFn = null;
+    let lastRemoteStamp = '';
+    let isApplyingRemote = false;
 
-    // حالة الجلسة والصلاحيات: 'admin' أو 'cashier' (لا يتم الدخول للنظام إلا بعد اجتياز بوابة PIN)
-    let currentSession = {
-      authenticated: false,
-      role: 'cashier', // 'admin' | 'cashier'
-      cashierName: 'كاشير 1',
-      shiftName: 'الشيفت الصباحي',
-    };
-
-    let pendingAdminCallback = null;
-    let isApplyingCloudSnapshot = false;
-    let cloudUnsubscribe = null;
-    let cloudDocRef = null;
-    let cloudConnected = false;
-    let cloudPollTimer = null;
-
-    // طبقة سحابية مباشرة (kvdb.io) لتشغيل المزامنة عبر الأجهزة مباشرة من GitHub Pages
-    const CLOUD_KV_ENDPOINT = 'https://kvdb.io';
-    const CLOUD_KV_BUCKET = 'ShabakaWSenaraCloudV1';
-    let lastCloudRemoteStamp = '';
-
-    // متغيرات ماسح الكاميرا والباركود الخارجي
-    let html5QrCodeInstance = null;
-    let cameraScannerMode = 'pos';
-    let availableCameras = [];
-    let currentCameraIndex = 0;
-    let isTorchOn = false;
-    let lastScannedCode = '';
-    let lastScannedTime = 0;
-
-    // ==========================================
-    // 3. التهيئة وتحميل البيانات والمزامنة السحابية
-    // ==========================================
-    function bootAppSafely() {
-      try {
-        loadDataFromStorage();
-      } catch (e) {
-        console.warn('استعادة افتراضية للبيانات:', e);
-        products = [...DEFAULT_PRODUCTS];
-        sales = [];
-        categories = [...DEFAULT_CATEGORIES];
-        settings = { ...DEFAULT_SETTINGS, cashierProfiles: DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p })) };
-      }
-
-      try { initClock(); } catch (e) { console.warn(e); }
-      try { populateCategoryControls(); } catch (e) { console.warn(e); }
-      try { populateStaffControls(); } catch (e) { console.warn(e); }
-      try { populateAuthGateControls(); } catch (e) { console.warn(e); }
-      try { applySettingsToUI(); } catch (e) { console.warn(e); }
-      try { updateRoleVisibility(); } catch (e) { console.warn(e); }
-      try { renderPosProducts(); } catch (e) { console.warn(e); }
-      try { renderCart(); } catch (e) { console.warn(e); }
-      try { updateLowStockBadge(); } catch (e) { console.warn(e); }
-      try { initGlobalUSBBarcodeListener(); } catch (e) { console.warn(e); }
-      try { initCloudSyncFromSDK(); } catch (e) { console.warn(e); }
-      try { startDirectCloudSyncLoop(); } catch (e) { console.warn(e); }
-
-      const gate = document.getElementById('auth-gate-screen');
-      if (gate && !currentSession.authenticated) {
-        gate.style.display = 'flex';
-        gate.classList.remove('hidden');
-      }
+    function showToast(msg, type = 'info') {
+      const el = document.getElementById('toast-box');
+      if (!el) return;
+      el.textContent = msg;
+      el.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-2xl shadow-xl text-xs sm:text-sm font-extrabold text-white no-print ' +
+        (type === 'error' ? 'bg-rose-700' : type === 'success' ? 'bg-emerald-700' : 'bg-slate-900');
+      el.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 2800);
     }
 
-    window.addEventListener('DOMContentLoaded', bootAppSafely);
-    window.onload = function () {
-      if (!document.getElementById('gate-cashier-select')?.options?.length) {
-        bootAppSafely();
-      }
-    };
-    setTimeout(function () {
-      if (!document.getElementById('gate-cashier-select')?.options?.length) {
-        bootAppSafely();
-      }
-    }, 120);
-            name: String(p.name).trim(),
-            pin: String(p.pin || '1111').trim() || '1111'
-          }));
-        if (cleaned.length > 0) return cleaned;
-      }
-
-      if (Array.isArray(parsedSettings.cashiers) && parsedSettings.cashiers.length > 0) {
-        return parsedSettings.cashiers
-          .map(n => String(n || '').trim())
-          .filter(Boolean)
-          .map((name, idx) => ({
-            name,
-            pin: idx === 0 ? '1111' : '1234'
-          }));
-      }
-
-      return DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p }));
+    function fmt(n) {
+      return (Number(n) || 0).toFixed(2) + ' ج.م';
     }
 
-    function loadDataFromStorage() {
+    function esc(str) {
+      return String(str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    function loadState() {
       try {
-        const savedProducts = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-        const savedSales = localStorage.getItem(STORAGE_KEYS.SALES);
-        const savedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-        const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-
-        products = savedProducts ? JSON.parse(savedProducts) : [...DEFAULT_PRODUCTS];
-        sales = savedSales ? JSON.parse(savedSales) : [];
-        categories = savedCategories ? JSON.parse(savedCategories) : [...DEFAULT_CATEGORIES];
-
-        const parsedSettings = savedSettings ? JSON.parse(savedSettings) : {};
-        const profiles = normalizeCashierProfiles(parsedSettings);
-
+        products = JSON.parse(localStorage.getItem(KEYS.PRODUCTS) || 'null') || [...DEFAULT_PRODUCTS];
+        sales = JSON.parse(localStorage.getItem(KEYS.SALES) || 'null') || [];
+        const savedSet = JSON.parse(localStorage.getItem(KEYS.SETTINGS) || 'null') || {};
         settings = {
           ...DEFAULT_SETTINGS,
-          ...parsedSettings,
-          adminPin: String(parsedSettings.adminPin || DEFAULT_SETTINGS.adminPin).trim() || '9999',
-          cashierProfiles: profiles,
-          cashiers: profiles.map(p => p.name),
-          shifts: Array.isArray(parsedSettings.shifts) && parsedSettings.shifts.length > 0
-            ? parsedSettings.shifts
+          ...savedSet,
+          cashierProfiles: Array.isArray(savedSet.cashierProfiles) && savedSet.cashierProfiles.length
+            ? savedSet.cashierProfiles
+            : DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p })),
+          shifts: Array.isArray(savedSet.shifts) && savedSet.shifts.length
+            ? savedSet.shifts
             : [...DEFAULT_SETTINGS.shifts],
-          cloudRoomCode: String(parsedSettings.cloudRoomCode || DEFAULT_SETTINGS.cloudRoomCode).trim() || DEFAULT_SETTINGS.cloudRoomCode,
         };
-
-        if (!settings.cashiers.includes(settings.activeCashier)) {
-          settings.activeCashier = settings.cashiers[0];
-        }
-        if (!settings.shifts.includes(settings.activeShift)) {
-          settings.activeShift = settings.shifts[0];
-        }
-
-        if (!savedProducts) localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-        if (!savedCategories) localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
-        if (!savedSettings) localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-      } catch (err) {
-        console.error('خطأ في قراءة البيانات:', err);
+      } catch (e) {
         products = [...DEFAULT_PRODUCTS];
         sales = [];
-        categories = [...DEFAULT_CATEGORIES];
         settings = { ...DEFAULT_SETTINGS, cashierProfiles: DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p })) };
-        showToast('تم تحميل البيانات الافتراضية لوجود مشكلة في التخزين المحلي', 'warning');
       }
     }
 
-    function persistAllState(syncCloud = true) {
-      settings.cashiers = settings.cashierProfiles.map(p => p.name);
-      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
-      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-      updateLowStockBadge();
-
-      if (syncCloud && !isApplyingCloudSnapshot) {
-        pushStateToCloud();
-        pushStateToDirectCloud();
+    function saveState(pushCloud = true) {
+      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
+      localStorage.setItem(KEYS.SALES, JSON.stringify(sales));
+      localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+      if (pushCloud && !isApplyingRemote) {
+        pushToCloud();
       }
     }
 
-    function getDirectCloudKeyUrl() {
-      const roomCode = sanitizeRoomCode(settings.cloudRoomCode || 'shabaka-w-senara-pos');
-      return `${CLOUD_KV_ENDPOINT}/${CLOUD_KV_BUCKET}/${encodeURIComponent(roomCode)}`;
+    function getCloudUrl() {
+      const room = String(settings.cloudRoom || 'shabaka-w-senara-live').trim().replace(/[^a-zA-Z0-9_-]/g, '_') || 'shabaka-w-senara-live';
+      return 'https://kvdb.io/ShabakaWSenaraLiveV2/' + encodeURIComponent(room);
     }
 
-    async function pushStateToDirectCloud() {
-      if (isApplyingCloudSnapshot) return;
+    async function pushToCloud() {
       try {
-        const stamp = new Date().toISOString();
-        const payload = {
-          updatedAt: stamp,
-          products,
-          sales,
-          categories,
-          settings
-        };
-        const res = await fetch(getDirectCloudKeyUrl(), {
+        const stamp = String(Date.now());
+        const res = await fetch(getCloudUrl(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ stamp, products, sales, settings }),
           cache: 'no-store'
         });
-        if (res.ok) {
-          lastCloudRemoteStamp = stamp;
-          cloudConnected = true;
-          updateCloudBadges(true);
-        }
-      } catch (err) {
-        console.warn('تعذر الرفع المباشر للسحابة:', err);
-      }
+        if (res.ok) lastRemoteStamp = stamp;
+      } catch (e) {}
     }
 
-    async function pullStateFromDirectCloud(forceApply = false) {
+    async function pullFromCloud() {
       try {
-        const res = await fetch(`${getDirectCloudKeyUrl()}?t=${Date.now()}`, {
-          method: 'GET',
-          cache: 'no-store'
-        });
-        if (res.status === 404) {
-          await pushStateToDirectCloud();
-          return;
-        }
+        const res = await fetch(getCloudUrl() + '?t=' + Date.now(), { cache: 'no-store' });
         if (!res.ok) return;
-
-        const remoteData = await res.json();
-        cloudConnected = true;
-        updateCloudBadges(true);
-
-        if (!remoteData || typeof remoteData !== 'object') return;
-        const remoteStamp = String(remoteData.updatedAt || '');
-        if (!forceApply && remoteStamp && remoteStamp === lastCloudRemoteStamp) {
-          return;
-        }
-        lastCloudRemoteStamp = remoteStamp;
-        applyCloudData(remoteData);
-      } catch (err) {
-        // نبقي على التخزين المحلي دون تعطيل العمل عند انقطاع الشبكة
-      }
-    }
-
-    function startDirectCloudSyncLoop() {
-      if (cloudPollTimer) {
-        clearInterval(cloudPollTimer);
-      }
-      pullStateFromDirectCloud(true);
-      cloudPollTimer = setInterval(() => {
-        pullStateFromDirectCloud(false);
-      }, 8000);
-    }
-
-    function saveProducts() {
-      persistAllState(true);
-    }
-
-    function saveSales() {
-      persistAllState(true);
-    }
-
-    function saveCategories() {
-      persistAllState(true);
-    }
-
-    function saveSettings() {
-      persistAllState(true);
-    }
-
-    // المزامنة السحابية عبر Firebase Firestore عند توفر التكوين أو كود المزامنة
-    async function initCloudSyncFromSDK() {
-      const sdk = window.__CLOUD_SDK__;
-      if (!sdk) return;
-
-      try {
-        const rawConfig = typeof __firebase_config !== 'undefined' ? __firebase_config : '';
-        if (!rawConfig) {
-          updateCloudBadges(false);
-          return;
-        }
-
-        const firebaseConfig = typeof rawConfig === 'string' ? JSON.parse(rawConfig) : rawConfig;
-        const appId = typeof __app_id !== 'undefined' && __app_id ? String(__app_id) : 'shabaka-w-senara';
-        const roomCode = sanitizeRoomCode(settings.cloudRoomCode || 'shabaka-w-senara-pos');
-
-        const app = sdk.initializeApp(firebaseConfig);
-        const auth = sdk.getAuth(app);
-
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await sdk.signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await sdk.signInAnonymously(auth);
-        }
-
-        const db = sdk.getFirestore(app);
-        cloudDocRef = sdk.doc(db, 'artifacts', appId, 'public', 'data', 'store_pos_rooms', roomCode);
-
-        if (typeof cloudUnsubscribe === 'function') {
-          cloudUnsubscribe();
-        }
-
-        const snap = await sdk.getDoc(cloudDocRef);
-        if (snap.exists()) {
-          applyCloudData(snap.data());
-        } else {
-          await pushStateToCloud();
-        }
-
-        cloudUnsubscribe = sdk.onSnapshot(
-          cloudDocRef,
-          (docSnap) => {
-            cloudConnected = true;
-            updateCloudBadges(true);
-            if (docSnap.exists() && !docSnap.metadata.hasPendingWrites) {
-              applyCloudData(docSnap.data());
-            }
-          },
-          (err) => {
-            console.warn('خطأ في الاستماع السحابي:', err);
-            cloudConnected = false;
-            updateCloudBadges(false);
-          }
-        );
-
-        cloudConnected = true;
-        updateCloudBadges(true);
-      } catch (err) {
-        console.warn('تعذر الاتصال بالمزامنة السحابية:', err);
-        cloudConnected = false;
-        updateCloudBadges(false);
-      }
-    }
-
-    function sanitizeRoomCode(code) {
-      return String(code || 'shabaka-w-senara-pos')
-        .trim()
-        .replace(/[^a-zA-Z0-9_-]/g, '_') || 'shabaka-w-senara-pos';
-    }
-
-    async function pushStateToCloud() {
-      const sdk = window.__CLOUD_SDK__;
-      if (!sdk || !cloudDocRef) return;
-      try {
-        await sdk.setDoc(cloudDocRef, {
-          updatedAt: new Date().toISOString(),
-          products,
-          sales,
-          categories,
-          settings
-        }, { merge: true });
-      } catch (err) {
-        console.warn('تعذر رفع التحديث للسحابة:', err);
-      }
-    }
-
-    function applyCloudData(remoteData) {
-      if (!remoteData) return;
-      isApplyingCloudSnapshot = true;
-      try {
-        if (Array.isArray(remoteData.products)) products = remoteData.products;
-        if (Array.isArray(remoteData.sales)) sales = remoteData.sales;
-        if (Array.isArray(remoteData.categories) && remoteData.categories.length > 0) {
-          categories = remoteData.categories;
-        }
-        if (remoteData.settings && typeof remoteData.settings === 'object') {
-          const profiles = normalizeCashierProfiles(remoteData.settings);
-          settings = {
-            ...DEFAULT_SETTINGS,
-            ...settings,
-            ...remoteData.settings,
-            cashierProfiles: profiles,
-            cashiers: profiles.map(p => p.name),
-          };
-        }
-
-        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-        localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
-        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
-        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-
-        applySettingsToUI();
-        populateCategoryControls();
-        populateStaffControls();
-        populateAuthGateControls();
-        updateLowStockBadge();
-        renderPosProducts();
+        const data = await res.json();
+        if (!data || !data.stamp || data.stamp === lastRemoteStamp) return;
+        lastRemoteStamp = data.stamp;
+        isApplyingRemote = true;
+        if (Array.isArray(data.products)) products = data.products;
+        if (Array.isArray(data.sales)) sales = data.sales;
+        if (data.settings) settings = { ...DEFAULT_SETTINGS, ...data.settings };
+        saveState(false);
+        applyBranding();
+        fillGateSelectors();
+        renderPosCategories();
+        renderPosGrid();
         renderCart();
-        if (!document.getElementById('tab-inventory').classList.contains('hidden')) renderInventoryTable();
-        if (!document.getElementById('tab-reports').classList.contains('hidden')) renderReports();
-        if (!document.getElementById('tab-settings').classList.contains('hidden')) fillSettingsForm();
-      } finally {
-        isApplyingCloudSnapshot = false;
+        renderInventory();
+        renderReports();
+      } catch (e) {} finally {
+        isApplyingRemote = false;
       }
     }
 
-    function saveAndConnectCloud() {
-      const input = document.getElementById('cloud-room-code-input');
-      const code = sanitizeRoomCode(input.value);
-      settings.cloudRoomCode = code;
-      input.value = code;
-      saveSettings();
-      initCloudSyncFromSDK();
-      pullStateFromDirectCloud(true);
-      showToast(`تم حفظ كود المزامنة: ${code}`, 'success');
+    function activateCloudRoom() {
+      settings.cloudRoom = (document.getElementById('set-cloud-room').value || 'shabaka-w-senara-live').trim();
+      saveState(true);
+      pullFromCloud();
+      showToast('تم تفعيل ومزامنة الكود السحابي: ' + settings.cloudRoom, 'success');
     }
 
-    function updateCloudBadges(isOnline) {
-      const gateBadge = document.getElementById('gate-cloud-status');
-      const setBadge = document.getElementById('settings-cloud-badge');
-      if (gateBadge) {
-        gateBadge.innerHTML = isOnline
-          ? `<i class="fa-solid fa-cloud-check text-emerald-400 ml-1"></i>سحابي نشط`
-          : `<i class="fa-solid fa-hard-drive text-cyan-300 ml-1"></i>محلي + جاهز`;
+    function applyBranding() {
+      document.title = settings.storeName + ' - نظام كاشير ومخزون';
+      ['gate-store-title', 'header-store-title'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = settings.storeName;
+      });
+      ['gate-store-desc', 'header-store-desc'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = settings.storeDesc;
+      });
+      const addrEl = document.getElementById('gate-store-addr');
+      if (addrEl) addrEl.textContent = settings.storeAddr;
+
+      const hasLogo = Boolean(settings.storeLogo);
+      [['gate-logo-img', 'gate-logo-emoji'], ['header-logo-img', 'header-logo-emoji']].forEach(([imgId, emoId]) => {
+        const img = document.getElementById(imgId);
+        const emo = document.getElementById(emoId);
+        if (img && emo) {
+          if (hasLogo) {
+            img.src = settings.storeLogo;
+            img.classList.remove('hidden');
+            emo.classList.add('hidden');
+          } else {
+            img.src = '';
+            img.classList.add('hidden');
+            emo.classList.remove('hidden');
+          }
+        }
+      });
+    }
+
+    function fillGateSelectors() {
+      const cSel = document.getElementById('gate-cashier-select');
+      const sSel = document.getElementById('gate-shift-select');
+      if (cSel) {
+        cSel.innerHTML = settings.cashierProfiles.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
+        cSel.value = settings.cashierProfiles.some(p => p.name === settings.activeCashier)
+          ? settings.activeCashier
+          : settings.cashierProfiles[0].name;
       }
-      if (setBadge) {
-        setBadge.textContent = isOnline ? 'متصل بالسحابة' : 'تخزين محلي';
-        setBadge.className = isOnline
-          ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800'
-          : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700';
+      if (sSel) {
+        sSel.innerHTML = settings.shifts.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+        sSel.value = settings.shifts.includes(settings.activeShift) ? settings.activeShift : settings.shifts[0];
+      }
+      updateGatePinHint();
+    }
+
+    function updateGatePinHint() {
+      const name = document.getElementById('gate-cashier-select')?.value;
+      const prof = settings.cashierProfiles.find(p => p.name === name) || settings.cashierProfiles[0];
+      const hint = document.getElementById('gate-cashier-hint');
+      if (hint && prof) {
+        hint.textContent = `رمز PIN الخاص بـ (${prof.name}) الافتراضي: ${prof.pin}`;
       }
     }
 
-    // ==========================================
-    // 4. بوابة الدخول الرئيسية وصلاحيات PIN
-    // ==========================================
-    function setAuthGateMode(mode) {
-      const cashierBtn = document.getElementById('gate-mode-cashier');
-      const adminBtn = document.getElementById('gate-mode-admin');
-      const cashierForm = document.getElementById('gate-cashier-form');
-      const adminForm = document.getElementById('gate-admin-form');
-
-      if (mode === 'admin') {
-        adminBtn.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition bg-amber-400 text-slate-950 shadow flex items-center justify-center gap-2';
-        cashierBtn.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition text-slate-300 hover:bg-white/5 flex items-center justify-center gap-2';
-        cashierForm.classList.add('hidden');
-        adminForm.classList.remove('hidden');
-        document.getElementById('gate-admin-pin').focus();
-      } else {
-        cashierBtn.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition bg-cyan-500 text-slate-950 shadow flex items-center justify-center gap-2';
-        adminBtn.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition text-slate-300 hover:bg-white/5 flex items-center justify-center gap-2';
-        adminForm.classList.add('hidden');
-        cashierForm.classList.remove('hidden');
-        updateGateCashierHint();
-        document.getElementById('gate-cashier-pin').focus();
-      }
+    function switchGateMode(mode) {
+      const isAdm = mode === 'admin';
+      document.getElementById('form-gate-cashier').classList.toggle('hidden', isAdm);
+      document.getElementById('form-gate-admin').classList.toggle('hidden', !isAdm);
+      document.getElementById('btn-mode-cashier').className = isAdm
+        ? 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-slate-300 hover:bg-white/5 transition'
+        : 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold bg-cyan-500 text-slate-950 transition';
+      document.getElementById('btn-mode-admin').className = isAdm
+        ? 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold bg-amber-400 text-slate-950 transition'
+        : 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-slate-300 hover:bg-white/5 transition';
     }
 
-    function populateAuthGateControls() {
-      const cSelect = document.getElementById('gate-cashier-select');
-      const sSelect = document.getElementById('gate-shift-select');
-      if (!cSelect || !sSelect) return;
-
-      cSelect.innerHTML = settings.cashierProfiles
-        .map(p => `<option value="${escapeAttr(p.name)}" ${p.name === settings.activeCashier ? 'selected' : ''}>${escapeHTML(p.name)}</option>`)
-        .join('');
-
-      cSelect.onchange = updateGateCashierHint;
-
-      sSelect.innerHTML = settings.shifts
-        .map(s => `<option value="${escapeAttr(s)}" ${s === settings.activeShift ? 'selected' : ''}>${escapeHTML(s)}</option>`)
-        .join('');
-
-      updateGateCashierHint();
-    }
-
-    function updateGateCashierHint() {
-      const cSelect = document.getElementById('gate-cashier-select');
-      const hintEl = document.getElementById('gate-pin-hint');
-      if (!cSelect || !hintEl) return;
-      const profile = settings.cashierProfiles.find(p => p.name === cSelect.value) || settings.cashierProfiles[0];
-      hintEl.textContent = `أدخل رمز PIN الخاص بـ "${profile ? profile.name : 'الكاشير'}" لفتح الشيفت (الافتراضي: ${profile ? profile.pin : '1111'})`;
-    }
-
-    function handleCashierLogin(e) {
+    function loginAsCashier(e) {
       e.preventDefault();
-      const cashierName = document.getElementById('gate-cashier-select').value;
-      const shiftName = document.getElementById('gate-shift-select').value;
-      const enteredPin = document.getElementById('gate-cashier-pin').value.trim();
-
-      const profile = settings.cashierProfiles.find(p => p.name === cashierName);
-      if (!profile) {
-        showToast('يرجى اختيار كاشير صحيح', 'error');
-        return;
-      }
-
-      if (enteredPin !== String(profile.pin)) {
+      const name = document.getElementById('gate-cashier-select').value;
+      const shift = document.getElementById('gate-shift-select').value;
+      const pin = document.getElementById('gate-cashier-pin').value.trim();
+      const prof = settings.cashierProfiles.find(p => p.name === name);
+      if (!prof || pin !== String(prof.pin)) {
         showToast('رمز PIN الخاص بالكاشير غير صحيح', 'error');
-        document.getElementById('gate-cashier-pin').select();
         return;
       }
-
-      settings.activeCashier = cashierName;
-      settings.activeShift = shiftName;
-      saveSettings();
-
-      currentSession = {
-        authenticated: true,
-        role: 'cashier',
-        cashierName,
-        shiftName,
-      };
-
+      settings.activeCashier = name;
+      settings.activeShift = shift;
+      saveState(true);
+      session = { authenticated: true, role: 'cashier', cashier: name, shift };
       document.getElementById('gate-cashier-pin').value = '';
-      hideAuthGate();
-      populateStaffControls();
-      updateRoleVisibility();
-      switchTab('pos');
-      showToast(`مرحباً ${cashierName} — تم بدء ${shiftName}`, 'success');
+      document.getElementById('gate-screen').classList.add('hidden');
+      syncRoleUI();
+      openTab('pos');
+      showToast(`مرحباً ${name} (${shift})`, 'success');
     }
 
-    function handleAdminLogin(e) {
+    function loginAsAdmin(e) {
       e.preventDefault();
-      const enteredPin = document.getElementById('gate-admin-pin').value.trim();
-      if (enteredPin !== String(settings.adminPin || '9999')) {
+      const pin = document.getElementById('gate-admin-pin').value.trim();
+      if (pin !== String(settings.adminPin || '9999')) {
         showToast('رمز PIN الخاص بالإدارة غير صحيح', 'error');
-        document.getElementById('gate-admin-pin').select();
         return;
       }
-
-      currentSession = {
-        authenticated: true,
-        role: 'admin',
-        cashierName: settings.activeCashier || 'مدير النظام',
-        shiftName: settings.activeShift || 'الشيفت الصباحي',
-      };
-
+      session = { authenticated: true, role: 'admin', cashier: settings.activeCashier, shift: settings.activeShift };
       document.getElementById('gate-admin-pin').value = '';
-      hideAuthGate();
-      populateStaffControls();
-      updateRoleVisibility();
-      switchTab('pos');
-      showToast('تم تسجيل الدخول بصلاحية الإدارة الكاملة', 'success');
+      document.getElementById('gate-screen').classList.add('hidden');
+      syncRoleUI();
+      openTab('pos');
+      showToast('تم الدخول بصلاحية الإدارة', 'success');
     }
 
-    function hideAuthGate() {
-      const gate = document.getElementById('auth-gate-screen');
-      gate.style.display = 'none';
-      gate.classList.add('hidden');
-    }
-
-    function lockSessionToGate() {
-      closeCameraScanner();
-      currentSession.authenticated = false;
-      populateAuthGateControls();
-      setAuthGateMode('cashier');
-      const gate = document.getElementById('auth-gate-screen');
-      gate.style.display = 'flex';
-      gate.classList.remove('hidden');
-      showToast('تم قفل الجلسة، يمكنك تبديل الكاشير أو الدخول للإدارة', 'info');
+    function lockToGate() {
+      session.authenticated = false;
+      fillGateSelectors();
+      switchGateMode('cashier');
+      document.getElementById('gate-screen').classList.remove('hidden');
     }
 
     function isAdmin() {
-      return currentSession.authenticated && currentSession.role === 'admin';
+      return session.authenticated && session.role === 'admin';
     }
 
-    function requestAdminAction(callback, reasonText = 'هذا الإجراء مخصص للإدارة فقط. أدخل رمز PIN الخاص بالمدير للمتابعة:') {
-      if (isAdmin()) {
-        callback();
-        return;
-      }
-      pendingAdminCallback = callback;
-      document.getElementById('admin-pin-modal-reason').textContent = reasonText;
-      const input = document.getElementById('admin-pin-modal-input');
-      input.value = '';
-      const modal = document.getElementById('admin-pin-modal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      setTimeout(() => input.focus(), 50);
+    function requireAdminPin(fn, reason = 'هذا الإجراء مخصص للإدارة فقط. أدخل رمز PIN للإدارة:') {
+      if (isAdmin()) return fn();
+      pendingAdminFn = fn;
+      document.getElementById('modal-admin-reason').textContent = reason;
+      document.getElementById('modal-admin-pin-input').value = '';
+      const m = document.getElementById('modal-admin-pin');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
     }
 
-    function closeAdminPinModal() {
-      pendingAdminCallback = null;
-      const modal = document.getElementById('admin-pin-modal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+    function closeAdminModal() {
+      pendingAdminFn = null;
+      const m = document.getElementById('modal-admin-pin');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
     }
 
-    function submitAdminPinModal(e) {
+    function submitAdminModal(e) {
       e.preventDefault();
-      const pin = document.getElementById('admin-pin-modal-input').value.trim();
+      const pin = document.getElementById('modal-admin-pin-input').value.trim();
       if (pin !== String(settings.adminPin || '9999')) {
-        showToast('رمز PIN الخاص بالإدارة غير صحيح', 'error');
-        document.getElementById('admin-pin-modal-input').select();
+        showToast('رمز PIN للإدارة غير صحيح', 'error');
         return;
       }
-
-      const cb = pendingAdminCallback;
-      closeAdminPinModal();
-      if (typeof cb === 'function') {
-        cb();
-      }
+      const fn = pendingAdminFn;
+      closeAdminModal();
+      if (typeof fn === 'function') fn();
     }
 
-    function updateRoleVisibility() {
-      const badge = document.getElementById('session-role-badge');
-      const addProdBtn = document.getElementById('inv-add-product-btn');
-      const costCard = document.getElementById('inv-cost-card');
-      const thCost = document.getElementById('inv-th-cost');
-      const profitCard = document.getElementById('rep-profit-card');
-      const banner = document.getElementById('inventory-role-banner');
-
+    function syncRoleUI() {
+      document.getElementById('pos-cashier-name').textContent = session.cashier;
+      document.getElementById('pos-shift-name').textContent = session.shift;
+      const badge = document.getElementById('header-role-badge');
       if (isAdmin()) {
-        badge.textContent = 'إدارة (صلاحية كاملة)';
-        badge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-400 text-slate-950';
-        if (addProdBtn) addProdBtn.classList.remove('hidden');
-        if (costCard) costCard.classList.remove('hidden');
-        if (thCost) thCost.classList.remove('hidden');
-        if (profitCard) profitCard.classList.remove('hidden');
-        if (banner) {
-          banner.innerHTML = `
-            <span class="font-bold text-amber-900"><i class="fa-solid fa-user-shield text-amber-600 ml-1"></i>وضع الإدارة: يمكنك إضافة وتعديل وحذف المنتجات ومتابعة التكاليف والأرباح.</span>
-            <span class="text-slate-500">يمكنك أيضاً فلترة الاستوك المتاح والناقص والنافذ.</span>
-          `;
-        }
+        badge.textContent = 'إدارة';
+        badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-400 text-slate-950';
       } else {
-        badge.textContent = `كاشير: ${currentSession.cashierName}`;
-        badge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-400/15 text-cyan-200 border border-cyan-400/30';
-        if (addProdBtn) addProdBtn.classList.add('hidden');
-        if (costCard) costCard.classList.add('hidden');
-        if (thCost) thCost.classList.add('hidden');
-        if (profitCard) profitCard.classList.add('hidden');
-        if (banner) {
-          banner.innerHTML = `
-            <span class="font-bold text-marine-900"><i class="fa-solid fa-eye text-marine-600 ml-1"></i>وضع الكاشير: متاح لك البحث ومشاهدة الاستوك المتاح والناقص والنافذ فقط. إضافة/تعديل المخزون يتطلب PIN الإدارة.</span>
-          `;
+        badge.textContent = `كاشير: ${session.cashier}`;
+        badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-400/15 text-cyan-200 border border-cyan-400/30';
+      }
+
+      document.getElementById('inv-add-btn').classList.toggle('hidden', !isAdmin());
+      document.getElementById('inv-cost-box').classList.toggle('hidden', !isAdmin());
+      document.getElementById('inv-th-cost').classList.toggle('hidden', !isAdmin());
+      document.getElementById('rep-profit-box').classList.toggle('hidden', !isAdmin());
+      document.getElementById('inv-role-note').textContent = isAdmin()
+        ? 'وضع الإدارة: يمكنك إضافة وتعديل وحذف المنتجات والاطلاع على التكاليف والأرباح.'
+        : 'وضع الكاشير: متاح لك البحث ومشاهدة الاستوك المتاح والمنخفض والنافذ فقط. التعديل يتطلب PIN الإدارة.';
+    }
+
+    function openTab(tab) {
+      if (!session.authenticated) {
+        document.getElementById('gate-screen').classList.remove('hidden');
+        return;
+      }
+      if ((tab === 'reports' || tab === 'settings') && !isAdmin()) {
+        requireAdminPin(() => {
+          session.role = 'admin';
+          syncRoleUI();
+          showSection(tab);
+        }, 'الدخول إلى التقارير أو الإعدادات يتطلب رمز PIN الخاص بالإدارة:');
+        return;
+      }
+      showSection(tab);
+    }
+
+    function showSection(tab) {
+      ['pos', 'inventory', 'reports', 'settings'].forEach(s => {
+        document.getElementById('section-' + s).classList.toggle('hidden', s !== tab);
+        const btn = document.getElementById('tab-btn-' + s);
+        btn.className = s === tab
+          ? 'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-cyan-500 text-slate-950'
+          : 'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10';
+      });
+      syncRoleUI();
+      if (tab === 'pos') { renderPosCategories(); renderPosGrid(); renderCart(); }
+      if (tab === 'inventory') renderInventory();
+      if (tab === 'reports') renderReports();
+      if (tab === 'settings') fillSettings();
+    }
+
+    function renderPosCategories() {
+      const bar = document.getElementById('pos-categories-bar');
+      const allCats = ['الكل', ...CATEGORIES];
+      bar.innerHTML = allCats.map(c => `
+        <button type="button" onclick="selectedCategory='${esc(c)}';renderPosCategories();renderPosGrid();"
+          class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap ${selectedCategory === c ? 'bg-marine-700 text-white' : 'bg-slate-100 text-slate-700'}">
+          ${esc(c)}
+        </button>
+      `).join('');
+    }
+
+    function renderPosGrid() {
+      const q = (document.getElementById('pos-search-input').value || '').trim().toLowerCase();
+      const grid = document.getElementById('pos-products-grid');
+      const list = products.filter(p => {
+        const okCat = selectedCategory === 'الكل' || p.category === selectedCategory;
+        const okQ = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
+        return okCat && okQ;
+      });
+      grid.innerHTML = list.map(p => `
+        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex flex-col justify-between gap-2">
+          <div>
+            <div class="flex justify-between items-center text-[11px] text-slate-400 font-mono">
+              <span>${esc(p.sku)}</span>
+              <span class="${p.stock <= 0 ? 'text-rose-600 font-bold' : p.stock <= p.minStock ? 'text-amber-600 font-bold' : 'text-emerald-700 font-bold'}">
+                ${p.stock <= 0 ? 'نافذ' : 'متاح: ' + p.stock}
+              </span>
+            </div>
+            <div class="font-bold text-sm text-slate-800 mt-1">${esc(p.name)}</div>
+          </div>
+          <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+            <span class="font-mono font-extrabold text-marine-900 text-sm">${fmt(p.price)}</span>
+            <button type="button" ${p.stock <= 0 ? 'disabled' : ''} onclick="addToCart('${p.id}')"
+              class="px-3 py-1.5 rounded-xl text-xs font-extrabold ${p.stock <= 0 ? 'bg-slate-100 text-slate-400' : 'bg-marine-700 hover:bg-marine-800 text-white'}">
+              + إضافة
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function handleBarcodeEnter(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        scanBarcodeValue();
+      }
+    }
+
+    function scanBarcodeValue() {
+      const inp = document.getElementById('pos-barcode-input');
+      const code = inp.value.trim();
+      if (!code) return;
+      const prod = products.find(p => p.sku === code);
+      if (!prod) {
+        showToast('لم يتم العثور على منتج بالباركود: ' + code, 'error');
+        return;
+      }
+      addToCart(prod.id);
+      inp.value = '';
+    }
+
+    function addToCart(id) {
+      const prod = products.find(p => p.id === id);
+      if (!prod || prod.stock <= 0) {
+        showToast('المنتج غير متوفر بالمخزون', 'error');
+        return;
+      }
+      const existing = cart.find(i => i.id === id);
+      if (existing) {
+        if (existing.qty >= prod.stock) {
+          showToast('الكمية المطلوبة تتجاوز المتاح', 'error');
+          return;
         }
+        existing.qty += 1;
+      } else {
+        cart.push({ id: prod.id, sku: prod.sku, name: prod.name, price: prod.price, cost: prod.cost, qty: 1 });
       }
+      renderCart();
     }
 
-    // ==========================================
-    // 5. التنقل والواجهة والساعة
-    // ==========================================
-    function switchTab(tabName) {
-      if (!currentSession.authenticated) {
-        document.getElementById('auth-gate-screen').classList.remove('hidden');
-        return;
-      }
-
-      if (tabName === 'reports' && !isAdmin()) {
-        requestAdminAction(() => {
-          currentSession.role = 'admin';
-          updateRoleVisibility();
-          performTabSwitch('reports');
-        }, 'عرض التقارير المالية والأرباح وتعديل الفواتير يتطلب رمز PIN الخاص بالإدارة:');
-        return;
-      }
-
-      if (tabName === 'settings' && !isAdmin()) {
-        requestAdminAction(() => {
-          currentSession.role = 'admin';
-          updateRoleVisibility();
-          performTabSwitch('settings');
-        }, 'الدخول إلى الإعدادات ورموز PIN والنسخ الاحتياطي يتطلب رمز PIN الخاص بالإدارة:');
-        return;
-      }
-
-      performTabSwitch(tabName);
+    function clearCart() {
+      cart = [];
+      renderCart();
     }
 
-    function performTabSwitch(tabName) {
-      if (tabName !== 'pos' && tabName !== 'inventory') {
-        closeCameraScanner();
+    function togglePaymentProof() {
+      const m = document.getElementById('pos-payment-select').value;
+      document.getElementById('pos-wallet-box').classList.toggle('hidden', m !== 'محفظة إلكترونية');
+      document.getElementById('pos-instapay-box').classList.toggle('hidden', m !== 'إنستاباي');
+    }
+
+    function renderCart() {
+      const box = document.getElementById('pos-cart-items');
+      if (!cart.length) {
+        box.innerHTML = '<div class="py-8 text-center text-slate-400 font-bold">السلة فارغة</div>';
+      } else {
+        box.innerHTML = cart.map((item, i) => `
+          <div class="py-2 flex items-center justify-between gap-2">
+            <div>
+              <div class="font-bold text-slate-800">${esc(item.name)}</div>
+              <div class="font-mono text-[11px] text-slate-500">${item.qty} × ${fmt(item.price)}</div>
+            </div>
+            <button type="button" onclick="cart.splice(${i},1);renderCart();" class="text-rose-600 font-bold px-2">✕</button>
+          </div>
+        `).join('');
+      }
+      const sub = cart.reduce((s, i) => s + i.price * i.qty, 0);
+      const disc = Math.min(Math.max(0, parseFloat(document.getElementById('pos-discount-input').value) || 0), sub);
+      const tot = Math.max(0, sub - disc);
+      document.getElementById('cart-subtotal').textContent = fmt(sub);
+      document.getElementById('cart-discount-view').textContent = fmt(disc);
+      document.getElementById('cart-total').textContent = fmt(tot);
+    }
+
+    function completeSale() {
+      if (!cart.length) {
+        showToast('أضف منتجات إلى الفاتورة أولاً', 'error');
+        return;
+      }
+      const method = document.getElementById('pos-payment-select').value;
+      const phone = document.getElementById('pos-wallet-phone').value.trim();
+      const ref = document.getElementById('pos-instapay-ref').value.trim();
+      if (method === 'محفظة إلكترونية' && !phone) {
+        showToast('أدخل رقم المحفظة المحول منها', 'error');
+        return;
+      }
+      if (method === 'إنستاباي' && !ref) {
+        showToast('أدخل الرقم المرجعي لإنستاباي', 'error');
+        return;
       }
 
-      document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('hidden'));
-      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('bg-cyan-500', 'text-slate-950', 'shadow');
-        btn.classList.add('text-slate-200', 'hover:bg-white/10');
+      cart.forEach(item => {
+        const p = products.find(x => x.id === item.id);
+        if (p) p.stock = Math.max(0, p.stock - item.qty);
       });
 
-      const activeBtn = document.getElementById(`nav-${tabName}`);
-      activeBtn.classList.add('bg-cyan-500', 'text-slate-950', 'shadow');
-      activeBtn.classList.remove('text-slate-200', 'hover:bg-white/10');
+      const sub = cart.reduce((s, i) => s + i.price * i.qty, 0);
+      const cost = cart.reduce((s, i) => s + i.cost * i.qty, 0);
+      const disc = Math.min(Math.max(0, parseFloat(document.getElementById('pos-discount-input').value) || 0), sub);
+      const total = Math.max(0, sub - disc);
 
-      updateRoleVisibility();
-
-      if (tabName === 'pos') {
-        populateStaffControls();
-        renderPosProducts();
-        renderCart();
-        document.getElementById('barcode-scanner-input').focus();
-      } else if (tabName === 'inventory') {
-        populateCategoryControls();
-        renderInventoryTable();
-      } else if (tabName === 'reports') {
-        renderReports();
-      } else if (tabName === 'settings') {
-        fillSettingsForm();
-      }
-    }
-
-    function initClock() {
-      function tick() {
-        const now = new Date();
-        const clockEl = document.getElementById('live-clock');
-        const dateEl = document.getElementById('live-date');
-        const gateTimeEl = document.getElementById('gate-live-time');
-        const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        if (clockEl) clockEl.textContent = timeStr;
-        if (gateTimeEl) gateTimeEl.textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-        if (dateEl) {
-          dateEl.textContent = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
-        }
-      }
-      tick();
-      setInterval(tick, 1000);
-    }
-
-    function applySettingsToUI() {
-      document.title = `${settings.storeName} - نظام كاشير وإدارة مخزون مستلزمات الصيد`;
-      document.getElementById('header-store-name').textContent = settings.storeName;
-      document.getElementById('header-store-subtitle').textContent = settings.storeSubtitle;
-
-      const gateName = document.getElementById('gate-store-name');
-      const gateSub = document.getElementById('gate-store-subtitle');
-      const gateAddr = document.getElementById('gate-store-address');
-      if (gateName) gateName.textContent = settings.storeName;
-      if (gateSub) gateSub.textContent = settings.storeSubtitle;
-      if (gateAddr) gateAddr.textContent = settings.address || 'كورنيش البحر';
-
-      const headerLogo = document.getElementById('header-store-logo');
-      const headerIcon = document.getElementById('header-default-icon');
-      const gateLogo = document.getElementById('gate-store-logo');
-      const gateIcon = document.getElementById('gate-default-icon');
-
-      if (settings.storeLogo) {
-        headerLogo.src = settings.storeLogo;
-        headerLogo.classList.remove('hidden');
-        headerIcon.classList.add('hidden');
-        if (gateLogo && gateIcon) {
-          gateLogo.src = settings.storeLogo;
-          gateLogo.classList.remove('hidden');
-          gateIcon.classList.add('hidden');
-        }
-      } else {
-        headerLogo.src = '';
-        headerLogo.classList.add('hidden');
-        headerIcon.classList.remove('hidden');
-        if (gateLogo && gateIcon) {
-          gateLogo.src = '';
-          gateLogo.classList.add('hidden');
-          gateIcon.classList.remove('hidden');
-        }
-      }
-    }
-
-    function fillSettingsForm() {
-      document.getElementById('set-store-name').value = settings.storeName;
-      document.getElementById('set-store-subtitle').value = settings.storeSubtitle;
-      document.getElementById('set-store-phone').value = settings.phone;
-      document.getElementById('set-store-address').value = settings.address;
-      document.getElementById('set-store-footer').value = settings.footerNote;
-      document.getElementById('admin-pin-input').value = settings.adminPin || '9999';
-      document.getElementById('cloud-room-code-input').value = settings.cloudRoomCode || 'shabaka-w-senara-pos';
-
-      const previewImg = document.getElementById('logo-preview-img');
-      const previewPlaceholder = document.getElementById('logo-preview-placeholder');
-      if (settings.storeLogo) {
-        previewImg.src = settings.storeLogo;
-        previewImg.classList.remove('hidden');
-        previewPlaceholder.classList.add('hidden');
-      } else {
-        previewImg.src = '';
-        previewImg.classList.add('hidden');
-        previewPlaceholder.classList.remove('hidden');
-      }
-
-      renderCategoriesSettingsList();
-      renderStaffSettingsLists();
-      updateCloudBadges(cloudConnected);
-    }
-
-    function handleStoreLogoUpload(event) {
-<!-- ... existing code ... -->
-    // ==========================================
-    // إدارة الكاشير والشيفتات ورموز PIN
-    // ==========================================
-    function populateStaffControls() {
-      const cashierLabel = document.getElementById('pos-active-cashier-label');
-      const shiftLabel = document.getElementById('pos-active-shift-label');
-
-      if (!settings.cashierProfiles || settings.cashierProfiles.length === 0) {
-        settings.cashierProfiles = DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p }));
-      }
-      settings.cashiers = settings.cashierProfiles.map(p => p.name);
-
-      if (!settings.shifts || settings.shifts.length === 0) {
-        settings.shifts = ['الشيفت الصباحي'];
-      }
-      if (!settings.cashiers.includes(settings.activeCashier)) {
-        settings.activeCashier = settings.cashiers[0];
-      }
-      if (!settings.shifts.includes(settings.activeShift)) {
-        settings.activeShift = settings.shifts[0];
-      }
-
-      const displayCashier = currentSession.authenticated && currentSession.role === 'cashier'
-        ? currentSession.cashierName
-        : settings.activeCashier;
-      const displayShift = currentSession.authenticated && currentSession.role === 'cashier'
-        ? currentSession.shiftName
-        : settings.activeShift;
-
-      if (cashierLabel) cashierLabel.textContent = displayCashier;
-      if (shiftLabel) shiftLabel.textContent = displayShift;
-    }
-
-    function renderStaffSettingsLists() {
-      const cashiersContainer = document.getElementById('cashiers-list-container');
-      const shiftsContainer = document.getElementById('shifts-list-container');
-
-      if (cashiersContainer) {
-        cashiersContainer.innerHTML = settings.cashierProfiles.map(p => `
-          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-marine-50 text-marine-900 border border-marine-200 text-xs font-bold">
-            <i class="fa-solid fa-user-check text-marine-600"></i>
-            <span>${escapeHTML(p.name)}</span>
-            <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white border border-marine-200 text-slate-600">PIN: ${escapeHTML(p.pin)}</span>
-            ${settings.cashierProfiles.length > 1 ? `
-              <button type="button" onclick="deleteCashier('${escapeAttr(p.name)}')" title="حذف الكاشير" class="text-rose-500 hover:text-rose-700 mr-1">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
-            ` : ''}
-          </span>
-        `).join('');
-      }
-
-      if (shiftsContainer) {
-        shiftsContainer.innerHTML = settings.shifts.map(s => `
-          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-50 text-cyan-950 border border-cyan-200 text-xs font-bold">
-            <i class="fa-solid fa-clock text-cyan-700"></i>
-            <span>${escapeHTML(s)}</span>
-            ${settings.shifts.length > 1 ? `
-              <button type="button" onclick="deleteShift('${escapeAttr(s)}')" title="حذف الشيفت" class="text-rose-500 hover:text-rose-700 mr-1">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
-            ` : ''}
-          </span>
-        `).join('');
-      }
-    }
-
-    function addCashier() {
-      const nameInput = document.getElementById('new-cashier-name');
-      const pinInput = document.getElementById('new-cashier-pin');
-      const name = nameInput.value.trim();
-      const pin = (pinInput.value || '').trim() || '1111';
-
-      if (!name) {
-        showToast('اكتب اسم الكاشير أولاً', 'warning');
-        return;
-      }
-      if (settings.cashierProfiles.some(p => p.name === name)) {
-        showToast('اسم الكاشير موجود بالفعل', 'warning');
-        return;
-      }
-      if (pin.length < 4) {
-        showToast('يفضل أن يكون رمز PIN الخاص بالكاشير 4 أرقام أو أكثر', 'warning');
-        return;
-      }
-
-      settings.cashierProfiles.push({ name, pin });
-      settings.cashiers = settings.cashierProfiles.map(p => p.name);
-      settings.activeCashier = name;
-      saveSettings();
-      nameInput.value = '';
-      pinInput.value = '';
-      populateStaffControls();
-      populateAuthGateControls();
-      renderStaffSettingsLists();
-      showToast(`تمت إضافة الكاشير (${name}) ورمز PIN الخاص به`, 'success');
-    }
-
-    function deleteCashier(name) {
-      if (settings.cashierProfiles.length <= 1) {
-        showToast('يجب وجود كاشير واحد على الأقل', 'warning');
-        return;
-      }
-      settings.cashierProfiles = settings.cashierProfiles.filter(p => p.name !== name);
-      settings.cashiers = settings.cashierProfiles.map(p => p.name);
-      if (settings.activeCashier === name) {
-        settings.activeCashier = settings.cashiers[0];
-      }
-      saveSettings();
-      populateStaffControls();
-      populateAuthGateControls();
-      renderStaffSettingsLists();
-      showToast(`تم حذف الكاشير: ${name}`, 'info');
-    }
-
-    function updateAdminPin() {
-      const pinInput = document.getElementById('admin-pin-input');
-      const newPin = pinInput.value.trim();
-      if (newPin.length < 4) {
-        showToast('رمز PIN الخاص بالإدارة يجب أن يكون 4 أرقام أو أكثر', 'warning');
-        return;
-      }
-      settings.adminPin = newPin;
-      saveSettings();
-      showToast('تم تحديث رمز PIN الخاص بالإدارة بنجاح', 'success');
-    }
-
-    function addShift() {
-      const input = document.getElementById('new-shift-name');
-      const name = input.value.trim();
-      if (!name) {
-        showToast('اكتب اسم الشيفت أولاً', 'warning');
-        return;
-      }
-      if (settings.shifts.includes(name)) {
-        showToast('اسم الشيفت موجود بالفعل', 'warning');
-        return;
-      }
-      settings.shifts.push(name);
-      settings.activeShift = name;
-      saveSettings();
-      input.value = '';
-      populateStaffControls();
-      populateAuthGateControls();
-      renderStaffSettingsLists();
-      showToast(`تمت إضافة الشيفت: ${name}`, 'success');
-    }
-
-    function deleteShift(name) {
-      if (settings.shifts.length <= 1) {
-        showToast('يجب وجود شيفت واحد على الأقل', 'warning');
-        return;
-      }
-      settings.shifts = settings.shifts.filter(s => s !== name);
-      if (settings.activeShift === name) {
-        settings.activeShift = settings.shifts[0];
-      }
-      saveSettings();
-      populateStaffControls();
-      populateAuthGateControls();
-      renderStaffSettingsLists();
-      showToast(`تم حذف الشيفت: ${name}`, 'info');
-    }
-
-    // ==========================================
-    // 6. شاشة نقطة البيع والباركود والكاميرا
-    // ==========================================
-<!-- ... existing code ... -->
-      const totalCost = cart.reduce((sum, item) => sum + (item.cost * item.qty), 0);
-      const netProfit = (totals.subtotal - totals.discount) - totalCost;
-
-      const cashierName = currentSession.role === 'cashier'
-        ? currentSession.cashierName
-        : settings.activeCashier;
-      const shiftName = currentSession.role === 'cashier'
-        ? currentSession.shiftName
-        : settings.activeShift;
-
-      const invoice = {
+      const inv = {
         id: 'INV-' + Date.now().toString().slice(-6),
-        dateISO: new Date().toISOString(),
-        customer: document.getElementById('customer-name-input').value.trim() || 'عميل نقدي',
-        cashier: cashierName,
-        shift: shiftName,
-        items: cart.map(i => ({ ...i })),
-        subtotal: totals.subtotal,
-        discount: totals.discount,
-        taxRate: totals.taxRate,
-        taxAmount: totals.taxAmount,
-        grandTotal: totals.grandTotal,
-        totalCost,
-        netProfit,
-        paymentMethod: selectedPaymentMethod,
-        paymentDetails,
-        amountPaid,
-        changeDue,
+        date: new Date().toLocaleString('ar-EG'),
+        cashier: session.cashier,
+        shift: session.shift,
+        customer: document.getElementById('pos-customer-input').value.trim() || 'عميل نقدي',
+        items: cart.map(x => ({ ...x })),
+        subtotal: sub,
+        discount: disc,
+        total,
+        profit: total - cost,
+        method,
+        proof: method === 'محفظة إلكترونية' ? `${document.getElementById('pos-wallet-provider').value} (${phone})` : method === 'إنستاباي' ? `مرجع: ${ref}` : 'كاش'
       };
 
-      sales.unshift(invoice);
-      saveSales();
-
+      sales.unshift(inv);
+      saveState(true);
       cart = [];
-      document.getElementById('discount-input').value = 0;
-      document.getElementById('tax-input').value = 0;
-      document.getElementById('amount-paid-input').value = '';
-      document.getElementById('customer-name-input').value = '';
-      document.getElementById('wallet-sender-phone').value = '';
-      document.getElementById('instapay-ref-number').value = '';
-
-      renderPosProducts();
+      document.getElementById('pos-discount-input').value = 0;
+      document.getElementById('pos-customer-input').value = '';
+      document.getElementById('pos-wallet-phone').value = '';
+      document.getElementById('pos-instapay-ref').value = '';
+      renderPosGrid();
       renderCart();
-      openReceiptModal(invoice.id);
-      showToast(`تم إصدار الفاتورة ${invoice.id} بنجاح`, 'success');
+      openReceipt(inv.id);
+      showToast('تم إصدار الفاتورة ' + inv.id, 'success');
     }
 
-    // ==========================================
-    // 8. إدارة المخزون (مشاهدة وفلترة للكاشير + تعديل وإضافة للإدارة)
-    // ==========================================
-    function updateLowStockBadge() {
-      const lowCount = products.filter(p => p.stock <= p.minStock).length;
-      const badge = document.getElementById('low-stock-badge');
-      if (lowCount > 0) {
-        badge.textContent = lowCount;
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
-      }
-    }
+    function renderInventory() {
+      const q = (document.getElementById('inv-search-input').value || '').trim().toLowerCase();
+      const filter = document.getElementById('inv-stock-filter').value;
+      document.getElementById('inv-stat-count').textContent = products.length;
+      document.getElementById('inv-stat-units').textContent = products.reduce((s, p) => s + Number(p.stock || 0), 0);
+      document.getElementById('inv-stat-cost').textContent = fmt(products.reduce((s, p) => s + Number(p.cost || 0) * Number(p.stock || 0), 0));
+      document.getElementById('inv-stat-low').textContent = products.filter(p => p.stock <= p.minStock).length;
 
-    function renderInventoryTable() {
-      const query = (document.getElementById('inv-search-input').value || '').trim().toLowerCase();
-      const catFilter = document.getElementById('inv-category-filter').value;
-      const stockFilterEl = document.getElementById('inv-stock-status-filter');
-      const stockFilter = stockFilterEl ? stockFilterEl.value : 'all';
-      const tbody = document.getElementById('inventory-table-body');
-      const adminMode = isAdmin();
-
-      const totalItems = products.length;
-      const totalUnits = products.reduce((s, p) => s + Number(p.stock || 0), 0);
-      const costValue = products.reduce((s, p) => s + (Number(p.cost || 0) * Number(p.stock || 0)), 0);
-      const lowStockCount = products.filter(p => p.stock <= p.minStock).length;
-
-      document.getElementById('inv-total-items').textContent = totalItems;
-      document.getElementById('inv-total-units').textContent = totalUnits;
-      document.getElementById('inv-cost-value').textContent = formatMoney(costValue);
-      document.getElementById('inv-low-stock-count').textContent = lowStockCount;
-
-      const filtered = products.filter(p => {
-        const matchesCat = catFilter === 'الكل' || p.category === catFilter;
-        const matchesQ = !query || p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query);
-        let matchesStock = true;
-        if (stockFilter === 'available') matchesStock = p.stock > p.minStock;
-        else if (stockFilter === 'low') matchesStock = p.stock > 0 && p.stock <= p.minStock;
-        else if (stockFilter === 'out') matchesStock = p.stock <= 0;
-        return matchesCat && matchesQ && matchesStock;
+      const list = products.filter(p => {
+        const okQ = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
+        if (!okQ) return false;
+        if (filter === 'available') return p.stock > p.minStock;
+        if (filter === 'low') return p.stock > 0 && p.stock <= p.minStock;
+        if (filter === 'out') return p.stock <= 0;
+        return true;
       });
 
-      const colSpanCount = adminMode ? 8 : 7;
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="${colSpanCount}" class="py-8 text-center text-slate-500 text-xs font-bold">لا توجد منتجات مسجلة مطابقة للبحث أو حالة الاستوك</td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = filtered.map(p => {
-        let statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">استوك متاح</span>`;
-        if (p.stock <= 0) {
-          statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700">نافذ</span>`;
-        } else if (p.stock <= p.minStock) {
-          statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">منخفض / أوشك على النفاد</span>`;
-        }
-
-        const costCell = adminMode
-          ? `<td class="py-3 px-4 font-mono text-xs text-slate-600">${formatMoney(p.cost)}</td>`
-          : '';
-
-        const actionsCell = adminMode
-          ? `
-            <div class="flex items-center justify-center gap-1.5">
-              <button onclick="requestAdminAction(() => openProductModal('${p.id}'))" title="تعديل" class="p-2 rounded-lg bg-marine-50 hover:bg-marine-600 hover:text-white text-marine-700 text-xs transition">
-                <i class="fa-solid fa-pen"></i>
-              </button>
-              <button onclick="requestAdminAction(() => confirmDeleteProduct('${p.id}'))" title="حذف" class="p-2 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 text-xs transition">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </div>
-          `
-          : `
-            <div class="flex items-center justify-center">
-              <button onclick="requestAdminAction(() => openProductModal('${p.id}'), 'تعديل بيانات أو كمية المنتج يتطلب رمز PIN الخاص بالإدارة:')" title="تعديل يتطلب PIN الإدارة" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-900 text-[11px] font-bold transition inline-flex items-center gap-1">
-                <i class="fa-solid fa-lock text-[10px]"></i>
-                <span>تعديل (PIN)</span>
-              </button>
-            </div>
-          `;
+      document.getElementById('inventory-tbody').innerHTML = list.map(p => {
+        const st = p.stock <= 0
+          ? '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700">نافذ</span>'
+          : p.stock <= p.minStock
+          ? '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">منخفض</span>'
+          : '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">متاح</span>';
 
         return `
-          <tr class="hover:bg-slate-50/80 transition">
-            <td class="py-3 px-4 font-mono text-xs text-slate-600">${escapeHTML(p.sku)}</td>
-            <td class="py-3 px-4 font-bold text-slate-800">${escapeHTML(p.name)}</td>
-            <td class="py-3 px-4 text-xs text-marine-700 font-bold">${escapeHTML(p.category)}</td>
-            ${costCell}
-            <td class="py-3 px-4 font-mono text-xs font-extrabold text-marine-900">${formatMoney(p.price)}</td>
+          <tr>
+            <td class="py-3 px-4 font-mono text-xs">${esc(p.sku)}</td>
+            <td class="py-3 px-4 font-bold">${esc(p.name)}</td>
+            <td class="py-3 px-4 text-xs">${esc(p.category)}</td>
+            ${isAdmin() ? `<td class="py-3 px-4 font-mono text-xs">${fmt(p.cost)}</td>` : ''}
+            <td class="py-3 px-4 font-mono text-xs font-bold">${fmt(p.price)}</td>
             <td class="py-3 px-4 font-mono font-bold">${p.stock}</td>
-            <td class="py-3 px-4">${statusBadge}</td>
-            <td class="py-3 px-4">${actionsCell}</td>
+            <td class="py-3 px-4">${st}</td>
+            <td class="py-3 px-4 text-center">
+              <button type="button" onclick="requireAdminPin(() => openProductForm('${p.id}'), 'تعديل المخزون يتطلب رمز PIN للإدارة:')"
+                class="px-2.5 py-1 rounded-lg bg-marine-50 hover:bg-marine-700 hover:text-white text-marine-800 text-xs font-bold">
+                ${isAdmin() ? 'تعديل' : 'تعديل (PIN)'}
+              </button>
+            </td>
           </tr>
         `;
       }).join('');
     }
 
-    function openProductModal(productId = null) {
-<!-- ... existing code ... -->
-    // ==========================================
-    // 9. التقارير والفواتير وتعديل الفواتير بـ PIN الإدارة
-    // ==========================================
-    function setReportFilter(mode) {
-      reportFilter = mode;
-      document.querySelectorAll('.rep-filter-btn').forEach(btn => {
-        btn.classList.remove('bg-marine-700', 'text-white');
-        btn.classList.add('bg-slate-100', 'text-slate-700');
-      });
-      const active = document.getElementById(`filter-rep-${mode}`);
-      active.classList.remove('bg-slate-100', 'text-slate-700');
-      active.classList.add('bg-marine-700', 'text-white');
-      renderReports();
+    function openProductForm(id = null) {
+      const sel = document.getElementById('prod-cat-input');
+      sel.innerHTML = CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      if (id) {
+        const p = products.find(x => x.id === id);
+        if (!p) return;
+        document.getElementById('modal-product-title').textContent = 'تعديل منتج';
+        document.getElementById('prod-edit-id').value = p.id;
+        document.getElementById('prod-name-input').value = p.name;
+        document.getElementById('prod-sku-input').value = p.sku;
+        sel.value = p.category;
+        document.getElementById('prod-cost-input').value = p.cost;
+        document.getElementById('prod-price-input').value = p.price;
+        document.getElementById('prod-stock-input').value = p.stock;
+      } else {
+        document.getElementById('modal-product-title').textContent = 'إضافة منتج جديد';
+        document.getElementById('prod-edit-id').value = '';
+        document.getElementById('prod-name-input').value = '';
+        document.getElementById('prod-sku-input').value = String(Date.now()).slice(-7);
+        document.getElementById('prod-cost-input').value = '';
+        document.getElementById('prod-price-input').value = '';
+        document.getElementById('prod-stock-input').value = '10';
+      }
+      const m = document.getElementById('modal-product');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
     }
 
-    function getFilteredSales() {
-      if (reportFilter === 'today') {
-        const todayStr = new Date().toLocaleDateString('ar-EG');
-        return sales.filter(s => new Date(s.dateISO).toLocaleDateString('ar-EG') === todayStr);
+    function closeProductModal() {
+      const m = document.getElementById('modal-product');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function saveProductForm(e) {
+      e.preventDefault();
+      const id = document.getElementById('prod-edit-id').value;
+      const obj = {
+        id: id || String(Date.now()),
+        name: document.getElementById('prod-name-input').value.trim(),
+        sku: document.getElementById('prod-sku-input').value.trim(),
+        category: document.getElementById('prod-cat-input').value,
+        cost: parseFloat(document.getElementById('prod-cost-input').value) || 0,
+        price: parseFloat(document.getElementById('prod-price-input').value) || 0,
+        stock: parseInt(document.getElementById('prod-stock-input').value, 10) || 0,
+        minStock: 3,
+      };
+      if (id) {
+        const idx = products.findIndex(x => x.id === id);
+        if (idx !== -1) products[idx] = { ...products[idx], ...obj };
+      } else {
+        products.unshift(obj);
       }
-      return sales;
+      saveState(true);
+      closeProductModal();
+      renderInventory();
+      renderPosGrid();
+      showToast('تم حفظ المنتج وتحديث المخزون', 'success');
     }
 
     function renderReports() {
-      const list = getFilteredSales();
-      const totalSales = list.reduce((s, inv) => s + Number(inv.grandTotal || 0), 0);
-      const totalProfit = list.reduce((s, inv) => s + Number(inv.netProfit || 0), 0);
-      const count = list.length;
-      const avg = count > 0 ? totalSales / count : 0;
+      document.getElementById('rep-total-sales').textContent = fmt(sales.reduce((s, x) => s + Number(x.total || 0), 0));
+      document.getElementById('rep-total-profit').textContent = fmt(sales.reduce((s, x) => s + Number(x.profit || 0), 0));
+      document.getElementById('rep-invoices-count').textContent = sales.length;
 
-      const cashSales = list
-        .filter(inv => inv.paymentMethod === 'كاش')
-        .reduce((s, inv) => s + Number(inv.grandTotal || 0), 0);
-      const walletSales = list
-        .filter(inv => inv.paymentMethod === 'محفظة إلكترونية')
-        .reduce((s, inv) => s + Number(inv.grandTotal || 0), 0);
-      const instapaySales = list
-        .filter(inv => inv.paymentMethod === 'إنستاباي')
-        .reduce((s, inv) => s + Number(inv.grandTotal || 0), 0);
-
-      document.getElementById('rep-total-sales').textContent = formatMoney(totalSales);
-      document.getElementById('rep-total-profit').textContent = formatMoney(totalProfit);
-      document.getElementById('rep-invoices-count').textContent = count;
-      document.getElementById('rep-avg-invoice').textContent = formatMoney(avg);
-
-      document.getElementById('rep-cash-sales').textContent = formatMoney(cashSales);
-      document.getElementById('rep-wallet-sales').textContent = formatMoney(walletSales);
-      document.getElementById('rep-instapay-sales').textContent = formatMoney(instapaySales);
-
-      const tbody = document.getElementById('sales-history-body');
-      if (list.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" class="py-8 text-center text-xs font-bold text-slate-500">لا توجد فواتير مسجلة في هذه الفترة</td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = list.map(inv => {
-        const dt = new Date(inv.dateISO);
-        const dateFormatted = dt.toLocaleDateString('ar-EG') + ' ' + dt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-        const details = inv.paymentDetails || {};
-        let paymentBadge = `<span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800">كاش</span>`;
-        let proofText = '';
-
-        if (inv.paymentMethod === 'محفظة إلكترونية') {
-          paymentBadge = `<span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-900">${escapeHTML(details.walletProvider || 'محفظة')}</span>`;
-          proofText = `<div class="text-[11px] font-mono text-slate-600 mt-0.5">من: ${escapeHTML(details.senderPhone || '-')}</div>`;
-        } else if (inv.paymentMethod === 'إنستاباي') {
-          paymentBadge = `<span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-900">إنستاباي</span>`;
-          proofText = `<div class="text-[11px] font-mono text-slate-600 mt-0.5">مرجع: ${escapeHTML(details.referenceNumber || '-')}</div>`;
-        }
-
-        return `
-          <tr class="hover:bg-slate-50/80 transition">
-            <td class="py-3 px-4 font-mono text-xs font-bold text-marine-800">${escapeHTML(inv.id)}</td>
-            <td class="py-3 px-4 text-xs text-slate-600">${dateFormatted}</td>
-            <td class="py-3 px-4 text-xs">
-              <div class="font-bold text-slate-800">${escapeHTML(inv.cashier || settings.activeCashier)}</div>
-              <div class="text-[11px] text-slate-500">${escapeHTML(inv.shift || settings.activeShift)}</div>
-            </td>
-            <td class="py-3 px-4 text-xs font-bold text-slate-800">${escapeHTML(inv.customer)}</td>
-            <td class="py-3 px-4">
-              ${paymentBadge}
-              ${proofText}
-            </td>
-            <td class="py-3 px-4 font-mono text-xs font-extrabold text-marine-950">${formatMoney(inv.grandTotal)}</td>
-            <td class="py-3 px-4 text-center">
-              <div class="inline-flex items-center gap-1.5">
-                <button onclick="openReceiptModal('${inv.id}')" class="px-2.5 py-1.5 rounded-lg bg-marine-50 hover:bg-marine-700 hover:text-white text-marine-700 text-xs font-bold transition" title="قراءة وطباعة للعميل">
-                  <i class="fa-solid fa-print ml-1"></i>
-                  قراءة / طباعة
-                </button>
-                <button onclick="requestAdminAction(() => openEditInvoiceModal('${inv.id}'), 'تعديل أي فاتورة تم إصدارها يقتصر على رمز PIN الخاص بالإدارة:')" class="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-800 border border-amber-200 text-xs font-bold transition" title="تعديل الفاتورة (PIN الإدارة)">
-                  <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
+      document.getElementById('reports-tbody').innerHTML = sales.map(inv => `
+        <tr>
+          <td class="py-3 px-4 font-mono text-xs font-bold">${esc(inv.id)}</td>
+          <td class="py-3 px-4 text-xs">${esc(inv.cashier)} - ${esc(inv.shift)}</td>
+          <td class="py-3 px-4 text-xs font-bold">${esc(inv.customer)}</td>
+          <td class="py-3 px-4 text-xs">${esc(inv.proof || inv.method)}</td>
+          <td class="py-3 px-4 font-mono text-xs font-extrabold">${fmt(inv.total)}</td>
+          <td class="py-3 px-4 text-center space-x-1 space-x-reverse">
+            <button type="button" onclick="openReceipt('${inv.id}')" class="px-2.5 py-1 rounded-lg bg-marine-50 text-marine-800 text-xs font-bold">قراءة / طباعة</button>
+            <button type="button" onclick="requireAdminPin(() => openEditInvoice('${inv.id}'), 'تعديل الفواتير المصدرة يتطلب رمز PIN الخاص بالإدارة:')"
+              class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold">تعديل (PIN)</button>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400 font-bold">لا توجد فواتير بعد</td></tr>';
     }
 
-    function openEditInvoiceModal(invoiceId) {
-      const inv = sales.find(s => s.id === invoiceId);
+    function openReceipt(id) {
+      const inv = sales.find(x => x.id === id);
       if (!inv) return;
+      document.getElementById('receipt-body').innerHTML = `
+        <div class="text-center border-b pb-2">
+          <div class="font-extrabold text-base">${esc(settings.storeName)}</div>
+          <div class="text-slate-500">${esc(settings.storeAddr)}</div>
+          <div class="font-mono mt-1">فاتورة: ${esc(inv.id)} | ${esc(inv.date)}</div>
+          <div class="text-slate-600">الكاشير: ${esc(inv.cashier)} (${esc(inv.shift)})</div>
+        </div>
+        <div class="divide-y">
+          ${inv.items.map(i => `<div class="py-1.5 flex justify-between"><span>${esc(i.name)} × ${i.qty}</span><span class="font-mono font-bold">${fmt(i.price * i.qty)}</span></div>`).join('')}
+        </div>
+        <div class="border-t pt-2 space-y-1">
+          <div class="flex justify-between"><span>الخصم:</span><span class="font-mono">${fmt(inv.discount)}</span></div>
+          <div class="flex justify-between"><span>الدفع:</span><span>${esc(inv.proof || inv.method)}</span></div>
+          <div class="flex justify-between font-extrabold text-sm pt-1"><span>الإجمالي:</span><span class="font-mono">${fmt(inv.total)}</span></div>
+        </div>
+      `;
+      const m = document.getElementById('modal-receipt');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
 
-      const details = inv.paymentDetails || {};
+    function closeReceipt() {
+      const m = document.getElementById('modal-receipt');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function openEditInvoice(id) {
+      const inv = sales.find(x => x.id === id);
+      if (!inv) return;
       document.getElementById('edit-inv-id').value = inv.id;
-      document.getElementById('edit-inv-code-label').textContent = inv.id;
-      document.getElementById('edit-inv-customer').value = inv.customer || 'عميل نقدي';
-      document.getElementById('edit-inv-payment-method').value = inv.paymentMethod || 'كاش';
-      document.getElementById('edit-inv-discount').value = Number(inv.discount || 0);
-      document.getElementById('edit-inv-wallet-provider').value = details.walletProvider || 'فودافون كاش';
-      document.getElementById('edit-inv-sender-phone').value = details.senderPhone || '';
-      document.getElementById('edit-inv-ref-number').value = details.referenceNumber || '';
-
-      toggleEditInvoiceProofFields();
-
-      const modal = document.getElementById('edit-invoice-modal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
+      document.getElementById('edit-inv-code').textContent = 'رقم الفاتورة: ' + inv.id;
+      document.getElementById('edit-inv-customer').value = inv.customer;
+      document.getElementById('edit-inv-method').value = inv.method || 'كاش';
+      document.getElementById('edit-inv-discount').value = inv.discount || 0;
+      const m = document.getElementById('modal-edit-invoice');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
     }
 
     function closeEditInvoiceModal() {
-      const modal = document.getElementById('edit-invoice-modal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      const m = document.getElementById('modal-edit-invoice');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
     }
 
-    function toggleEditInvoiceProofFields() {
-      const method = document.getElementById('edit-inv-payment-method').value;
-      document.getElementById('edit-inv-wallet-fields').classList.toggle('hidden', method !== 'محفظة إلكترونية');
-      document.getElementById('edit-inv-instapay-fields').classList.toggle('hidden', method !== 'إنستاباي');
-    }
-
-    function saveEditedInvoice(e) {
+    function saveInvoiceEdits(e) {
       e.preventDefault();
-      if (!isAdmin()) {
-        showToast('تعديل الفواتير متاح للإدارة فقط', 'error');
-        return;
-      }
-
       const id = document.getElementById('edit-inv-id').value;
-      const idx = sales.findIndex(s => s.id === id);
-      if (idx === -1) return;
-
-      const inv = sales[idx];
-      const customer = document.getElementById('edit-inv-customer').value.trim() || 'عميل نقدي';
-      const method = document.getElementById('edit-inv-payment-method').value;
-      const discount = Math.min(Math.max(0, parseFloat(document.getElementById('edit-inv-discount').value) || 0), inv.subtotal);
-      const afterDiscount = inv.subtotal - discount;
-      const taxAmount = (afterDiscount * (inv.taxRate || 0)) / 100;
-      const grandTotal = afterDiscount + taxAmount;
-      const netProfit = afterDiscount - (inv.totalCost || 0);
-
-      let paymentDetails = {
-        method,
-        walletProvider: '',
-        senderPhone: '',
-        referenceNumber: '',
-        summaryLabel: method,
-      };
-
-      if (method === 'محفظة إلكترونية') {
-        const walletProvider = document.getElementById('edit-inv-wallet-provider').value;
-        const senderPhone = document.getElementById('edit-inv-sender-phone').value.trim();
-        if (!senderPhone) {
-          showToast('يرجى إدخال الرقم الذي تم التحويل منه', 'error');
-          return;
-        }
-        paymentDetails.walletProvider = walletProvider;
-        paymentDetails.senderPhone = senderPhone;
-        paymentDetails.summaryLabel = `${walletProvider} (${senderPhone})`;
-      } else if (method === 'إنستاباي') {
-        const referenceNumber = document.getElementById('edit-inv-ref-number').value.trim();
-        if (!referenceNumber) {
-          showToast('يرجى إدخال الرقم المرجعي لإنستاباي', 'error');
-          return;
-        }
-        paymentDetails.referenceNumber = referenceNumber;
-        paymentDetails.summaryLabel = `إنستاباي - مرجع: ${referenceNumber}`;
-      }
-
-      sales[idx] = {
-        ...inv,
-        customer,
-        discount,
-        taxAmount,
-        grandTotal,
-        netProfit,
-        paymentMethod: method,
-        paymentDetails,
-        amountPaid: method === 'كاش' ? Math.max(grandTotal, inv.amountPaid || grandTotal) : grandTotal,
-        changeDue: 0,
-      };
-
-      saveSales();
+      const inv = sales.find(x => x.id === id);
+      if (!inv) return;
+      inv.customer = document.getElementById('edit-inv-customer').value.trim() || 'عميل نقدي';
+      inv.method = document.getElementById('edit-inv-method').value;
+      inv.discount = Math.min(Math.max(0, parseFloat(document.getElementById('edit-inv-discount').value) || 0), inv.subtotal);
+      inv.total = Math.max(0, inv.subtotal - inv.discount);
+      saveState(true);
       closeEditInvoiceModal();
       renderReports();
-      showToast(`تم تحديث الفاتورة ${id} بنجاح`, 'success');
+      showToast('تم تحديث الفاتورة ' + id, 'success');
     }
 
-    function openReceiptModal(invoiceId) {
-<!-- ... existing code ... -->
-          products = payload.products;
-          sales = payload.sales;
-          categories = Array.isArray(payload.categories) && payload.categories.length > 0 ? payload.categories : [...DEFAULT_CATEGORIES];
-          const mergedSettings = { ...DEFAULT_SETTINGS, ...(payload.settings || {}) };
-          mergedSettings.cashierProfiles = normalizeCashierProfiles(mergedSettings);
-          mergedSettings.cashiers = mergedSettings.cashierProfiles.map(p => p.name);
-          settings = mergedSettings;
+    function fillSettings() {
+      document.getElementById('set-store-name').value = settings.storeName;
+      document.getElementById('set-store-desc').value = settings.storeDesc;
+      document.getElementById('set-store-addr').value = settings.storeAddr;
+      document.getElementById('set-store-phone').value = settings.storePhone;
+      document.getElementById('set-admin-pin').value = settings.adminPin;
+      document.getElementById('set-cloud-room').value = settings.cloudRoom;
 
-          saveProducts();
-          saveSales();
-          saveCategories();
-          saveSettings();
+      document.getElementById('settings-cashiers-list').innerHTML = settings.cashierProfiles.map(p => `
+        <span class="px-3 py-1.5 rounded-xl bg-marine-50 border border-marine-200 text-xs font-bold">
+          ${esc(p.name)} <span class="font-mono text-slate-500">(PIN: ${esc(p.pin)})</span>
+        </span>
+      `).join('');
 
-          populateCategoryControls();
-          populateStaffControls();
-          populateAuthGateControls();
-          applySettingsToUI();
-          fillSettingsForm();
-          renderPosProducts();
-          renderCart();
+      document.getElementById('settings-shifts-list').innerHTML = settings.shifts.map(s => `
+        <span class="px-3 py-1.5 rounded-xl bg-cyan-50 border border-cyan-200 text-xs font-bold">${esc(s)}</span>
+      `).join('');
+    }
+
+    function saveStoreInfo() {
+      settings.storeName = document.getElementById('set-store-name').value.trim() || 'شبكة وصنارة';
+      settings.storeDesc = document.getElementById('set-store-desc').value.trim();
+      settings.storeAddr = document.getElementById('set-store-addr').value.trim();
+      settings.storePhone = document.getElementById('set-store-phone').value.trim();
+      saveState(true);
+      applyBranding();
+      showToast('تم حفظ بيانات المتجر', 'success');
+    }
+
+    function handleLogoFile(e) {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        settings.storeLogo = r.result;
+        saveState(true);
+        applyBranding();
+        showToast('تم تحديث شعار المتجر', 'success');
+      };
+      r.readAsDataURL(f);
+    }
+
+    function addCashierProfile() {
+      const name = document.getElementById('new-cashier-name').value.trim();
+      const pin = (document.getElementById('new-cashier-pin').value || '').trim() || '1111';
+      if (!name) return;
+      settings.cashierProfiles.push({ name, pin });
+      document.getElementById('new-cashier-name').value = '';
+      document.getElementById('new-cashier-pin').value = '';
+      saveState(true);
+      fillGateSelectors();
+      fillSettings();
+      showToast('تمت إضافة الكاشير ورمز PIN الخاص به', 'success');
+    }
+
+    function saveAdminPin() {
+      const pin = document.getElementById('set-admin-pin').value.trim();
+      if (pin.length < 4) {
+        showToast('رمز PIN للإدارة يجب أن يكون 4 أرقام على الأقل', 'error');
+        return;
+      }
+      settings.adminPin = pin;
+      saveState(true);
+      showToast('تم تحديث رمز PIN للإدارة', 'success');
+    }
+
+    function addShiftItem() {
+      const name = document.getElementById('new-shift-name').value.trim();
+      if (!name) return;
+      settings.shifts.push(name);
+      document.getElementById('new-shift-name').value = '';
+      saveState(true);
+      fillGateSelectors();
+      fillSettings();
+      showToast('تمت إضافة الشيفت', 'success');
+    }
+
+    function exportBackupJSON() {
+      const blob = new Blob([JSON.stringify({ products, sales, settings }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'shabaka-w-senara-backup.json';
+      a.click();
+    }
+
+    function importBackupJSON(e) {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try {
+          const d = JSON.parse(r.result);
+          if (Array.isArray(d.products)) products = d.products;
+          if (Array.isArray(d.sales)) sales = d.sales;
+          if (d.settings) settings = { ...DEFAULT_SETTINGS, ...d.settings };
+          saveState(true);
+          applyBranding();
+          fillGateSelectors();
           showToast('تمت استعادة النسخة الاحتياطية بنجاح', 'success');
         } catch (err) {
-          showToast('فشل استيراد الملف: تأكد من صحة ملف JSON', 'error');
+          showToast('ملف JSON غير صالح', 'error');
         }
-        event.target.value = '';
       };
-      reader.readAsText(file);
+      r.readAsText(f);
     }
 
-    function confirmResetDemoData() {
-<!-- ... existing code ... -->
+    // بدء التشغيل الفوري
+    loadState();
+    applyBranding();
+    fillGateSelectors();
+    pullFromCloud();
+    setInterval(pullFromCloud, 8000);
+    setInterval(() => {
+      const now = new Date();
+      const t = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const hc = document.getElementById('header-clock');
+      const gc = document.getElementById('gate-clock');
+      if (hc) hc.textContent = t;
+      if (gc) gc.textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    }, 1000);
+  </script>
+</body>
+</html>
