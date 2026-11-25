@@ -862,6 +862,12 @@
     let cloudUnsubscribe = null;
     let cloudDocRef = null;
     let cloudConnected = false;
+    let cloudPollTimer = null;
+
+    // طبقة سحابية مباشرة (kvdb.io) لتشغيل المزامنة عبر الأجهزة مباشرة من GitHub Pages
+    const CLOUD_KV_ENDPOINT = 'https://kvdb.io';
+    const CLOUD_KV_BUCKET = 'ShabakaWSenaraCloudV1';
+    let lastCloudRemoteStamp = '';
 
     // متغيرات ماسح الكاميرا والباركود الخارجي
     let html5QrCodeInstance = null;
@@ -897,6 +903,7 @@
       try { updateLowStockBadge(); } catch (e) { console.warn(e); }
       try { initGlobalUSBBarcodeListener(); } catch (e) { console.warn(e); }
       try { initCloudSyncFromSDK(); } catch (e) { console.warn(e); }
+      try { startDirectCloudSyncLoop(); } catch (e) { console.warn(e); }
 
       const gate = document.getElementById('auth-gate-screen');
       if (gate && !currentSession.authenticated) {
@@ -991,7 +998,78 @@
 
       if (syncCloud && !isApplyingCloudSnapshot) {
         pushStateToCloud();
+        pushStateToDirectCloud();
       }
+    }
+
+    function getDirectCloudKeyUrl() {
+      const roomCode = sanitizeRoomCode(settings.cloudRoomCode || 'shabaka-w-senara-pos');
+      return `${CLOUD_KV_ENDPOINT}/${CLOUD_KV_BUCKET}/${encodeURIComponent(roomCode)}`;
+    }
+
+    async function pushStateToDirectCloud() {
+      if (isApplyingCloudSnapshot) return;
+      try {
+        const stamp = new Date().toISOString();
+        const payload = {
+          updatedAt: stamp,
+          products,
+          sales,
+          categories,
+          settings
+        };
+        const res = await fetch(getDirectCloudKeyUrl(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          cache: 'no-store'
+        });
+        if (res.ok) {
+          lastCloudRemoteStamp = stamp;
+          cloudConnected = true;
+          updateCloudBadges(true);
+        }
+      } catch (err) {
+        console.warn('تعذر الرفع المباشر للسحابة:', err);
+      }
+    }
+
+    async function pullStateFromDirectCloud(forceApply = false) {
+      try {
+        const res = await fetch(`${getDirectCloudKeyUrl()}?t=${Date.now()}`, {
+          method: 'GET',
+          cache: 'no-store'
+        });
+        if (res.status === 404) {
+          await pushStateToDirectCloud();
+          return;
+        }
+        if (!res.ok) return;
+
+        const remoteData = await res.json();
+        cloudConnected = true;
+        updateCloudBadges(true);
+
+        if (!remoteData || typeof remoteData !== 'object') return;
+        const remoteStamp = String(remoteData.updatedAt || '');
+        if (!forceApply && remoteStamp && remoteStamp === lastCloudRemoteStamp) {
+          return;
+        }
+        lastCloudRemoteStamp = remoteStamp;
+        applyCloudData(remoteData);
+      } catch (err) {
+        // نبقي على التخزين المحلي دون تعطيل العمل عند انقطاع الشبكة
+      }
+    }
+
+    function startDirectCloudSyncLoop() {
+      if (cloudPollTimer) {
+        clearInterval(cloudPollTimer);
+      }
+      pullStateFromDirectCloud(true);
+      cloudPollTimer = setInterval(() => {
+        pullStateFromDirectCloud(false);
+      }, 8000);
     }
 
     function saveProducts() {
@@ -1143,6 +1221,7 @@
       input.value = code;
       saveSettings();
       initCloudSyncFromSDK();
+      pullStateFromDirectCloud(true);
       showToast(`تم حفظ كود المزامنة: ${code}`, 'success');
     }
 
