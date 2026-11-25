@@ -453,7 +453,7 @@
       </div>
     </section>
 
-    <!-- 3. التقارير والفواتير (فلترة حسب الشيفت + تصدير Excel عربي سليم + سجل المرتجعات) -->
+    <!-- 3. التقارير والفواتير (فلترة حسب الشيفت والمنتج + تصدير Excel عربي سليم + سجل المرتجعات) -->
     <section id="section-reports" class="hidden space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
@@ -474,7 +474,7 @@
         </div>
       </div>
 
-      <!-- شريط الفلاتر (كل الفواتير / اليوم / فلترة حسب الشيفت) وتصدير Excel -->
+      <!-- شريط الفلاتر (كل الفواتير / اليوم / فلترة حسب الشيفت والمنتج) وتصدير Excel -->
       <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-2">
           <button type="button" id="rep-btn-all" onclick="setReportPeriod('all')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-marine-700 text-white transition">
@@ -485,6 +485,9 @@
           </button>
           <select id="rep-shift-filter" onchange="renderReports()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-50 border border-cyan-200 text-cyan-950">
             <option value="all">كل الشيفتات</option>
+          </select>
+          <select id="rep-product-filter" onchange="renderReports()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-marine-50 border border-marine-200 text-marine-950">
+            <option value="all">كل المنتجات</option>
           </select>
         </div>
 
@@ -536,7 +539,7 @@
       </div>
     </section>
 
-    <!-- 4. الإعدادات والنسخ الاحتياطي وتعديل PIN الكاشير والإدارة والمزامنة السحابية -->
+    <!-- 4. الإعدادات والنسخ الاحتياطي وتعديل PIN الكاشير والإدارة والفئات والمزامنة السحابية -->
     <section id="section-settings" class="hidden space-y-4">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
@@ -555,7 +558,7 @@
         </div>
 
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-          <h3 class="font-extrabold text-base text-marine-900">إدارة الكاشير والشيفتات وتعديل رموز PIN</h3>
+          <h3 class="font-extrabold text-base text-marine-900">إدارة الكاشير والشيفتات والفئات وتعديل رموز PIN</h3>
 
           <div class="flex flex-col sm:flex-row gap-2">
             <input type="text" id="new-cashier-name" placeholder="اسم الكاشير" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
@@ -580,6 +583,12 @@
             <button type="button" onclick="addShiftItem()" class="px-4 py-2 rounded-xl bg-cyan-700 text-white text-xs font-bold">إضافة شيفت</button>
           </div>
           <div id="settings-shifts-list" class="flex flex-wrap gap-2"></div>
+
+          <div class="flex gap-2 pt-2 border-t border-slate-100">
+            <input type="text" id="new-category-name" placeholder="اسم فئة جديدة (مثال: عوامات وبلد)..." class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
+            <button type="button" onclick="addCategoryItem()" class="px-4 py-2 rounded-xl bg-marine-800 hover:bg-marine-900 text-white text-xs font-bold">إضافة فئة</button>
+          </div>
+          <div id="settings-categories-list" class="flex flex-wrap gap-2"></div>
         </div>
 
         <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
@@ -623,7 +632,7 @@
     </div>
   </div>
 
-  <!-- نافذة تسجيل مرتجع (إرجاع منتج أو عدد معين من قطع) -->
+  <!-- نافذة تسجيل مرتجع (إرجاع منتج أو عدد معين من القطع) -->
   <div id="modal-return" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
       <div class="px-4 py-3 bg-rose-900 text-white font-extrabold text-xs flex justify-between items-center">
@@ -763,6 +772,9 @@
       SETTINGS: 'shabaka_pos_settings_v3',
     };
 
+    // كود الغرفة/الفريق المشترك افتراضياً حتى يشترك جميع أعضاء الفريق تلقائياً في نفس البيانات السحابية
+    const SHARED_TEAM_ROOM = 'shabaka-w-senara-team-shared';
+
     const CATEGORIES = ['قصبات الصيد', 'ماكينات الصيد', 'خيوط وضفائر', 'سنارات وخطاطيف', 'طعوم صناعية', 'اكسسوارات'];
 
     const DEFAULT_PRODUCTS = [
@@ -785,9 +797,10 @@
         { name: 'أحمد حسن', pin: '1234' },
       ],
       shifts: ['الشيفت الصباحي', 'الشيفت المسائي'],
+      categories: [...CATEGORIES],
       activeCashier: 'كاشير 1',
       activeShift: 'الشيفت الصباحي',
-      cloudRoom: 'shabaka-w-senara-live',
+      cloudRoom: SHARED_TEAM_ROOM,
     };
 
     let products = [];
@@ -803,6 +816,21 @@
     let isApplyingRemote = false;
     let html5QrScannerInstance = null;
     let isCameraScanning = false;
+
+    // دمج القوائم حسب المعرف الفريد (id) حتى لا تُحذف بيانات جهاز آخر أثناء التزامن
+    function mergeById(localList, remoteList) {
+      const map = new Map();
+      (Array.isArray(remoteList) ? remoteList : []).forEach(item => {
+        if (item && item.id) map.set(String(item.id), { ...item });
+      });
+      (Array.isArray(localList) ? localList : []).forEach(item => {
+        if (item && item.id) {
+          const prev = map.get(String(item.id));
+          map.set(String(item.id), prev ? { ...prev, ...item } : { ...item });
+        }
+      });
+      return Array.from(map.values());
+    }
 
     function showToast(msg, type = 'info') {
       const el = document.getElementById('toast-box');
@@ -838,12 +866,21 @@
           shifts: Array.isArray(savedSet.shifts) && savedSet.shifts.length
             ? savedSet.shifts
             : [...DEFAULT_SETTINGS.shifts],
+          categories: Array.isArray(savedSet.categories) && savedSet.categories.length
+            ? [...new Set([...CATEGORIES, ...savedSet.categories])]
+            : [...CATEGORIES],
+          cloudRoom: savedSet.cloudRoom || SHARED_TEAM_ROOM,
         };
       } catch (e) {
         products = [...DEFAULT_PRODUCTS];
         sales = [];
         returnsLog = [];
-        settings = { ...DEFAULT_SETTINGS, cashierProfiles: DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p })) };
+        settings = {
+          ...DEFAULT_SETTINGS,
+          cashierProfiles: DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p })),
+          categories: [...CATEGORIES],
+          cloudRoom: SHARED_TEAM_ROOM
+        };
       }
     }
 
@@ -858,21 +895,61 @@
     }
 
     function getCloudUrl() {
-      const room = String(settings.cloudRoom || 'shabaka-w-senara-live').trim().replace(/[^a-zA-Z0-9_-]/g, '_') || 'shabaka-w-senara-live';
+      const room = String(settings.cloudRoom || SHARED_TEAM_ROOM).trim().replace(/[^a-zA-Z0-9_-]/g, '_') || SHARED_TEAM_ROOM;
       return 'https://kvdb.io/ShabakaWSenaraLiveV3/' + encodeURIComponent(room);
     }
 
     async function pushToCloud() {
       try {
+        let latestRemote = null;
+        try {
+          const preRes = await fetch(getCloudUrl() + '?t=' + Date.now(), { cache: 'no-store' });
+          if (preRes.ok) latestRemote = await preRes.json();
+        } catch (e) {}
+
+        const mergedProducts = latestRemote && Array.isArray(latestRemote.products)
+          ? mergeById(products, latestRemote.products)
+          : products;
+        const mergedSales = latestRemote && Array.isArray(latestRemote.sales)
+          ? mergeById(sales, latestRemote.sales)
+          : sales;
+        const mergedReturns = latestRemote && Array.isArray(latestRemote.returnsLog)
+          ? mergeById(returnsLog, latestRemote.returnsLog)
+          : returnsLog;
+
+        const mergedSettings = {
+          ...DEFAULT_SETTINGS,
+          ...(latestRemote && latestRemote.settings ? latestRemote.settings : {}),
+          ...settings,
+          cloudRoom: settings.cloudRoom || SHARED_TEAM_ROOM,
+        };
+
         const stamp = String(Date.now());
         const res = await fetch(getCloudUrl(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stamp, products, sales, returnsLog, settings }),
+          body: JSON.stringify({
+            stamp,
+            products: mergedProducts,
+            sales: mergedSales,
+            returnsLog: mergedReturns,
+            settings: mergedSettings
+          }),
           cache: 'no-store'
         });
-        if (res.ok) lastRemoteStamp = stamp;
-      } catch (e) {}
+        if (res.ok) {
+          lastRemoteStamp = stamp;
+          isApplyingRemote = true;
+          products = mergedProducts;
+          sales = mergedSales;
+          returnsLog = mergedReturns;
+          settings = mergedSettings;
+          saveState(false);
+          isApplyingRemote = false;
+        }
+      } catch (e) {
+        isApplyingRemote = false;
+      }
     }
 
     async function pullFromCloud() {
@@ -883,10 +960,10 @@
         if (!data || !data.stamp || data.stamp === lastRemoteStamp) return;
         lastRemoteStamp = data.stamp;
         isApplyingRemote = true;
-        if (Array.isArray(data.products)) products = data.products;
-        if (Array.isArray(data.sales)) sales = data.sales;
-        if (Array.isArray(data.returnsLog)) returnsLog = data.returnsLog;
-        if (data.settings) settings = { ...DEFAULT_SETTINGS, ...data.settings };
+        if (Array.isArray(data.products)) products = mergeById(products, data.products);
+        if (Array.isArray(data.sales)) sales = mergeById(sales, data.sales);
+        if (Array.isArray(data.returnsLog)) returnsLog = mergeById(returnsLog, data.returnsLog);
+        if (data.settings) settings = { ...DEFAULT_SETTINGS, ...settings, ...data.settings, cloudRoom: settings.cloudRoom || SHARED_TEAM_ROOM };
         saveState(false);
         applyBranding();
         fillGateSelectors();
@@ -902,7 +979,7 @@
     }
 
     function activateCloudRoom() {
-      settings.cloudRoom = (document.getElementById('set-cloud-room').value || 'shabaka-w-senara-live').trim();
+      settings.cloudRoom = (document.getElementById('set-cloud-room').value || SHARED_TEAM_ROOM).trim();
       saveState(true);
       pullFromCloud();
       showToast('تم تفعيل ومزامنة الكود السحابي: ' + settings.cloudRoom, 'success');
@@ -976,11 +1053,14 @@
         : 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-slate-300 hover:bg-white/5 transition';
     }
 
-    function loginAsCashier(e) {
+    async function loginAsCashier(e) {
       e.preventDefault();
       const name = document.getElementById('gate-cashier-select').value;
       const shift = document.getElementById('gate-shift-select').value;
       const pin = document.getElementById('gate-cashier-pin').value.trim();
+
+      await pullFromCloud();
+
       const prof = settings.cashierProfiles.find(p => p.name === name);
       if (!prof || pin !== String(prof.pin)) {
         showToast('رمز PIN الخاص بالكاشير غير صحيح', 'error');
@@ -994,12 +1074,15 @@
       document.getElementById('gate-screen').classList.add('hidden');
       syncRoleUI();
       openTab('pos');
-      showToast(`مرحباً ${name} (${shift})`, 'success');
+      showToast(`مرحباً ${name} (${shift}) — بيانات الفريق السحابية محدثة`, 'success');
     }
 
-    function loginAsAdmin(e) {
+    async function loginAsAdmin(e) {
       e.preventDefault();
       const pin = document.getElementById('gate-admin-pin').value.trim();
+
+      await pullFromCloud();
+
       if (pin !== String(settings.adminPin || '9999')) {
         showToast('رمز PIN الخاص بالإدارة غير صحيح', 'error');
         return;
@@ -1009,10 +1092,11 @@
       document.getElementById('gate-screen').classList.add('hidden');
       syncRoleUI();
       openTab('pos');
-      showToast('تم الدخول بصلاحية الإدارة', 'success');
+      showToast('تم الدخول بصلاحية الإدارة ومزامنة بيانات الفريق', 'success');
     }
 
     function lockToGate() {
+      stopCameraBarcodeScanner();
       session.authenticated = false;
       fillGateSelectors();
       switchGateMode('cashier');
@@ -1078,6 +1162,7 @@
         document.getElementById('gate-screen').classList.remove('hidden');
         return;
       }
+      if (tab !== 'pos') stopCameraBarcodeScanner();
       if ((tab === 'reports' || tab === 'settings') && !isAdmin()) {
         requireAdminPin(() => {
           session.role = 'admin';
@@ -1100,13 +1185,13 @@
       syncRoleUI();
       if (tab === 'pos') { renderPosCategories(); renderPosGrid(); renderCart(); }
       if (tab === 'inventory') renderInventory();
-      if (tab === 'reports') { populateReportShiftFilter(); renderReports(); }
+      if (tab === 'reports') { populateReportShiftFilter(); populateReportProductFilter(); renderReports(); }
       if (tab === 'settings') fillSettings();
     }
 
     function renderPosCategories() {
       const bar = document.getElementById('pos-categories-bar');
-      const allCats = ['الكل', ...CATEGORIES];
+      const allCats = ['الكل', ...(settings.categories || CATEGORIES)];
       bar.innerHTML = allCats.map(c => `
         <button type="button" onclick="selectedCategory='${esc(c)}';renderPosCategories();renderPosGrid();"
           class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap ${selectedCategory === c ? 'bg-marine-700 text-white' : 'bg-slate-100 text-slate-700'}">
@@ -1378,7 +1463,6 @@
         return;
       }
 
-      // إعادة الكمية المرتجعة إلى المخزون
       prod.stock = Number(prod.stock || 0) + qty;
       const refundAmount = Number(prod.price || 0) * qty;
       const refundCost = Number(prod.cost || 0) * qty;
@@ -1452,7 +1536,8 @@
 
     function openProductForm(id = null) {
       const sel = document.getElementById('prod-cat-input');
-      sel.innerHTML = CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      const cats = settings.categories && settings.categories.length ? settings.categories : CATEGORIES;
+      sel.innerHTML = cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
       if (id) {
         const p = products.find(x => x.id === id);
         if (!p) return;
@@ -1511,7 +1596,7 @@
     }
 
     // =================================================
-    // التقارير وفلترة الشيفتات وتصدير Excel العربي السليم
+    // التقارير وفلترة الشيفتات والمنتجات وتصدير Excel العربي السليم
     // =================================================
     function setReportPeriod(mode) {
       reportPeriod = mode;
@@ -1538,34 +1623,80 @@
       sel.value = Array.from(sel.options).some(o => o.value === currentVal) ? currentVal : 'all';
     }
 
+    function populateReportProductFilter() {
+      const sel = document.getElementById('rep-product-filter');
+      if (!sel) return;
+      const currentVal = sel.value || 'all';
+      const prodMap = new Map();
+      (products || []).forEach(p => {
+        if (p && p.id) prodMap.set(String(p.id), p.name);
+      });
+      (sales || []).forEach(inv => {
+        (inv.items || []).forEach(it => {
+          if (it && it.id && !prodMap.has(String(it.id))) {
+            prodMap.set(String(it.id), it.name || ('منتج ' + it.id));
+          }
+        });
+      });
+      (returnsLog || []).forEach(ret => {
+        if (ret && ret.productId && !prodMap.has(String(ret.productId))) {
+          prodMap.set(String(ret.productId), ret.productName || ('منتج ' + ret.productId));
+        }
+      });
+
+      sel.innerHTML = '<option value="all">كل المنتجات</option>' +
+        Array.from(prodMap.entries()).map(([pid, pname]) => `<option value="${esc(pid)}">${esc(pname)}</option>`).join('');
+      sel.value = Array.from(sel.options).some(o => o.value === currentVal) ? currentVal : 'all';
+    }
+
     function getFilteredReportsData() {
       const selectedShift = document.getElementById('rep-shift-filter')?.value || 'all';
+      const selectedProduct = document.getElementById('rep-product-filter')?.value || 'all';
       const todayStr = new Date().toLocaleDateString('ar-EG');
 
       const filteredSales = sales.filter(inv => {
         const okPeriod = reportPeriod !== 'today' || new Date(inv.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr;
         const okShift = selectedShift === 'all' || (inv.shift || '') === selectedShift;
-        return okPeriod && okShift;
+        const okProd = selectedProduct === 'all' || (Array.isArray(inv.items) && inv.items.some(it => String(it.id) === String(selectedProduct)));
+        return okPeriod && okShift && okProd;
       });
 
       const filteredReturns = returnsLog.filter(ret => {
         const okPeriod = reportPeriod !== 'today' || new Date(ret.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr;
         const okShift = selectedShift === 'all' || (ret.shift || '') === selectedShift;
-        return okPeriod && okShift;
+        const okProd = selectedProduct === 'all' || String(ret.productId) === String(selectedProduct);
+        return okPeriod && okShift && okProd;
       });
 
-      return { filteredSales, filteredReturns };
+      return { filteredSales, filteredReturns, selectedProduct };
     }
 
     function renderReports() {
       populateReportShiftFilter();
-      const { filteredSales, filteredReturns } = getFilteredReportsData();
+      populateReportProductFilter();
+      const { filteredSales, filteredReturns, selectedProduct } = getFilteredReportsData();
 
-      const grossSales = filteredSales.reduce((s, x) => s + Number(x.total || 0), 0);
+      const getSaleRelevantAmount = (inv) => {
+        if (selectedProduct === 'all') return Number(inv.total || 0);
+        const matchingItems = (inv.items || []).filter(it => String(it.id) === String(selectedProduct));
+        const itemSub = matchingItems.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 0), 0);
+        const ratio = Number(inv.subtotal || 0) > 0 ? itemSub / Number(inv.subtotal || 0) : 1;
+        return Number(inv.total || 0) * ratio;
+      };
+
+      const getSaleRelevantProfit = (inv) => {
+        if (selectedProduct === 'all') return Number(inv.profit || 0);
+        const matchingItems = (inv.items || []).filter(it => String(it.id) === String(selectedProduct));
+        const itemSub = matchingItems.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 0), 0);
+        const ratio = Number(inv.subtotal || 0) > 0 ? itemSub / Number(inv.subtotal || 0) : 1;
+        return Number(inv.profit || 0) * ratio;
+      };
+
+      const grossSales = filteredSales.reduce((s, x) => s + getSaleRelevantAmount(x), 0);
       const totalReturns = filteredReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
       const netSales = Math.max(0, grossSales - totalReturns);
 
-      const grossProfit = filteredSales.reduce((s, x) => s + Number(x.profit || 0), 0);
+      const grossProfit = filteredSales.reduce((s, x) => s + getSaleRelevantProfit(x), 0);
       const returnProfitLoss = filteredReturns.reduce((s, r) => s + Number(r.profitDeduction || 0), 0);
       const netProfit = grossProfit - returnProfitLoss;
 
@@ -1574,65 +1705,78 @@
       document.getElementById('rep-total-returns').textContent = fmt(totalReturns);
       document.getElementById('rep-invoices-count').textContent = filteredSales.length;
 
-      document.getElementById('reports-tbody').innerHTML = filteredSales.map(inv => `
+      document.getElementById('reports-tbody').innerHTML = filteredSales.map(inv => {
+        const displayTotal = getSaleRelevantAmount(inv);
+        return `
         <tr>
           <td class="py-3 px-4 font-mono text-xs font-bold">${esc(inv.id)}</td>
           <td class="py-3 px-4 text-xs">${esc(inv.cashier)} - ${esc(inv.shift)}</td>
           <td class="py-3 px-4 text-xs font-bold">${esc(inv.customer)}</td>
           <td class="py-3 px-4 text-xs">${esc(inv.proof || inv.method)}</td>
-          <td class="py-3 px-4 font-mono text-xs font-extrabold">${fmt(inv.total)}</td>
+          <td class="py-3 px-4 font-mono text-xs font-extrabold">${fmt(displayTotal)}</td>
           <td class="py-3 px-4 text-center space-x-1 space-x-reverse">
             <button type="button" onclick="openReceipt('${inv.id}')" class="px-2.5 py-1 rounded-lg bg-marine-50 text-marine-800 text-xs font-bold">قراءة / طباعة</button>
             <button type="button" onclick="requireAdminPin(() => openEditInvoice('${inv.id}'), 'تعديل الفواتير المصدرة يتطلب رمز PIN الخاص بالإدارة:')"
               class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold">تعديل (PIN)</button>
           </td>
         </tr>
-      `).join('') || '<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400 font-bold">لا توجد فواتير مطابقة للفلتر الحالي</td></tr>';
+      `;
+      }).join('') || '<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400 font-bold">لا توجد فواتير مطابقة للفلتر الحالي</td></tr>';
 
-      document.getElementById('returns-tbody').innerHTML = filteredReturns.map(ret => `
+      document.getElementById('returns-tbody').innerHTML = filteredReturns.map(r => `
         <tr>
-          <td class="py-2.5 px-4 font-mono font-bold text-rose-700">${esc(ret.id)}</td>
-          <td class="py-2.5 px-4 font-bold">${esc(ret.productName)}</td>
-          <td class="py-2.5 px-4 font-mono font-bold">${ret.qty}</td>
-          <td class="py-2.5 px-4">${esc(ret.shift)} / ${esc(ret.cashier)}</td>
-          <td class="py-2.5 px-4 font-mono font-extrabold text-rose-700">-${fmt(ret.amount)}</td>
+          <td class="py-2.5 px-4 font-mono font-bold">${esc(r.id)}</td>
+          <td class="py-2.5 px-4 font-bold">${esc(r.productName)}</td>
+          <td class="py-2.5 px-4 font-mono font-bold">${r.qty}</td>
+          <td class="py-2.5 px-4">${esc(r.shift)} (${esc(r.cashier)})</td>
+          <td class="py-2.5 px-4 font-mono font-bold text-rose-700">-${fmt(r.amount)}</td>
         </tr>
-      `).join('') || '<tr><td colspan="5" class="py-5 text-center text-slate-400 font-bold">لا توجد مرتجعات مسجلة</td></tr>';
+      `).join('') || '<tr><td colspan="5" class="py-4 text-center text-slate-400 font-bold">لا توجد مرتجعات مطابقة للفلتر</td></tr>';
     }
 
-    // تصدير ملف CSV متوافق مع العربية في Excel عبر UTF-8 BOM (\uFEFF)
+    // تصدير ملف CSV متوافق مع Excel باللغة العربية عبر إضافة UTF-8 BOM (\uFEFF)
     function exportArabicExcelCSV() {
-      const { filteredSales, filteredReturns } = getFilteredReportsData();
+      const { filteredSales, filteredReturns, selectedProduct } = getFilteredReportsData();
       const rows = [
-        ['النوع', 'الرقم المرجعي', 'التاريخ', 'الكاشير', 'الشيفت', 'العميل / المنتج', 'طريقة الدفع / مرجع', 'الكمية', 'المبلغ (ج.م)']
+        ['النوع', 'الرقم', 'التاريخ', 'الشيفت', 'الكاشير', 'العميل / المنتج', 'طريقة الدفع', 'الكمية', 'القيمة (ج.م)']
       ];
 
       filteredSales.forEach(inv => {
-        const totalQty = (inv.items || []).reduce((s, i) => s + Number(i.qty || 0), 0);
+        const itemsSummary = selectedProduct === 'all'
+          ? (inv.items || []).map(i => `${i.name} (${i.qty})`).join(' | ')
+          : (inv.items || []).filter(i => String(i.id) === String(selectedProduct)).map(i => `${i.name} (${i.qty})`).join(' | ');
+        const totalQty = selectedProduct === 'all'
+          ? (inv.items || []).reduce((s, i) => s + Number(i.qty || 0), 0)
+          : (inv.items || []).filter(i => String(i.id) === String(selectedProduct)).reduce((s, i) => s + Number(i.qty || 0), 0);
+        const matchingItems = (inv.items || []).filter(it => String(it.id) === String(selectedProduct));
+        const itemSub = matchingItems.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 0), 0);
+        const ratio = Number(inv.subtotal || 0) > 0 ? itemSub / Number(inv.subtotal || 0) : 1;
+        const val = selectedProduct === 'all' ? Number(inv.total || 0) : Number(inv.total || 0) * ratio;
+
         rows.push([
           'فاتورة بيع',
           inv.id,
-          inv.date || '',
-          inv.cashier || '',
-          inv.shift || '',
-          inv.customer || 'عميل نقدي',
-          inv.proof || inv.method || 'كاش',
+          inv.date,
+          inv.shift,
+          inv.cashier,
+          `${inv.customer} - ${itemsSummary}`,
+          inv.proof || inv.method,
           totalQty,
-          Number(inv.total || 0).toFixed(2)
+          Number(val || 0).toFixed(2)
         ]);
       });
 
-      filteredReturns.forEach(ret => {
+      filteredReturns.forEach(r => {
         rows.push([
           'مرتجع',
-          ret.id,
-          ret.date || '',
-          ret.cashier || '',
-          ret.shift || '',
-          ret.productName || '',
-          ret.invoiceRef || '',
-          ret.qty || 1,
-          (-Number(ret.amount || 0)).toFixed(2)
+          r.id,
+          r.date,
+          r.shift,
+          r.cashier,
+          r.productName,
+          'مرتجع مخصوم',
+          r.qty,
+          (-Number(r.amount || 0)).toFixed(2)
         ]);
       });
 
@@ -1723,7 +1867,7 @@
     }
 
     // =================================================
-    // الإعدادات وتعديل PIN الكاشير والإدارة مباشرة
+    // الإعدادات وتعديل PIN الكاشير والإدارة وإضافة الفئات
     // =================================================
     function fillSettings() {
       document.getElementById('set-store-name').value = settings.storeName;
@@ -1747,6 +1891,11 @@
 
       document.getElementById('settings-shifts-list').innerHTML = settings.shifts.map(s => `
         <span class="px-3 py-1.5 rounded-xl bg-cyan-50 border border-cyan-200 text-xs font-bold">${esc(s)}</span>
+      `).join('');
+
+      const cats = settings.categories && settings.categories.length ? settings.categories : CATEGORIES;
+      document.getElementById('settings-categories-list').innerHTML = cats.map(c => `
+        <span class="px-3 py-1.5 rounded-xl bg-marine-50 border border-marine-200 text-xs font-bold">${esc(c)}</span>
       `).join('');
     }
 
@@ -1838,6 +1987,20 @@
       fillGateSelectors();
       fillSettings();
       showToast('تمت إضافة الشيفت', 'success');
+    }
+
+    function addCategoryItem() {
+      const name = (document.getElementById('new-category-name')?.value || '').trim();
+      if (!name) return;
+      if (!Array.isArray(settings.categories)) settings.categories = [...CATEGORIES];
+      if (!settings.categories.includes(name)) {
+        settings.categories.push(name);
+      }
+      document.getElementById('new-category-name').value = '';
+      saveState(true);
+      renderPosCategories();
+      fillSettings();
+      showToast('تمت إضافة الفئة الجديدة: ' + name, 'success');
     }
 
     function exportBackupJSON() {
