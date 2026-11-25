@@ -22,32 +22,33 @@
       }
     }, true);
   </script>
-
-  <!-- Firebase SDK (v11.6.1) للمزامنة السحابية عبر الأجهزة والمستخدمين -->
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-    import { getAuth, signInAnonymously, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-    import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-
-    window.__CLOUD_SDK__ = {
-      initializeApp,
-      getAuth,
-      signInAnonymously,
-      signInWithCustomToken,
-      getFirestore,
-      doc,
-      getDoc,
-      setDoc,
-      onSnapshot
-    };
-
-    if (typeof window.initCloudSyncFromSDK === 'function') {
-      window.initCloudSyncFromSDK();
+  <!-- إعداد ألوان Tailwind المخصصة لمتجر الصيد البحري -->
+  <script>
+    if (typeof tailwind !== 'undefined') {
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              marine: {
+                50: '#f0f9ff',
+                100: '#e0f2fe',
+                200: '#bae6fd',
+                300: '#7dd3fc',
+                400: '#38bdf8',
+                500: '#0ea5e9',
+                600: '#0284c7',
+                700: '#0369a1',
+                800: '#075985',
+                900: '#0c4a6e',
+                950: '#082f49',
+              }
+            }
+          }
+        }
+      };
     }
   </script>
 
-  <script>
-<!-- ... existing code ... -->
   <style>
     body {
       font-family: 'Tajawal', 'Inter', sans-serif;
@@ -842,19 +843,40 @@
     // ==========================================
     // 3. التهيئة وتحميل البيانات والمزامنة السحابية
     // ==========================================
+    function bootAppSafely() {
+      try {
+        loadDataFromStorage();
+      } catch (e) {
+        console.warn('استعادة افتراضية للبيانات:', e);
+        products = [...DEFAULT_PRODUCTS];
+        sales = [];
+        categories = [...DEFAULT_CATEGORIES];
+        settings = { ...DEFAULT_SETTINGS, cashierProfiles: DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p })) };
+      }
+
+      try { initClock(); } catch (e) { console.warn(e); }
+      try { populateCategoryControls(); } catch (e) { console.warn(e); }
+      try { populateStaffControls(); } catch (e) { console.warn(e); }
+      try { populateAuthGateControls(); } catch (e) { console.warn(e); }
+      try { applySettingsToUI(); } catch (e) { console.warn(e); }
+      try { updateRoleVisibility(); } catch (e) { console.warn(e); }
+      try { renderPosProducts(); } catch (e) { console.warn(e); }
+      try { renderCart(); } catch (e) { console.warn(e); }
+      try { updateLowStockBadge(); } catch (e) { console.warn(e); }
+      try { initGlobalUSBBarcodeListener(); } catch (e) { console.warn(e); }
+      try { initCloudSyncFromSDK(); } catch (e) { console.warn(e); }
+
+      const gate = document.getElementById('auth-gate-screen');
+      if (gate && !currentSession.authenticated) {
+        gate.classList.remove('hidden');
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', bootAppSafely);
     window.onload = function () {
-      loadDataFromStorage();
-      initClock();
-      populateCategoryControls();
-      populateStaffControls();
-      populateAuthGateControls();
-      applySettingsToUI();
-      updateRoleVisibility();
-      renderPosProducts();
-      renderCart();
-      updateLowStockBadge();
-      initGlobalUSBBarcodeListener();
-      initCloudSyncFromSDK();
+      if (!document.getElementById('gate-cashier-select')?.options?.length) {
+        bootAppSafely();
+      }
     };
 
     function normalizeCashierProfiles(parsedSettings) {
