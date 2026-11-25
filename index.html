@@ -1,0 +1,2712 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شبكة وصنارة - نظام كاشير وإدارة مخزون مستلزمات الصيد</title>
+
+  <!-- خط تجوال العربي العصري + خط Inter للأرقام والرموز -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- مكتبة html5-qrcode للمسح الضوئي للباركود بالكاميرا مباشرة مع مصدر احتياطي آمن -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" onerror="loadFallbackQrScanner()"></script>
+  <script>
+    function loadFallbackQrScanner() {
+      if (window.Html5Qrcode) return;
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+      script.async = true;
+      script.onerror = function () {
+        console.warn('تعذر تحميل مكتبة مسح الباركود بالكاميرا من الشبكة.');
+      };
+      document.head.appendChild(script);
+    }
+
+    // معالج عام لالتقاط أخطاء تحميل السكربتات الخارجية ومنع توقف واجهة التطبيق
+    window.addEventListener('error', function (event) {
+      const targetTag = event && event.target && event.target.tagName;
+      if (targetTag === 'SCRIPT') {
+        event.preventDefault();
+        console.warn('تم تجاهل خطأ تحميل سكربت خارجي:', event.target.src || 'unknown');
+      }
+    }, true);
+  </script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Tajawal', 'Inter', 'sans-serif'],
+            mono: ['Inter', 'monospace'],
+          },
+          colors: {
+            marine: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+              950: '#082f49',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Tajawal', 'Inter', sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #e2e8f0;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #print-receipt-area,
+      #print-receipt-area * {
+        visibility: visible !important;
+      }
+      #print-receipt-area {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        max-width: 80mm !important;
+        margin: 0 auto !important;
+        padding: 8px !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- ========================================== -->
+  <!-- الشريط العلوي (Top Navigation Bar) -->
+  <!-- ========================================== -->
+  <header class="bg-gradient-to-l from-marine-950 via-marine-900 to-marine-800 text-white shadow-lg sticky top-0 z-30 no-print">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- هوية المتجر -->
+      <div class="flex items-center gap-3">
+        <div id="header-brand-badge" class="w-11 h-11 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shadow-inner overflow-hidden shrink-0">
+          <img id="header-store-logo" src="" alt="شعار المتجر" class="hidden w-full h-full object-cover" />
+          <i id="header-default-icon" class="fa-solid fa-fish-fins text-2xl text-cyan-300"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 id="header-store-name" class="text-lg sm:text-xl font-extrabold tracking-tight">شبكة وصنارة</h1>
+            <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-cyan-400/15 text-cyan-200 border border-cyan-400/30">
+              POS v2.2
+            </span>
+          </div>
+          <p id="header-store-subtitle" class="text-[11px] sm:text-xs text-cyan-200/80">
+            مستلزمات الصيد البحري والقصبات والماكينات والاكسسوارات
+          </p>
+        </div>
+      </div>
+
+      <!-- أزرار التنقل بين الأقسام -->
+      <nav class="flex items-center gap-1.5 sm:gap-2 bg-marine-950/60 p-1 rounded-2xl border border-white/10 overflow-x-auto max-w-full">
+        <button onclick="switchTab('pos')" id="nav-pos" class="nav-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition bg-cyan-500 text-slate-950 shadow">
+          <i class="fa-solid fa-cash-register"></i>
+          <span>نقطة البيع</span>
+        </button>
+        <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition text-slate-200 hover:bg-white/10 relative">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>المخزون</span>
+          <span id="low-stock-badge" class="hidden -top-1 -left-1 bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">0</span>
+        </button>
+        <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition text-slate-200 hover:bg-white/10">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>التقارير والفواتير</span>
+        </button>
+        <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition text-slate-200 hover:bg-white/10">
+          <i class="fa-solid fa-sliders"></i>
+          <span>الإعدادات والنسخ</span>
+        </button>
+      </nav>
+
+      <!-- الوقت والتاريخ -->
+      <div class="hidden xl:flex flex-col items-end text-xs text-cyan-100/90">
+        <span id="live-clock" class="font-mono font-bold text-sm text-white">--:--:--</span>
+        <span id="live-date" class="text-[11px] text-cyan-200/75">--/--/----</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- المحتوى الرئيسي (Main Content) -->
+  <!-- ========================================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5">
+
+    <!-- ------------------------------------------ -->
+    <!-- القسم 1: شاشة نقطة البيع (POS Screen) -->
+    <!-- ------------------------------------------ -->
+    <section id="tab-pos" class="tab-section space-y-4">
+
+      <!-- شريط الكاشير والشيفت الحالي -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3 sm:gap-5">
+          <div class="flex items-center gap-2">
+            <span class="w-8 h-8 rounded-xl bg-marine-50 text-marine-700 flex items-center justify-center text-xs font-bold border border-marine-100">
+              <i class="fa-solid fa-user-tie"></i>
+            </span>
+            <div>
+              <label for="pos-cashier-select" class="block text-[10px] font-bold text-slate-400">الكاشير الحالي</label>
+              <select id="pos-cashier-select" onchange="onShiftOrCashierChange()" class="bg-transparent text-xs sm:text-sm font-extrabold text-slate-800 focus:outline-none cursor-pointer">
+              </select>
+            </div>
+          </div>
+
+          <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+          <div class="flex items-center gap-2">
+            <span class="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center text-xs font-bold border border-cyan-100">
+              <i class="fa-solid fa-clock"></i>
+            </span>
+            <div>
+              <label for="pos-shift-select" class="block text-[10px] font-bold text-slate-400">الشيفت / الوردية</label>
+              <select id="pos-shift-select" onchange="onShiftOrCashierChange()" class="bg-transparent text-xs sm:text-sm font-extrabold text-slate-800 focus:outline-none cursor-pointer">
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 text-[11px] text-slate-500">
+          <i class="fa-solid fa-circle-check text-emerald-500"></i>
+          <span>يتم تسجيل اسم الكاشير والشيفت تلقائياً في كل فاتورة</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- العمود الأيمن: البحث والتصنيفات ومنتجات الصيد -->
+        <div class="lg:col-span-7 xl:col-span-8 space-y-4">
+
+          <!-- شريط البحث وقارئ الباركود -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3.5 sm:p-4 space-y-3">
+            <div class="flex flex-col sm:flex-row gap-2.5">
+              <!-- بحث بالاسم أو الكود -->
+              <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="pos-search-input" oninput="renderPosProducts()" placeholder="ابحث باسم الصنف (قصبة، ماكينة، خيط، طُعم، سنارة...)"
+                  class="w-full pr-10 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-marine-500 focus:bg-white transition" />
+              </div>
+
+              <!-- قارئ الباركود السريع + مسح بالكاميرا -->
+              <form onsubmit="handleBarcodeSubmit(event)" class="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:w-auto">
+                <div class="relative flex-1 sm:w-48">
+                  <i class="fa-solid fa-barcode absolute right-3 top-1/2 -translate-y-1/2 text-marine-600"></i>
+                  <input type="text" id="barcode-scanner-input" placeholder="امسح الباركود + Enter"
+                    class="w-full pr-9 pl-3 py-2.5 bg-marine-50/60 border border-marine-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-marine-500 focus:bg-white transition" />
+                </div>
+                <button type="submit" title="إضافة بالباركود" class="px-3.5 py-2.5 bg-marine-600 hover:bg-marine-700 text-white rounded-xl text-sm font-bold transition shadow-sm">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+                <button type="button" onclick="openCameraScanner('pos')" title="فتح كاميرا الهاتف لمسح الباركود" class="px-3.5 py-2.5 bg-gradient-to-l from-cyan-600 to-marine-700 hover:from-cyan-700 hover:to-marine-800 text-white rounded-xl text-xs sm:text-sm font-bold transition shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+                  <i class="fa-solid fa-camera"></i>
+                  <span>مسح بالكاميرا</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- أزرار الفئات -->
+            <div id="pos-category-pills" class="flex items-center gap-2 overflow-x-auto pb-1">
+            </div>
+          </div>
+
+          <!-- شبكة المنتجات -->
+          <div id="pos-products-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
+          </div>
+        </div>
+
+        <!-- العمود الأيسر: سلة المشتريات وإتمام الفاتورة -->
+        <div class="lg:col-span-5 xl:col-span-4 bg-white rounded-2xl shadow-sm border border-slate-200/80 flex flex-col overflow-hidden sticky top-20">
+          <!-- رأس السلة -->
+          <div class="px-4 py-3.5 bg-gradient-to-l from-marine-900 to-marine-800 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-basket-shopping text-cyan-300"></i>
+              <h2 class="font-extrabold text-base">فاتورة البيع الحالية</h2>
+            </div>
+            <span id="cart-count-badge" class="bg-cyan-400 text-slate-950 text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+              0 أصناف
+            </span>
+          </div>
+
+          <!-- اسم العميل (اختياري) -->
+          <div class="px-4 pt-3 pb-2 border-b border-slate-100 bg-slate-50/60">
+            <div class="relative">
+              <i class="fa-solid fa-user absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input type="text" id="customer-name-input" placeholder="اسم الصياد / العميل (اختياري)"
+                class="w-full pr-8 pl-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-marine-500" />
+            </div>
+          </div>
+
+          <!-- قائمة الأصناف في السلة -->
+          <div id="cart-items-container" class="p-3 space-y-2.5 max-h-[300px] overflow-y-auto flex-1">
+          </div>
+
+          <!-- ملخص الحسابات والدفع -->
+          <div class="p-4 bg-slate-50 border-t border-slate-200 space-y-3">
+            <!-- الخصم والضريبة -->
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">خصم (ج.م)</label>
+                <input type="number" id="discount-input" min="0" step="0.5" value="0" oninput="renderCart()"
+                  class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-marine-500" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">ضريبة / خدمة (%)</label>
+                <input type="number" id="tax-input" min="0" max="100" step="0.5" value="0" oninput="renderCart()"
+                  class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-marine-500" />
+              </div>
+            </div>
+
+            <!-- تفاصيل المبالغ -->
+            <div class="space-y-1.5 text-xs border-t border-dashed border-slate-300 pt-2.5">
+              <div class="flex justify-between text-slate-600">
+                <span>المجموع الفرعي:</span>
+                <span id="subtotal-display" class="font-mono font-bold">0.00 ج.م</span>
+              </div>
+              <div class="flex justify-between text-emerald-700">
+                <span>قيمة الخصم:</span>
+                <span id="discount-display" class="font-mono font-bold">- 0.00 ج.م</span>
+              </div>
+              <div class="flex justify-between text-slate-600">
+                <span>قيمة الضريبة:</span>
+                <span id="tax-display" class="font-mono font-bold">+ 0.00 ج.م</span>
+              </div>
+              <div class="flex justify-between text-base font-extrabold text-marine-950 pt-1.5 border-t border-slate-200">
+                <span>الإجمالي النهائي:</span>
+                <span id="grand-total-display" class="font-mono text-marine-700 text-lg">0.00 ج.م</span>
+              </div>
+            </div>
+
+            <!-- طريقة الدفع (كاش / محفظة إلكترونية / إنستاباي) -->
+            <div class="space-y-2.5 pt-1">
+              <label class="block text-[11px] font-bold text-slate-600">طريقة الدفع</label>
+              <div class="grid grid-cols-3 gap-1.5">
+                <button type="button" onclick="setPaymentMethod('كاش')" id="pay-btn-كاش" class="pay-method-btn py-2 px-1.5 rounded-xl text-[11px] sm:text-xs font-bold border bg-marine-700 text-white border-marine-700 transition flex items-center justify-center gap-1">
+                  <i class="fa-solid fa-money-bill-wave"></i>
+                  <span>كاش</span>
+                </button>
+                <button type="button" onclick="setPaymentMethod('محفظة إلكترونية')" id="pay-btn-محفظة إلكترونية" class="pay-method-btn py-2 px-1.5 rounded-xl text-[11px] sm:text-xs font-bold border bg-white text-slate-700 border-slate-200 hover:bg-slate-100 transition flex items-center justify-center gap-1">
+                  <i class="fa-solid fa-wallet"></i>
+                  <span>محفظة</span>
+                </button>
+                <button type="button" onclick="setPaymentMethod('إنستاباي')" id="pay-btn-إنستاباي" class="pay-method-btn py-2 px-1.5 rounded-xl text-[11px] sm:text-xs font-bold border bg-white text-slate-700 border-slate-200 hover:bg-slate-100 transition flex items-center justify-center gap-1">
+                  <i class="fa-solid fa-building-columns"></i>
+                  <span>إنستاباي</span>
+                </button>
+              </div>
+
+              <!-- حقول المحافظ الإلكترونية (فودافون كاش، أورانج كاش، اتصالات كاش، WE Pay) -->
+              <div id="wallet-details-box" class="hidden p-3 rounded-xl bg-amber-50/90 border border-amber-200 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-extrabold text-amber-900 flex items-center gap-1">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                    بيانات المحفظة الإلكترونية (إثبات محاسبي)
+                  </span>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <button type="button" onclick="setWalletProvider('فودافون كاش')" id="wallet-prov-فودافون كاش" class="wallet-prov-btn py-1.5 px-2 rounded-lg text-[11px] font-bold border transition bg-rose-600 text-white border-rose-600">
+                    فودافون كاش
+                  </button>
+                  <button type="button" onclick="setWalletProvider('أورانج كاش')" id="wallet-prov-أورانج كاش" class="wallet-prov-btn py-1.5 px-2 rounded-lg text-[11px] font-bold border transition bg-white text-slate-700 border-slate-200 hover:bg-slate-100">
+                    أورانج كاش
+                  </button>
+                  <button type="button" onclick="setWalletProvider('اتصالات كاش')" id="wallet-prov-اتصالات كاش" class="wallet-prov-btn py-1.5 px-2 rounded-lg text-[11px] font-bold border transition bg-white text-slate-700 border-slate-200 hover:bg-slate-100">
+                    اتصالات كاش
+                  </button>
+                  <button type="button" onclick="setWalletProvider('WE Pay')" id="wallet-prov-WE Pay" class="wallet-prov-btn py-1.5 px-2 rounded-lg text-[11px] font-bold border transition bg-white text-slate-700 border-slate-200 hover:bg-slate-100">
+                    WE Pay
+                  </button>
+                </div>
+                <div>
+                  <label for="wallet-sender-phone" class="block text-[11px] font-bold text-amber-950 mb-1">
+                    الرقم الذي تم التحويل منه <span class="text-rose-600">*</span>
+                  </label>
+                  <div class="relative">
+                    <i class="fa-solid fa-phone absolute right-2.5 top-1/2 -translate-y-1/2 text-amber-700 text-xs"></i>
+                    <input type="tel" id="wallet-sender-phone" placeholder="مثال: 010xxxxxxxx"
+                      class="w-full pr-8 pl-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-amber-600" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- حقل إنستاباي (الرقم المرجعي لإثبات الدفع) -->
+              <div id="instapay-details-box" class="hidden p-3 rounded-xl bg-purple-50/90 border border-purple-200 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-extrabold text-purple-900 flex items-center gap-1">
+                    <i class="fa-solid fa-receipt"></i>
+                    تأكيد تحويل InstaPay (إثبات محاسبي)
+                  </span>
+                </div>
+                <div>
+                  <label for="instapay-ref-number" class="block text-[11px] font-bold text-purple-950 mb-1">
+                    الرقم المرجعي للعملية (Reference No.) <span class="text-rose-600">*</span>
+                  </label>
+                  <div class="relative">
+                    <i class="fa-solid fa-hashtag absolute right-2.5 top-1/2 -translate-y-1/2 text-purple-700 text-xs"></i>
+                    <input type="text" id="instapay-ref-number" placeholder="أدخل الرقم المرجعي الظاهر لدى العميل"
+                      class="w-full pr-8 pl-3 py-1.5 bg-white border border-purple-300 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-purple-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- المبلغ المدفوع والمتبقي (يظهر بوضوح في الدفع الكاش) -->
+            <div id="cash-tendered-box" class="grid grid-cols-2 gap-2.5 items-center">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">المدفوع (ج.م)</label>
+                <input type="number" id="amount-paid-input" min="0" step="1" placeholder="0.00" oninput="renderCart()"
+                  class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-marine-500" />
+              </div>
+              <div class="bg-white border border-slate-200 rounded-lg px-3 py-1.5">
+                <span class="block text-[10px] font-bold text-slate-500">الباقي للعميل</span>
+                <span id="change-due-display" class="font-mono font-extrabold text-sm text-emerald-700">0.00 ج.م</span>
+              </div>
+            </div>
+
+            <!-- أزرار إتمام البيع وإفراغ السلة -->
+            <div class="flex gap-2 pt-1">
+              <button type="button" onclick="clearCart()" class="px-3.5 py-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition" title="إفراغ السلة">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+              <button type="button" onclick="checkoutSale()" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-l from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-sm shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check-double"></i>
+                <span>إتمام البيع وطباعة الفاتورة</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ------------------------------------------ -->
+    <!-- القسم 2: إدارة المخزون (Inventory Screen) -->
+    <!-- ------------------------------------------ -->
+    <section id="tab-inventory" class="tab-section hidden space-y-4">
+
+      <!-- بطاقات إحصائيات المخزون -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+          <p class="text-xs font-bold text-slate-500">إجمالي الأصناف</p>
+          <p id="inv-total-items" class="text-2xl font-extrabold text-marine-900 font-mono mt-1">0</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+          <p class="text-xs font-bold text-slate-500">إجمالي القطع بالمخزن</p>
+          <p id="inv-total-units" class="text-2xl font-extrabold text-cyan-700 font-mono mt-1">0</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+          <p class="text-xs font-bold text-slate-500">قيمة المخزون (بسعر التكلفة)</p>
+          <p id="inv-cost-value" class="text-xl sm:text-2xl font-extrabold text-slate-800 font-mono mt-1">0.00</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-rose-200 bg-rose-50/40 shadow-sm">
+          <p class="text-xs font-bold text-rose-700">أصناف أوشكت على النفاد</p>
+          <p id="inv-low-stock-count" class="text-2xl font-extrabold text-rose-600 font-mono mt-1">0</p>
+        </div>
+      </div>
+
+      <!-- شريط أدوات المخزون -->
+      <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div class="flex flex-col sm:flex-row gap-2.5 flex-1">
+          <div class="relative flex-1">
+            <i class="fa-solid fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="inv-search-input" oninput="renderInventoryTable()" placeholder="ابحث في المخزون بالاسم أو الباركود..."
+              class="w-full pr-10 pl-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-marine-500" />
+          </div>
+          <select id="inv-category-filter" onchange="renderInventoryTable()" class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:border-marine-500">
+            <option value="الكل">كل الفئات</option>
+          </select>
+        </div>
+
+        <button onclick="openProductModal()" class="px-4 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-sm font-bold shadow transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-plus-circle"></i>
+          <span>إضافة منتج صيد جديد</span>
+        </button>
+      </div>
+
+      <!-- جدول المخزون -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-right border-collapse">
+            <thead>
+              <tr class="bg-slate-100/90 text-slate-700 text-xs font-extrabold border-b border-slate-200">
+                <th class="py-3 px-4">الباركود</th>
+                <th class="py-3 px-4">اسم المنتج</th>
+                <th class="py-3 px-4">الفئة</th>
+                <th class="py-3 px-4">سعر الشراء</th>
+                <th class="py-3 px-4">سعر البيع</th>
+                <th class="py-3 px-4">الكمية</th>
+                <th class="py-3 px-4">الحالة</th>
+                <th class="py-3 px-4 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body" class="divide-y divide-slate-100 text-sm">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------ -->
+    <!-- القسم 3: التقارير والفواتير (Reports Screen) -->
+    <!-- ------------------------------------------ -->
+    <section id="tab-reports" class="tab-section hidden space-y-4">
+
+      <!-- ملخص المبيعات والأرباح -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500">إجمالي المبيعات</span>
+            <i class="fa-solid fa-coins text-amber-500"></i>
+          </div>
+          <p id="rep-total-sales" class="text-2xl font-extrabold text-marine-900 font-mono mt-1.5">0.00 ج.م</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500">صافي الربح التقديري</span>
+            <i class="fa-solid fa-sack-dollar text-emerald-600"></i>
+          </div>
+          <p id="rep-total-profit" class="text-2xl font-extrabold text-emerald-700 font-mono mt-1.5">0.00 ج.م</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500">عدد الفواتير</span>
+            <i class="fa-solid fa-file-invoice text-marine-600"></i>
+          </div>
+          <p id="rep-invoices-count" class="text-2xl font-extrabold text-slate-800 font-mono mt-1.5">0</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-500">متوسط قيمة الفاتورة</span>
+            <i class="fa-solid fa-receipt text-cyan-600"></i>
+          </div>
+          <p id="rep-avg-invoice" class="text-2xl font-extrabold text-cyan-800 font-mono mt-1.5">0.00 ج.م</p>
+        </div>
+      </div>
+
+      <!-- جرد تفصيلي حسب وسيلة الدفع (كاش / محافظ / إنستاباي) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+        <div class="bg-white rounded-2xl p-4 border border-emerald-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-emerald-800">مبيعات الكاش</span>
+            <p id="rep-cash-sales" class="text-lg font-extrabold text-emerald-700 font-mono mt-1">0.00 ج.م</p>
+          </div>
+          <span class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <i class="fa-solid fa-money-bill-wave"></i>
+          </span>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-amber-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-amber-900">المحافظ الإلكترونية (فودافون/أورانج/اتصالات/WE)</span>
+            <p id="rep-wallet-sales" class="text-lg font-extrabold text-amber-700 font-mono mt-1">0.00 ج.م</p>
+          </div>
+          <span class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+            <i class="fa-solid fa-wallet"></i>
+          </span>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-purple-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-purple-900">تحويلات إنستاباي (InstaPay)</span>
+            <p id="rep-instapay-sales" class="text-lg font-extrabold text-purple-700 font-mono mt-1">0.00 ج.م</p>
+          </div>
+          <span class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+            <i class="fa-solid fa-building-columns"></i>
+          </span>
+        </div>
+      </div>
+
+      <!-- أزرار التصفية وتصدير CSV -->
+      <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="setReportFilter('all')" id="filter-rep-all" class="rep-filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-marine-700 text-white transition">
+            كل الفواتير
+          </button>
+          <button onclick="setReportFilter('today')" id="filter-rep-today" class="rep-filter-btn px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+            مبيعات اليوم
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="exportSalesCSV()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-file-csv"></i>
+            <span>تصدير Excel / CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- سجل الفواتير -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-right border-collapse">
+            <thead>
+              <tr class="bg-slate-100/90 text-slate-700 text-xs font-extrabold border-b border-slate-200">
+                <th class="py-3 px-4">رقم الفاتورة</th>
+                <th class="py-3 px-4">التاريخ والوقت</th>
+                <th class="py-3 px-4">الكاشير / الشيفت</th>
+                <th class="py-3 px-4">العميل</th>
+                <th class="py-3 px-4">الدفع والإثبات المحاسبي</th>
+                <th class="py-3 px-4">الإجمالي</th>
+                <th class="py-3 px-4 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="sales-history-body" class="divide-y divide-slate-100 text-sm">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------ -->
+    <!-- القسم 4: الإعدادات والنسخ الاحتياطي (Settings) -->
+    <!-- ------------------------------------------ -->
+    <section id="tab-settings" class="tab-section hidden space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        <!-- بيانات المتجر والشعار والعنوان -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+          <h3 class="font-extrabold text-base text-marine-900 flex items-center gap-2">
+            <i class="fa-solid fa-store text-marine-600"></i>
+            <span>بيانات المتجر والشعار والعنوان</span>
+          </h3>
+
+          <!-- رفع شعار المتجر وتوضيح المقاس المثالي -->
+          <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center gap-4">
+            <div class="w-20 h-20 rounded-2xl bg-white border-2 border-dashed border-marine-300 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+              <img id="logo-preview-img" src="" alt="معاينة الشعار" class="hidden w-full h-full object-cover" />
+              <i id="logo-preview-placeholder" class="fa-solid fa-fish-fins text-3xl text-marine-400"></i>
+            </div>
+
+            <div class="flex-1 space-y-1.5 text-center sm:text-right">
+              <p class="text-xs font-extrabold text-slate-800">شعار المتجر (يظهر في الهيدر والفاتورة المطبوعة)</p>
+              <p class="text-[11px] text-marine-700 font-bold">
+                المقاس المثالي: مربع <span class="font-mono">200×200</span> أو <span class="font-mono">512×512</span> بكسل (PNG / JPG / WEBP) — يتم ضغطه تلقائياً.
+              </p>
+              <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                <label class="cursor-pointer px-3 py-1.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold transition inline-flex items-center gap-1.5">
+                  <i class="fa-solid fa-upload"></i>
+                  <span>رفع صورة الشعار</span>
+                  <input type="file" id="store-logo-input" accept="image/*" onchange="handleStoreLogoUpload(event)" class="hidden" />
+                </label>
+                <button type="button" onclick="removeStoreLogo()" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition">
+                  إزالة الشعار
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">اسم المتجر</label>
+              <input type="text" id="set-store-name" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:border-marine-500" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">الوصف / النشاط</label>
+              <input type="text" id="set-store-subtitle" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-marine-500" />
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">رقم الهاتف</label>
+                <input type="text" id="set-store-phone" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-marine-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">العنوان التفصيلي للمحل</label>
+                <input type="text" id="set-store-address" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-marine-500" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">رسالة أسفل الفاتورة</label>
+              <input type="text" id="set-store-footer" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-marine-500" />
+            </div>
+            <button onclick="saveStoreSettings()" class="w-full py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-sm font-bold transition">
+              حفظ بيانات المتجر والعنوان
+            </button>
+          </div>
+        </div>
+
+        <!-- إدارة الكاشير والشيفتات -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-5">
+          <h3 class="font-extrabold text-base text-marine-900 flex items-center gap-2">
+            <i class="fa-solid fa-users-gear text-cyan-600"></i>
+            <span>إدارة الكاشير والشيفتات (الورديات)</span>
+          </h3>
+
+          <!-- إضافة وحذف أسماء الكاشير -->
+          <div class="space-y-2.5">
+            <label class="block text-xs font-extrabold text-slate-700">أسماء الكاشير</label>
+            <div class="flex gap-2">
+              <input type="text" id="new-cashier-name" placeholder="اسم الكاشير الجديد..."
+                class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-marine-500" />
+              <button type="button" onclick="addCashier()" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i>
+                <span>إضافة</span>
+              </button>
+            </div>
+            <div id="cashiers-list-container" class="flex flex-wrap gap-2 pt-1">
+            </div>
+          </div>
+
+          <hr class="border-slate-100" />
+
+          <!-- إضافة وحذف الشيفتات -->
+          <div class="space-y-2.5">
+            <label class="block text-xs font-extrabold text-slate-700">الشيفتات / الورديات</label>
+            <div class="flex gap-2">
+              <input type="text" id="new-shift-name" placeholder="مثال: شيفت صباحي / شيفت مسائي..."
+                class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-marine-500" />
+              <button type="button" onclick="addShift()" class="px-4 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i>
+                <span>إضافة</span>
+              </button>
+            </div>
+            <div id="shifts-list-container" class="flex flex-wrap gap-2 pt-1">
+            </div>
+          </div>
+        </div>
+
+        <!-- إدارة فئات مستلزمات الصيد -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+          <h3 class="font-extrabold text-base text-marine-900 flex items-center gap-2">
+            <i class="fa-solid fa-tags text-marine-600"></i>
+            <span>فئات مستلزمات الصيد</span>
+          </h3>
+
+          <div class="flex gap-2">
+            <input type="text" id="new-category-input" placeholder="أضف فئة جديدة (مثال: عوامات، أقفاص...)"
+              class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-marine-500" />
+            <button onclick="addNewCategory()" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-sm font-bold transition">
+              إضافة
+            </button>
+          </div>
+
+          <div id="categories-list-container" class="flex flex-wrap gap-2">
+          </div>
+        </div>
+
+        <!-- النسخ الاحتياطي واستعادة البيانات -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+          <h3 class="font-extrabold text-base text-marine-900 flex items-center gap-2">
+            <i class="fa-solid fa-database text-emerald-600"></i>
+            <span>النسخ الاحتياطي واستعادة البيانات</span>
+          </h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            يتم حفظ جميع منتجاتك وفواتيرك وإعداداتك تلقائياً في متصفحك. ننصح بتحميل نسخة احتياطية بصيغة JSON بشكل دوري لحماية بياناتك.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button onclick="exportBackupJSON()" class="py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-download"></i>
+              <span>تحميل نسخة احتياطية</span>
+            </button>
+
+            <label class="py-2.5 px-3.5 rounded-xl bg-marine-600 hover:bg-marine-700 text-white text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-upload"></i>
+              <span>استعادة نسخة JSON</span>
+              <input type="file" id="import-backup-file" accept=".json" onchange="importBackupJSON(event)" class="hidden" />
+            </label>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 flex flex-wrap gap-2">
+            <button onclick="confirmResetDemoData()" class="py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold transition">
+              <i class="fa-solid fa-rotate-left ml-1"></i>
+              استعادة منتجات الصيد الافتراضية
+            </button>
+            <button onclick="confirmClearAllSales()" class="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition">
+              <i class="fa-solid fa-fire ml-1"></i>
+              مسح سجل الفواتير فقط
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- النوافذ المنبثقة (Modals) -->
+  <!-- ========================================== -->
+
+  <!-- 1. نافذة إضافة / تعديل منتج -->
+  <div id="product-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+      <div class="px-5 py-3.5 bg-marine-900 text-white flex items-center justify-between">
+        <h3 id="product-modal-title" class="font-extrabold text-base">إضافة منتج صيد جديد</h3>
+        <button onclick="closeProductModal()" class="text-white/70 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="saveProductForm(event)" class="p-5 space-y-3.5">
+        <input type="hidden" id="edit-product-id" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">الباركود / كود الصنف (SKU) *</label>
+            <div class="flex gap-1.5">
+              <input type="text" id="prod-sku" required placeholder="6221001"
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-marine-500" />
+              <button type="button" onclick="openCameraScanner('product')" title="قراءة باركود المنتج بالكاميرا" class="px-3 bg-cyan-600 hover:bg-cyan-700 rounded-xl text-white text-xs font-bold transition flex items-center justify-center">
+                <i class="fa-solid fa-camera"></i>
+              </button>
+              <button type="button" onclick="generateRandomSKU()" title="توليد كود تلقائي" class="px-2.5 bg-slate-200 hover:bg-slate-300 rounded-xl text-slate-700 text-xs font-bold">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">الفئة *</label>
+            <select id="prod-category" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:border-marine-500">
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">اسم المنتج ومواصفاته *</label>
+          <input type="text" id="prod-name" required placeholder="مثال: قصبة كربون 3.6 متر أكشن متوسط"
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-marine-500" />
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">سعر الشراء *</label>
+            <input type="number" id="prod-cost" required min="0" step="0.5" placeholder="0.00"
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-marine-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">سعر البيع *</label>
+            <input type="number" id="prod-price" required min="0" step="0.5" placeholder="0.00"
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold focus:outline-none focus:border-marine-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">الكمية *</label>
+            <input type="number" id="prod-stock" required min="0" step="1" placeholder="0"
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold focus:outline-none focus:border-marine-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">حد التنبيه لنقص المخزون</label>
+          <input type="number" id="prod-min-stock" min="0" step="1" value="3"
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-marine-500" />
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeProductModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">
+            إلغاء
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold shadow">
+            حفظ المنتج
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. نافذة معاينة وطباعة الفاتورة -->
+  <div id="receipt-modal" class="fixed inset-0 bg-slate-950/65 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200">
+      <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between no-print">
+        <span class="font-bold text-sm flex items-center gap-2">
+          <i class="fa-solid fa-print text-cyan-400"></i>
+          معاينة الفاتورة
+        </span>
+        <button onclick="closeReceiptModal()" class="text-white/70 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- منطقة الطباعة الحرارية -->
+      <div id="print-receipt-area" class="p-5 text-xs text-slate-800 space-y-3 bg-white">
+      </div>
+
+      <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 flex gap-2 no-print">
+        <button onclick="window.print()" class="flex-1 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-print"></i>
+          <span>طباعة الآن</span>
+        </button>
+        <button onclick="closeReceiptModal()" class="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold">
+          إغلاق
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. نافذة تأكيد مخصصة -->
+  <div id="confirm-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-4 border border-slate-200">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h4 id="confirm-modal-title" class="font-extrabold text-sm text-slate-900">تأكيد الإجراء</h4>
+          <p id="confirm-modal-msg" class="text-xs text-slate-600 mt-0.5">هل أنت متأكد من المتابعة؟</p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">
+          تراجع
+        </button>
+        <button id="confirm-modal-btn" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition">
+          نعم، تنفيذ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. نافذة مسح الباركود بالكاميرا (Camera Barcode Scanner Modal) -->
+  <div id="camera-scanner-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-[60] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+      <div class="px-5 py-3.5 bg-gradient-to-l from-marine-900 to-cyan-800 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-camera text-cyan-300"></i>
+          <h3 id="camera-modal-title" class="font-extrabold text-sm">مسح الباركود بكاميرا الجهاز</h3>
+        </div>
+        <button onclick="closeCameraScanner()" class="text-white/80 hover:text-white w-8 h-8 rounded-lg flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-4 space-y-3 bg-slate-50">
+        <!-- منطقة عرض بث الكاميرا -->
+        <div id="qr-reader-container" class="w-full rounded-xl overflow-hidden bg-slate-900 border-2 border-marine-500 min-h-[250px] flex items-center justify-center relative">
+          <div id="qr-reader" class="w-full"></div>
+        </div>
+
+        <p id="camera-status-text" class="text-xs text-center font-bold text-slate-600">
+          وجّه الكاميرا نحو باركود المنتج (EAN-13 / Code-128 / QR)...
+        </p>
+
+        <!-- أزرار التحكم بالكاميرا -->
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button type="button" id="toggle-torch-btn" onclick="toggleCameraTorch()" class="hidden flex-1 py-2 px-3 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold transition items-center justify-center gap-1.5">
+            <i class="fa-solid fa-bolt"></i>
+            <span>الفلاش</span>
+          </button>
+          <button type="button" id="switch-camera-btn" onclick="switchCameraDevice()" class="hidden flex-1 py-2 px-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold transition items-center justify-center gap-1.5">
+            <i class="fa-solid fa-camera-rotate"></i>
+            <span>تبديل الكاميرا</span>
+          </button>
+          <button type="button" onclick="closeCameraScanner()" class="flex-1 py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition">
+            إغلاق الكاميرا
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- حاوية الإشعارات المنبثقة (Toast Notifications) -->
+  <div id="toast-container" class="fixed bottom-4 left-4 z-[70] flex flex-col gap-2 max-w-xs w-full pointer-events-none no-print"></div>
+
+  <!-- ========================================== -->
+  <!-- الكود البرمجي (JavaScript Application Logic) -->
+  <!-- ========================================== -->
+  <script>
+    // ==========================================
+    // 1. مفاتيح التخزين والبيانات الافتراضية
+    // ==========================================
+    const STORAGE_KEYS = {
+      PRODUCTS: 'fishing_pos_products_v1',
+      SALES: 'fishing_pos_sales_v1',
+      CATEGORIES: 'fishing_pos_categories_v1',
+      SETTINGS: 'fishing_pos_settings_v1',
+    };
+
+    const DEFAULT_CATEGORIES = [
+      'قصبات الصيد',
+      'ماكينات الصيد',
+      'خيوط وضفائر',
+      'سنارات وخطاطيف',
+      'طعوم صناعية وطبيعية',
+      'اكسسوارات وعدة صيد',
+    ];
+
+    const DEFAULT_PRODUCTS = [
+      { id: 'p-1', sku: '6221001', name: 'قصبة كربون بحري 3.6 متر أكشن 100-200g', category: 'قصبات الصيد', cost: 650, price: 950, stock: 12, minStock: 3 },
+      { id: 'p-2', sku: '6221002', name: 'قصبة تسقيط خفيفة 2.4 متر كربون', category: 'قصبات الصيد', cost: 320, price: 490, stock: 8, minStock: 3 },
+      { id: 'p-3', sku: '6222001', name: 'ماكينة صيد مقاس 6000 دولاب معدني 12 رولمان', category: 'ماكينات الصيد', cost: 580, price: 850, stock: 9, minStock: 2 },
+      { id: 'p-4', sku: '6222002', name: 'ماكينة صيد مقاس 4000 خفيفة للغلة والسبيننج', category: 'ماكينات الصيد', cost: 410, price: 620, stock: 2, minStock: 3 },
+      { id: 'p-5', sku: '6223001', name: 'ضفيرة صيد 4 خيوط 300 متر مقاس 0.30mm', category: 'خيوط وضفائر', cost: 140, price: 230, stock: 25, minStock: 5 },
+      { id: 'p-6', sku: '6223002', name: 'خيط نايلون شفاف مقاوم للقطع 500 متر 0.40mm', category: 'خيوط وضفائر', cost: 85, price: 140, stock: 30, minStock: 6 },
+      { id: 'p-7', sku: '6224001', name: 'علبة سنارات صلب ياباني مقاسات متنوعة (100 قطعة)', category: 'سنارات وخطاطيف', cost: 75, price: 125, stock: 18, minStock: 5 },
+      { id: 'p-8', sku: '6225001', name: 'طعم صناعي سيلكون جمبري مضيء (5 قطع)', category: 'طعوم صناعية وطبيعية', cost: 60, price: 110, stock: 15, minStock: 4 },
+      { id: 'p-9', sku: '6225002', name: 'طعم صناعي ربل فيش أكشن سباحة 9 سم', category: 'طعوم صناعية وطبيعية', cost: 45, price: 85, stock: 2, minStock: 4 },
+      { id: 'p-10', sku: '6226001', name: 'شنطة عدة صيد مقاومة للماء متعددة الجيوب', category: 'اكسسوارات وعدة صيد', cost: 260, price: 390, stock: 7, minStock: 2 },
+      { id: 'p-11', sku: '6226002', name: 'ميزان ديجيتال لوزن الأسماك حتى 50 كجم', category: 'اكسسوارات وعدة صيد', cost: 95, price: 160, stock: 10, minStock: 3 },
+      { id: 'p-12', sku: '6226003', name: 'مقص ضفيرة ستانلس ستيل + زرادية فك السنارة', category: 'اكسسوارات وعدة صيد', cost: 70, price: 120, stock: 14, minStock: 3 },
+    ];
+
+    const DEFAULT_SETTINGS = {
+      storeName: 'شبكة وصنارة',
+      storeSubtitle: 'مستلزمات الصيد البحري والقصبات والماكينات والاكسسوارات',
+      storeLogo: '',
+      phone: '01000000000',
+      address: 'كورنيش البحر - بجوار مرسى الصيادين',
+      footerNote: 'صيداً وفيراً ورحلة موفقة! يُرجى مراجعة الفاتورة قبل المغادرة.',
+      cashiers: ['كاشير 1', 'أحمد حسن'],
+      shifts: ['الشيفت الصباحي', 'الشيفت المسائي'],
+      activeCashier: 'كاشير 1',
+      activeShift: 'الشيفت الصباحي',
+    };
+
+    // ==========================================
+    // 2. حالة التطبيق (Application State)
+    // ==========================================
+    let products = [];
+    let sales = [];
+    let categories = [];
+    let settings = { ...DEFAULT_SETTINGS };
+    let cart = [];
+    let selectedPosCategory = 'الكل';
+    let selectedPaymentMethod = 'كاش';
+    let selectedWalletProvider = 'فودافون كاش';
+    let reportFilter = 'all';
+
+    // متغيرات ماسح الكاميرا والباركود الخارجي
+    let html5QrCodeInstance = null;
+    let cameraScannerMode = 'pos'; // 'pos' أو 'product'
+    let availableCameras = [];
+    let currentCameraIndex = 0;
+    let isTorchOn = false;
+    let lastScannedCode = '';
+    let lastScannedTime = 0;
+
+    // ==========================================
+    // 3. التهيئة وتحميل البيانات من LocalStorage
+    // ==========================================
+    window.onload = function () {
+      loadDataFromStorage();
+      initClock();
+      populateCategoryControls();
+      populateStaffControls();
+      applySettingsToUI();
+      renderPosProducts();
+      renderCart();
+      updateLowStockBadge();
+      initGlobalUSBBarcodeListener();
+      document.getElementById('barcode-scanner-input').focus();
+    };
+
+    function loadDataFromStorage() {
+      try {
+        const savedProducts = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+        const savedSales = localStorage.getItem(STORAGE_KEYS.SALES);
+        const savedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+        const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+
+        products = savedProducts ? JSON.parse(savedProducts) : [...DEFAULT_PRODUCTS];
+        sales = savedSales ? JSON.parse(savedSales) : [];
+        categories = savedCategories ? JSON.parse(savedCategories) : [...DEFAULT_CATEGORIES];
+
+        const parsedSettings = savedSettings ? JSON.parse(savedSettings) : {};
+        settings = {
+          ...DEFAULT_SETTINGS,
+          ...parsedSettings,
+          cashiers: Array.isArray(parsedSettings.cashiers) && parsedSettings.cashiers.length > 0
+            ? parsedSettings.cashiers
+            : [...DEFAULT_SETTINGS.cashiers],
+          shifts: Array.isArray(parsedSettings.shifts) && parsedSettings.shifts.length > 0
+            ? parsedSettings.shifts
+            : [...DEFAULT_SETTINGS.shifts],
+        };
+
+        if (!settings.cashiers.includes(settings.activeCashier)) {
+          settings.activeCashier = settings.cashiers[0];
+        }
+        if (!settings.shifts.includes(settings.activeShift)) {
+          settings.activeShift = settings.shifts[0];
+        }
+
+        if (!savedProducts) saveProducts();
+        if (!savedCategories) saveCategories();
+        if (!savedSettings) saveSettings();
+      } catch (err) {
+        console.error('خطأ في قراءة البيانات:', err);
+        products = [...DEFAULT_PRODUCTS];
+        sales = [];
+        categories = [...DEFAULT_CATEGORIES];
+        settings = { ...DEFAULT_SETTINGS };
+        showToast('تم تحميل البيانات الافتراضية لوجود مشكلة في التخزين المحلي', 'warning');
+      }
+    }
+
+    function saveProducts() {
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+      updateLowStockBadge();
+    }
+
+    function saveSales() {
+      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
+    }
+
+    function saveCategories() {
+      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+    }
+
+    function saveSettings() {
+      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    }
+
+    // ==========================================
+    // 4. التنقل والواجهة والساعة
+    // ==========================================
+    function switchTab(tabName) {
+      if (tabName !== 'pos' && tabName !== 'inventory') {
+        closeCameraScanner();
+      }
+
+      document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('hidden'));
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-cyan-500', 'text-slate-950', 'shadow');
+        btn.classList.add('text-slate-200', 'hover:bg-white/10');
+      });
+
+      const activeBtn = document.getElementById(`nav-${tabName}`);
+      activeBtn.classList.add('bg-cyan-500', 'text-slate-950', 'shadow');
+      activeBtn.classList.remove('text-slate-200', 'hover:bg-white/10');
+
+      if (tabName === 'pos') {
+        populateStaffControls();
+        renderPosProducts();
+        renderCart();
+        document.getElementById('barcode-scanner-input').focus();
+      } else if (tabName === 'inventory') {
+        populateCategoryControls();
+        renderInventoryTable();
+      } else if (tabName === 'reports') {
+        renderReports();
+      } else if (tabName === 'settings') {
+        fillSettingsForm();
+      }
+    }
+
+    function initClock() {
+      function tick() {
+        const now = new Date();
+        const clockEl = document.getElementById('live-clock');
+        const dateEl = document.getElementById('live-date');
+        if (clockEl) {
+          clockEl.textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        if (dateEl) {
+          dateEl.textContent = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+        }
+      }
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    function applySettingsToUI() {
+      document.title = `${settings.storeName} - نظام كاشير وإدارة مخزون مستلزمات الصيد`;
+      document.getElementById('header-store-name').textContent = settings.storeName;
+      document.getElementById('header-store-subtitle').textContent = settings.storeSubtitle;
+
+      const headerLogo = document.getElementById('header-store-logo');
+      const headerIcon = document.getElementById('header-default-icon');
+      if (settings.storeLogo) {
+        headerLogo.src = settings.storeLogo;
+        headerLogo.classList.remove('hidden');
+        headerIcon.classList.add('hidden');
+      } else {
+        headerLogo.src = '';
+        headerLogo.classList.add('hidden');
+        headerIcon.classList.remove('hidden');
+      }
+    }
+
+    function fillSettingsForm() {
+      document.getElementById('set-store-name').value = settings.storeName;
+      document.getElementById('set-store-subtitle').value = settings.storeSubtitle;
+      document.getElementById('set-store-phone').value = settings.phone;
+      document.getElementById('set-store-address').value = settings.address;
+      document.getElementById('set-store-footer').value = settings.footerNote;
+
+      const previewImg = document.getElementById('logo-preview-img');
+      const previewPlaceholder = document.getElementById('logo-preview-placeholder');
+      if (settings.storeLogo) {
+        previewImg.src = settings.storeLogo;
+        previewImg.classList.remove('hidden');
+        previewPlaceholder.classList.add('hidden');
+      } else {
+        previewImg.src = '';
+        previewImg.classList.add('hidden');
+        previewPlaceholder.classList.remove('hidden');
+      }
+
+      renderCategoriesSettingsList();
+      renderStaffSettingsLists();
+    }
+
+    function handleStoreLogoUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        showToast('يرجى اختيار ملف صورة صالح (PNG / JPG / WEBP)', 'error');
+        event.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          // ضغط الشعار إلى 256x256 كحد أقصى لحفظه بسلاسة في LocalStorage
+          const maxSize = 256;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxSize) {
+              height = Math.round((height * maxSize) / width);
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width = Math.round((width * maxSize) / height);
+              height = maxSize;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          settings.storeLogo = canvas.toDataURL('image/png', 0.9);
+          saveSettings();
+          applySettingsToUI();
+          fillSettingsForm();
+          showToast('تم رفع شعار المتجر وحفظه بنجاح', 'success');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+
+    function removeStoreLogo() {
+      settings.storeLogo = '';
+      saveSettings();
+      applySettingsToUI();
+      fillSettingsForm();
+      showToast('تمت إزالة شعار المتجر', 'info');
+    }
+
+    function saveStoreSettings() {
+      const name = document.getElementById('set-store-name').value.trim();
+      if (!name) {
+        showToast('يرجى إدخال اسم المتجر', 'error');
+        return;
+      }
+      settings.storeName = name;
+      settings.storeSubtitle = document.getElementById('set-store-subtitle').value.trim();
+      settings.phone = document.getElementById('set-store-phone').value.trim();
+      settings.address = document.getElementById('set-store-address').value.trim();
+      settings.footerNote = document.getElementById('set-store-footer').value.trim();
+      saveSettings();
+      applySettingsToUI();
+      showToast('تم حفظ بيانات المتجر والعنوان بنجاح', 'success');
+    }
+
+    // ==========================================
+    // إدارة الكاشير والشيفتات
+    // ==========================================
+    function populateStaffControls() {
+      const cashierSelect = document.getElementById('pos-cashier-select');
+      const shiftSelect = document.getElementById('pos-shift-select');
+
+      if (!settings.cashiers || settings.cashiers.length === 0) {
+        settings.cashiers = ['كاشير 1'];
+      }
+      if (!settings.shifts || settings.shifts.length === 0) {
+        settings.shifts = ['الشيفت الصباحي'];
+      }
+      if (!settings.cashiers.includes(settings.activeCashier)) {
+        settings.activeCashier = settings.cashiers[0];
+      }
+      if (!settings.shifts.includes(settings.activeShift)) {
+        settings.activeShift = settings.shifts[0];
+      }
+
+      if (cashierSelect) {
+        cashierSelect.innerHTML = settings.cashiers
+          .map(c => `<option value="${escapeHTML(c)}" ${c === settings.activeCashier ? 'selected' : ''}>${escapeHTML(c)}</option>`)
+          .join('');
+      }
+
+      if (shiftSelect) {
+        shiftSelect.innerHTML = settings.shifts
+          .map(s => `<option value="${escapeHTML(s)}" ${s === settings.activeShift ? 'selected' : ''}>${escapeHTML(s)}</option>`)
+          .join('');
+      }
+    }
+
+    function onShiftOrCashierChange() {
+      const cashierSelect = document.getElementById('pos-cashier-select');
+      const shiftSelect = document.getElementById('pos-shift-select');
+      if (cashierSelect && cashierSelect.value) {
+        settings.activeCashier = cashierSelect.value;
+      }
+      if (shiftSelect && shiftSelect.value) {
+        settings.activeShift = shiftSelect.value;
+      }
+      saveSettings();
+    }
+
+    function renderStaffSettingsLists() {
+      const cashiersContainer = document.getElementById('cashiers-list-container');
+      const shiftsContainer = document.getElementById('shifts-list-container');
+
+      if (cashiersContainer) {
+        cashiersContainer.innerHTML = settings.cashiers.map(c => `
+          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-marine-50 text-marine-900 border border-marine-200 text-xs font-bold">
+            <i class="fa-solid fa-user-check text-marine-600"></i>
+            <span>${escapeHTML(c)}</span>
+            ${settings.cashiers.length > 1 ? `
+              <button type="button" onclick="deleteCashier('${escapeAttr(c)}')" title="حذف الكاشير" class="text-rose-500 hover:text-rose-700 mr-1">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            ` : ''}
+          </span>
+        `).join('');
+      }
+
+      if (shiftsContainer) {
+        shiftsContainer.innerHTML = settings.shifts.map(s => `
+          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-50 text-cyan-950 border border-cyan-200 text-xs font-bold">
+            <i class="fa-solid fa-clock text-cyan-700"></i>
+            <span>${escapeHTML(s)}</span>
+            ${settings.shifts.length > 1 ? `
+              <button type="button" onclick="deleteShift('${escapeAttr(s)}')" title="حذف الشيفت" class="text-rose-500 hover:text-rose-700 mr-1">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            ` : ''}
+          </span>
+        `).join('');
+      }
+    }
+
+    function addCashier() {
+      const input = document.getElementById('new-cashier-name');
+      const name = input.value.trim();
+      if (!name) {
+        showToast('اكتب اسم الكاشير أولاً', 'warning');
+        return;
+      }
+      if (settings.cashiers.includes(name)) {
+        showToast('اسم الكاشير موجود بالفعل', 'warning');
+        return;
+      }
+      settings.cashiers.push(name);
+      settings.activeCashier = name;
+      saveSettings();
+      input.value = '';
+      populateStaffControls();
+      renderStaffSettingsLists();
+      showToast(`تمت إضافة الكاشير: ${name}`, 'success');
+    }
+
+    function deleteCashier(name) {
+      if (settings.cashiers.length <= 1) {
+        showToast('يجب وجود كاشير واحد على الأقل', 'warning');
+        return;
+      }
+      settings.cashiers = settings.cashiers.filter(c => c !== name);
+      if (settings.activeCashier === name) {
+        settings.activeCashier = settings.cashiers[0];
+      }
+      saveSettings();
+      populateStaffControls();
+      renderStaffSettingsLists();
+      showToast(`تم حذف الكاشير: ${name}`, 'info');
+    }
+
+    function addShift() {
+      const input = document.getElementById('new-shift-name');
+      const name = input.value.trim();
+      if (!name) {
+        showToast('اكتب اسم الشيفت أولاً', 'warning');
+        return;
+      }
+      if (settings.shifts.includes(name)) {
+        showToast('اسم الشيفت موجود بالفعل', 'warning');
+        return;
+      }
+      settings.shifts.push(name);
+      settings.activeShift = name;
+      saveSettings();
+      input.value = '';
+      populateStaffControls();
+      renderStaffSettingsLists();
+      showToast(`تمت إضافة الشيفت: ${name}`, 'success');
+    }
+
+    function deleteShift(name) {
+      if (settings.shifts.length <= 1) {
+        showToast('يجب وجود شيفت واحد على الأقل', 'warning');
+        return;
+      }
+      settings.shifts = settings.shifts.filter(s => s !== name);
+      if (settings.activeShift === name) {
+        settings.activeShift = settings.shifts[0];
+      }
+      saveSettings();
+      populateStaffControls();
+      renderStaffSettingsLists();
+      showToast(`تم حذف الشيفت: ${name}`, 'info');
+    }
+
+    // ==========================================
+    // 5. شاشة نقطة البيع والباركود والكاميرا
+    // ==========================================
+    function populateCategoryControls() {
+      const pillsContainer = document.getElementById('pos-category-pills');
+      const allCats = ['الكل', ...categories];
+      pillsContainer.innerHTML = allCats.map(cat => {
+        const active = selectedPosCategory === cat;
+        return `
+          <button type="button" onclick="selectPosCategory('${escapeAttr(cat)}')"
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+              active
+                ? 'bg-marine-800 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }">
+            ${escapeHTML(cat)}
+          </button>
+        `;
+      }).join('');
+
+      const invSelect = document.getElementById('inv-category-filter');
+      const currentInvFilter = invSelect.value || 'الكل';
+      invSelect.innerHTML = `<option value="الكل">كل الفئات</option>` +
+        categories.map(c => `<option value="${escapeAttr(c)}">${escapeHTML(c)}</option>`).join('');
+      invSelect.value = allCats.includes(currentInvFilter) ? currentInvFilter : 'الكل';
+
+      const prodSelect = document.getElementById('prod-category');
+      prodSelect.innerHTML = categories.map(c => `<option value="${escapeAttr(c)}">${escapeHTML(c)}</option>`).join('');
+    }
+
+    function selectPosCategory(cat) {
+      selectedPosCategory = cat;
+      populateCategoryControls();
+      renderPosProducts();
+    }
+
+    function getCategoryIcon(category) {
+      if (category.includes('قصبة')) return 'fa-solid fa-fishing-rod';
+      if (category.includes('ماكين')) return 'fa-solid fa-gear';
+      if (category.includes('خيط') || category.includes('ضفير')) return 'fa-solid fa-spool';
+      if (category.includes('سنار')) return 'fa-solid fa-hook';
+      if (category.includes('طعم')) return 'fa-solid fa-shrimp';
+      return 'fa-solid fa-toolbox';
+    }
+
+    function renderPosProducts() {
+      const query = (document.getElementById('pos-search-input').value || '').trim().toLowerCase();
+      const grid = document.getElementById('pos-products-grid');
+
+      const filtered = products.filter(p => {
+        const matchesCat = selectedPosCategory === 'الكل' || p.category === selectedPosCategory;
+        const matchesQuery = !query ||
+          p.name.toLowerCase().includes(query) ||
+          p.sku.toLowerCase().includes(query) ||
+          p.category.toLowerCase().includes(query);
+        return matchesCat && matchesQuery;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center space-y-2">
+            <i class="fa-solid fa-fish text-3xl text-slate-300"></i>
+            <p class="text-sm font-bold text-slate-600">لا توجد منتجات مطابقة للبحث</p>
+            <p class="text-xs text-slate-400">جرّب تغيير الفئة أو البحث بكلمة أخرى</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(p => {
+        const outOfStock = p.stock <= 0;
+        const lowStock = p.stock > 0 && p.stock <= p.minStock;
+        return `
+          <div onclick="${outOfStock ? '' : `addToCart('${p.id}')`}"
+            class="bg-white rounded-2xl border ${outOfStock ? 'border-slate-200 opacity-60 cursor-not-allowed' : 'border-slate-200/90 hover:border-marine-500 hover:shadow-md cursor-pointer'} p-3.5 transition flex flex-col justify-between gap-3 group">
+            <div class="flex items-start justify-between gap-2">
+              <div class="w-10 h-10 rounded-xl bg-marine-50 text-marine-700 flex items-center justify-center shrink-0 group-hover:bg-marine-600 group-hover:text-white transition">
+                <i class="${getCategoryIcon(p.category)} text-base"></i>
+              </div>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-lg ${
+                outOfStock
+                  ? 'bg-rose-100 text-rose-700'
+                  : lowStock
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-emerald-50 text-emerald-700'
+              }">
+                ${outOfStock ? 'نفد المخزون' : `متاح: ${p.stock}`}
+              </span>
+            </div>
+
+            <div>
+              <span class="text-[11px] font-bold text-marine-600">${escapeHTML(p.category)}</span>
+              <h3 class="font-bold text-sm text-slate-800 leading-snug mt-0.5 line-clamp-2">${escapeHTML(p.name)}</h3>
+              <p class="text-[11px] font-mono text-slate-400 mt-1">SKU: ${escapeHTML(p.sku)}</p>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+              <span class="font-mono font-extrabold text-base text-marine-900">${formatMoney(p.price)}</span>
+              <span class="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-marine-700 group-hover:text-white text-slate-700 flex items-center justify-center text-xs transition">
+                <i class="fa-solid fa-plus"></i>
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleBarcodeSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('barcode-scanner-input');
+      const code = input.value.trim();
+      if (!code) return;
+
+      const found = products.find(p => p.sku.toLowerCase() === code.toLowerCase());
+      if (found) {
+        playBeepSound();
+        addToCart(found.id);
+        input.value = '';
+      } else {
+        showToast(`لم يتم العثور على منتج بالباركود: ${code}`, 'error');
+        input.select();
+      }
+    }
+
+    // مستمع عام لقارئ الباركود الخارجي (USB / Bluetooth) حتى لو لم يكن المؤشر داخل الخانة
+    function initGlobalUSBBarcodeListener() {
+      let buffer = '';
+      let lastKeyTime = 0;
+
+      document.addEventListener('keydown', function (e) {
+        const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+        const posTab = document.getElementById('tab-pos');
+        if (!posTab || posTab.classList.contains('hidden')) return;
+
+        const now = Date.now();
+        if (now - lastKeyTime > 80) {
+          buffer = '';
+        }
+        lastKeyTime = now;
+
+        if (e.key === 'Enter' && buffer.length >= 3) {
+          e.preventDefault();
+          const scannedCode = buffer.trim();
+          buffer = '';
+          const found = products.find(p => p.sku.toLowerCase() === scannedCode.toLowerCase());
+          if (found) {
+            playBeepSound();
+            addToCart(found.id);
+          } else {
+            showToast(`باركود غير مسجل: ${scannedCode}`, 'error');
+          }
+        } else if (e.key.length === 1) {
+          buffer += e.key;
+        }
+      });
+    }
+
+    // تشغيل صوت تنبيه (Beep) عند نجاح قراءة الباركود
+    function playBeepSound() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1050, ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+      } catch (err) {
+        // تجاهل قيود الصوت في بعض المتصفحات
+      }
+    }
+
+    // فتح نافذة مسح الباركود بالكاميرا (للكاشير أو لإضافة منتج)
+    async function openCameraScanner(mode = 'pos') {
+      cameraScannerMode = mode;
+      isTorchOn = false;
+      lastScannedCode = '';
+
+      if (typeof Html5Qrcode === 'undefined') {
+        showToast('تعذر تحميل مكتبة الكاميرا، تأكد من الاتصال بالإنترنت', 'error');
+        return;
+      }
+
+      const modal = document.getElementById('camera-scanner-modal');
+      const title = document.getElementById('camera-modal-title');
+      const statusText = document.getElementById('camera-status-text');
+
+      title.textContent = mode === 'pos'
+        ? 'مسح باركود البيع بالكاميرا'
+        : 'قراءة باركود المنتج الجديد بالكاميرا';
+      statusText.textContent = 'جاري تشغيل الكاميرا، يرجى السماح بصلاحية الوصول...';
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      try {
+        availableCameras = await Html5Qrcode.getCameras();
+        if (!availableCameras || availableCameras.length === 0) {
+          statusText.textContent = 'لم يتم العثور على كاميرا متصلة بهذا الجهاز.';
+          return;
+        }
+
+        const backCamIndex = availableCameras.findIndex(cam =>
+          /back|rear|environment|خلفية/i.test(cam.label)
+        );
+        currentCameraIndex = backCamIndex !== -1 ? backCamIndex : availableCameras.length - 1;
+
+        const switchBtn = document.getElementById('switch-camera-btn');
+        if (availableCameras.length > 1) {
+          switchBtn.classList.remove('hidden');
+          switchBtn.classList.add('flex');
+        } else {
+          switchBtn.classList.add('hidden');
+          switchBtn.classList.remove('flex');
+        }
+
+        await startCameraStream(availableCameras[currentCameraIndex].id);
+      } catch (err) {
+        console.error(err);
+        statusText.textContent = 'تعذر فتح الكاميرا. تأكد من فتح الموقع عبر رابط HTTPS ومنح إذن الكاميرا.';
+        showToast('يرجى السماح للمتصفح باستخدام الكاميرا', 'error');
+      }
+    }
+
+    async function startCameraStream(cameraId) {
+      const statusText = document.getElementById('camera-status-text');
+      const torchBtn = document.getElementById('toggle-torch-btn');
+      torchBtn.classList.add('hidden');
+      torchBtn.classList.remove('flex');
+
+      if (html5QrCodeInstance) {
+        try {
+          if (html5QrCodeInstance.isScanning) {
+            await html5QrCodeInstance.stop();
+          }
+          html5QrCodeInstance.clear();
+        } catch (e) {}
+      }
+
+      html5QrCodeInstance = new Html5Qrcode('qr-reader');
+
+      const config = {
+        fps: 12,
+        qrbox: { width: 250, height: 140 },
+        aspectRatio: 1.333334
+      };
+
+      await html5QrCodeInstance.start(
+        cameraId,
+        config,
+        (decodedText) => handleCameraDecodedSuccess(decodedText),
+        () => {}
+      );
+
+      statusText.textContent = 'الكاميرا جاهزة! ثبّت الباركود داخل الإطار...';
+
+      try {
+        const capabilities = html5QrCodeInstance.getRunningTrackCameraCapabilities();
+        if (capabilities && capabilities.torchFeature && capabilities.torchFeature().isSupported()) {
+          torchBtn.classList.remove('hidden');
+          torchBtn.classList.add('flex');
+        }
+      } catch (e) {}
+    }
+
+    async function switchCameraDevice() {
+      if (availableCameras.length <= 1) return;
+      currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+      isTorchOn = false;
+      await startCameraStream(availableCameras[currentCameraIndex].id);
+    }
+
+    async function toggleCameraTorch() {
+      if (!html5QrCodeInstance) return;
+      try {
+        isTorchOn = !isTorchOn;
+        await html5QrCodeInstance.applyVideoConstraints({
+          advanced: [{ torch: isTorchOn }]
+        });
+      } catch (err) {
+        showToast('الفلاش غير مدعوم على هذه الكاميرا', 'warning');
+      }
+    }
+
+    function handleCameraDecodedSuccess(decodedText) {
+      const code = decodedText.trim();
+      const now = Date.now();
+
+      if (code === lastScannedCode && (now - lastScannedTime) < 1800) {
+        return;
+      }
+      lastScannedCode = code;
+      lastScannedTime = now;
+
+      playBeepSound();
+
+      if (cameraScannerMode === 'product') {
+        document.getElementById('prod-sku').value = code;
+        showToast(`تم التقاط الباركود: ${code}`, 'success');
+        closeCameraScanner();
+        return;
+      }
+
+      const found = products.find(p => p.sku.toLowerCase() === code.toLowerCase());
+      const statusText = document.getElementById('camera-status-text');
+      if (found) {
+        addToCart(found.id);
+        statusText.innerHTML = `<span class="text-emerald-700">✓ تمت إضافة: ${escapeHTML(found.name)}</span>`;
+      } else {
+        statusText.innerHTML = `<span class="text-rose-600">✗ باركود غير مسجل بالمخزون: ${escapeHTML(code)}</span>`;
+        showToast(`الباركود (${code}) غير مسجل في المخزون`, 'error');
+      }
+    }
+
+    async function closeCameraScanner() {
+      const modal = document.getElementById('camera-scanner-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+
+      if (html5QrCodeInstance) {
+        try {
+          if (html5QrCodeInstance.isScanning) {
+            await html5QrCodeInstance.stop();
+          }
+          html5QrCodeInstance.clear();
+        } catch (err) {
+          console.error(err);
+        }
+        html5QrCodeInstance = null;
+      }
+    }
+
+    // ==========================================
+    // 6. إدارة السلة والحسابات والدفع (Cart & Payment Logic)
+    // ==========================================
+    function addToCart(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+
+      if (product.stock <= 0) {
+        showToast('هذا الصنف غير متوفر في المخزون حالياً', 'error');
+        return;
+      }
+
+      const existing = cart.find(item => item.productId === productId);
+      if (existing) {
+        if (existing.qty + 1 > product.stock) {
+          showToast(`الحد الأقصى المتاح في المخزون هو ${product.stock}`, 'warning');
+          return;
+        }
+        existing.qty += 1;
+      } else {
+        cart.push({
+          productId: product.id,
+          sku: product.sku,
+          name: product.name,
+          price: product.price,
+          cost: product.cost,
+          qty: 1,
+        });
+      }
+
+      renderCart();
+      showToast(`تمت إضافة "${product.name}" إلى الفاتورة`, 'success');
+    }
+
+    function updateCartQty(productId, delta) {
+      const item = cart.find(i => i.productId === productId);
+      const product = products.find(p => p.id === productId);
+      if (!item || !product) return;
+
+      const newQty = item.qty + delta;
+      if (newQty <= 0) {
+        removeFromCart(productId);
+        return;
+      }
+      if (newQty > product.stock) {
+        showToast(`الكمية المتاحة فقط ${product.stock} قطع`, 'warning');
+        return;
+      }
+      item.qty = newQty;
+      renderCart();
+    }
+
+    function removeFromCart(productId) {
+      cart = cart.filter(i => i.productId !== productId);
+      renderCart();
+    }
+
+    function clearCart() {
+      if (cart.length === 0) return;
+      cart = [];
+      document.getElementById('discount-input').value = 0;
+      document.getElementById('tax-input').value = 0;
+      document.getElementById('amount-paid-input').value = '';
+      document.getElementById('customer-name-input').value = '';
+      document.getElementById('wallet-sender-phone').value = '';
+      document.getElementById('instapay-ref-number').value = '';
+      renderCart();
+      showToast('تم إفراغ سلة المشتريات', 'info');
+    }
+
+    function setPaymentMethod(method) {
+      selectedPaymentMethod = method;
+      document.querySelectorAll('.pay-method-btn').forEach(btn => {
+        btn.classList.remove('bg-marine-700', 'text-white', 'border-marine-700');
+        btn.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+      });
+      const activeBtn = document.getElementById(`pay-btn-${method}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+        activeBtn.classList.add('bg-marine-700', 'text-white', 'border-marine-700');
+      }
+
+      const walletBox = document.getElementById('wallet-details-box');
+      const instapayBox = document.getElementById('instapay-details-box');
+      const cashTenderedBox = document.getElementById('cash-tendered-box');
+
+      walletBox.classList.toggle('hidden', method !== 'محفظة إلكترونية');
+      instapayBox.classList.toggle('hidden', method !== 'إنستاباي');
+
+      const paidInput = document.getElementById('amount-paid-input');
+      const grandTotal = calculateCartTotals().grandTotal;
+
+      if (method === 'كاش') {
+        cashTenderedBox.classList.remove('hidden');
+      } else {
+        cashTenderedBox.classList.add('hidden');
+        paidInput.value = grandTotal > 0 ? grandTotal.toFixed(2) : '';
+      }
+
+      renderCart();
+    }
+
+    function setWalletProvider(provider) {
+      selectedWalletProvider = provider;
+      document.querySelectorAll('.wallet-prov-btn').forEach(btn => {
+        btn.classList.remove('bg-rose-600', 'text-white', 'border-rose-600');
+        btn.classList.add('bg-white', 'text-slate-700', 'border-slate-200');
+      });
+      const activeBtn = document.getElementById(`wallet-prov-${provider}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-slate-200');
+        activeBtn.classList.add('bg-rose-600', 'text-white', 'border-rose-600');
+      }
+    }
+
+    function calculateCartTotals() {
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const rawDiscount = parseFloat(document.getElementById('discount-input').value) || 0;
+      const discount = Math.min(Math.max(0, rawDiscount), subtotal);
+      const afterDiscount = subtotal - discount;
+      const taxRate = Math.min(Math.max(0, parseFloat(document.getElementById('tax-input').value) || 0), 100);
+      const taxAmount = (afterDiscount * taxRate) / 100;
+      const grandTotal = afterDiscount + taxAmount;
+      return { subtotal, discount, taxRate, taxAmount, grandTotal };
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cart-items-container');
+      const badge = document.getElementById('cart-count-badge');
+      const totalUnits = cart.reduce((sum, i) => sum + i.qty, 0);
+      badge.textContent = `${totalUnits} ${totalUnits === 1 ? 'قطعة' : 'قطع'}`;
+
+      if (cart.length === 0) {
+        container.innerHTML = `
+          <div class="py-10 text-center space-y-2">
+            <i class="fa-solid fa-cart-arrow-down text-3xl text-slate-300"></i>
+            <p class="text-xs font-bold text-slate-500">السلة فارغة حالياً</p>
+            <p class="text-[11px] text-slate-400">اضغط على أي منتج أو امسح الباركود للبدء</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = cart.map(item => `
+          <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <h4 class="text-xs font-bold text-slate-800 truncate">${escapeHTML(item.name)}</h4>
+              <p class="text-[11px] font-mono text-slate-500">${formatMoney(item.price)} × ${item.qty} = <strong class="text-marine-800">${formatMoney(item.price * item.qty)}</strong></p>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button" onclick="updateCartQty('${item.productId}', 1)" class="w-7 h-7 rounded-lg bg-white border border-slate-200 hover:bg-marine-600 hover:text-white text-slate-700 text-xs font-bold flex items-center justify-center transition">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+              <span class="w-6 text-center font-mono text-xs font-extrabold">${item.qty}</span>
+              <button type="button" onclick="updateCartQty('${item.productId}', -1)" class="w-7 h-7 rounded-lg bg-white border border-slate-200 hover:bg-amber-500 hover:text-white text-slate-700 text-xs font-bold flex items-center justify-center transition">
+                <i class="fa-solid fa-minus"></i>
+              </button>
+              <button type="button" onclick="removeFromCart('${item.productId}')" class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 text-xs flex items-center justify-center transition">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const totals = calculateCartTotals();
+      document.getElementById('subtotal-display').textContent = formatMoney(totals.subtotal);
+      document.getElementById('discount-display').textContent = `- ${formatMoney(totals.discount)}`;
+      document.getElementById('tax-display').textContent = `+ ${formatMoney(totals.taxAmount)}`;
+      document.getElementById('grand-total-display').textContent = formatMoney(totals.grandTotal);
+
+      const paidInput = document.getElementById('amount-paid-input');
+      const paidVal = parseFloat(paidInput.value);
+      const changeEl = document.getElementById('change-due-display');
+
+      if (selectedPaymentMethod !== 'كاش') {
+        changeEl.textContent = formatMoney(0);
+        changeEl.className = 'font-mono font-extrabold text-sm text-emerald-700';
+      } else if (!isNaN(paidVal) && paidVal > 0) {
+        const diff = paidVal - totals.grandTotal;
+        if (diff >= 0) {
+          changeEl.textContent = formatMoney(diff);
+          changeEl.className = 'font-mono font-extrabold text-sm text-emerald-700';
+        } else {
+          changeEl.textContent = `ناقص ${formatMoney(Math.abs(diff))}`;
+          changeEl.className = 'font-mono font-extrabold text-sm text-rose-600';
+        }
+      } else {
+        changeEl.textContent = formatMoney(0);
+        changeEl.className = 'font-mono font-extrabold text-sm text-emerald-700';
+      }
+    }
+
+    function checkoutSale() {
+      if (cart.length === 0) {
+        showToast('لا يمكن إتمام فاتورة فارغة', 'error');
+        return;
+      }
+
+      for (const item of cart) {
+        const prod = products.find(p => p.id === item.productId);
+        if (!prod || prod.stock < item.qty) {
+          showToast(`الكمية المطلوبة من "${item.name}" غير متوفرة بالمخزون`, 'error');
+          return;
+        }
+      }
+
+      const totals = calculateCartTotals();
+      let paymentDetails = {
+        method: selectedPaymentMethod,
+        walletProvider: '',
+        senderPhone: '',
+        referenceNumber: '',
+        summaryLabel: selectedPaymentMethod,
+      };
+
+      if (selectedPaymentMethod === 'محفظة إلكترونية') {
+        const senderPhone = document.getElementById('wallet-sender-phone').value.trim();
+        if (!senderPhone || senderPhone.length < 6) {
+          showToast('يرجى إدخال الرقم الذي تم التحويل منه كدليل محاسبي', 'error');
+          document.getElementById('wallet-sender-phone').focus();
+          return;
+        }
+        paymentDetails.walletProvider = selectedWalletProvider;
+        paymentDetails.senderPhone = senderPhone;
+        paymentDetails.summaryLabel = `${selectedWalletProvider} (${senderPhone})`;
+      } else if (selectedPaymentMethod === 'إنستاباي') {
+        const refNumber = document.getElementById('instapay-ref-number').value.trim();
+        if (!refNumber) {
+          showToast('يرجى إدخال الرقم المرجعي لعملية إنستاباي لإثبات الدفع', 'error');
+          document.getElementById('instapay-ref-number').focus();
+          return;
+        }
+        paymentDetails.referenceNumber = refNumber;
+        paymentDetails.summaryLabel = `إنستاباي - مرجع: ${refNumber}`;
+      }
+
+      let amountPaid = totals.grandTotal;
+      if (selectedPaymentMethod === 'كاش') {
+        const rawPaid = parseFloat(document.getElementById('amount-paid-input').value);
+        amountPaid = isNaN(rawPaid) ? totals.grandTotal : rawPaid;
+        if (amountPaid < totals.grandTotal) {
+          showToast('المبلغ المدفوع نقداً أقل من إجمالي الفاتورة', 'error');
+          return;
+        }
+      }
+
+      const changeDue = selectedPaymentMethod === 'كاش' ? (amountPaid - totals.grandTotal) : 0;
+
+      // خصم الكميات من المخزون
+      cart.forEach(item => {
+        const prod = products.find(p => p.id === item.productId);
+        if (prod) {
+          prod.stock -= item.qty;
+        }
+      });
+      saveProducts();
+
+      // حساب التكلفة والربح
+      const totalCost = cart.reduce((sum, item) => sum + (item.cost * item.qty), 0);
+      const netProfit = (totals.subtotal - totals.discount) - totalCost;
+
+      const cashierName = document.getElementById('pos-cashier-select').value || settings.activeCashier;
+      const shiftName = document.getElementById('pos-shift-select').value || settings.activeShift;
+      settings.activeCashier = cashierName;
+      settings.activeShift = shiftName;
+      saveSettings();
+
+      const invoice = {
+        id: 'INV-' + Date.now().toString().slice(-6),
+        dateISO: new Date().toISOString(),
+        customer: document.getElementById('customer-name-input').value.trim() || 'عميل نقدي',
+        cashier: cashierName,
+        shift: shiftName,
+        items: cart.map(i => ({ ...i })),
+        subtotal: totals.subtotal,
+        discount: totals.discount,
+        taxRate: totals.taxRate,
+        taxAmount: totals.taxAmount,
+        grandTotal: totals.grandTotal,
+        totalCost,
+        netProfit,
+        paymentMethod: selectedPaymentMethod,
+        paymentDetails,
+        amountPaid,
+        changeDue,
+      };
+
+      sales.unshift(invoice);
+      saveSales();
+
+      cart = [];
+      document.getElementById('discount-input').value = 0;
+      document.getElementById('tax-input').value = 0;
+      document.getElementById('amount-paid-input').value = '';
+      document.getElementById('customer-name-input').value = '';
+      document.getElementById('wallet-sender-phone').value = '';
+      document.getElementById('instapay-ref-number').value = '';
+
+      renderPosProducts();
+      renderCart();
+      openReceiptModal(invoice.id);
+      showToast(`تم إصدار الفاتورة ${invoice.id} بنجاح`, 'success');
+    }
+
+    // ==========================================
+    // 7. إدارة المخزون (Inventory CRUD)
+    // ==========================================
+    function updateLowStockBadge() {
+      const lowCount = products.filter(p => p.stock <= p.minStock).length;
+      const badge = document.getElementById('low-stock-badge');
+      if (lowCount > 0) {
+        badge.textContent = lowCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function renderInventoryTable() {
+      const query = (document.getElementById('inv-search-input').value || '').trim().toLowerCase();
+      const catFilter = document.getElementById('inv-category-filter').value;
+      const tbody = document.getElementById('inventory-table-body');
+
+      const totalItems = products.length;
+      const totalUnits = products.reduce((s, p) => s + Number(p.stock || 0), 0);
+      const costValue = products.reduce((s, p) => s + (Number(p.cost || 0) * Number(p.stock || 0)), 0);
+      const lowStockCount = products.filter(p => p.stock <= p.minStock).length;
+
+      document.getElementById('inv-total-items').textContent = totalItems;
+      document.getElementById('inv-total-units').textContent = totalUnits;
+      document.getElementById('inv-cost-value').textContent = formatMoney(costValue);
+      document.getElementById('inv-low-stock-count').textContent = lowStockCount;
+
+      const filtered = products.filter(p => {
+        const matchesCat = catFilter === 'الكل' || p.category === catFilter;
+        const matchesQ = !query || p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query);
+        return matchesCat && matchesQ;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="py-8 text-center text-slate-500 text-xs font-bold">لا توجد منتجات مسجلة مطابقة للبحث</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(p => {
+        let statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">متوفر</span>`;
+        if (p.stock <= 0) {
+          statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700">نفد</span>`;
+        } else if (p.stock <= p.minStock) {
+          statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">منخفض</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3 px-4 font-mono text-xs text-slate-600">${escapeHTML(p.sku)}</td>
+            <td class="py-3 px-4 font-bold text-slate-800">${escapeHTML(p.name)}</td>
+            <td class="py-3 px-4 text-xs text-marine-700 font-bold">${escapeHTML(p.category)}</td>
+            <td class="py-3 px-4 font-mono text-xs text-slate-600">${formatMoney(p.cost)}</td>
+            <td class="py-3 px-4 font-mono text-xs font-extrabold text-marine-900">${formatMoney(p.price)}</td>
+            <td class="py-3 px-4 font-mono font-bold">${p.stock}</td>
+            <td class="py-3 px-4">${statusBadge}</td>
+            <td class="py-3 px-4">
+              <div class="flex items-center justify-center gap-1.5">
+                <button onclick="openProductModal('${p.id}')" title="تعديل" class="p-2 rounded-lg bg-marine-50 hover:bg-marine-600 hover:text-white text-marine-700 text-xs transition">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button onclick="confirmDeleteProduct('${p.id}')" title="حذف" class="p-2 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 text-xs transition">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openProductModal(productId = null) {
+      populateCategoryControls();
+      const modal = document.getElementById('product-modal');
+      const title = document.getElementById('product-modal-title');
+
+      if (productId) {
+        const p = products.find(item => item.id === productId);
+        if (!p) return;
+        title.textContent = 'تعديل بيانات منتج الصيد';
+        document.getElementById('edit-product-id').value = p.id;
+        document.getElementById('prod-sku').value = p.sku;
+        document.getElementById('prod-category').value = p.category;
+        document.getElementById('prod-name').value = p.name;
+        document.getElementById('prod-cost').value = p.cost;
+        document.getElementById('prod-price').value = p.price;
+        document.getElementById('prod-stock').value = p.stock;
+        document.getElementById('prod-min-stock').value = p.minStock;
+      } else {
+        title.textContent = 'إضافة منتج صيد جديد';
+        document.getElementById('edit-product-id').value = '';
+        document.getElementById('prod-sku').value = '';
+        document.getElementById('prod-category').value = categories[0] || '';
+        document.getElementById('prod-name').value = '';
+        document.getElementById('prod-cost').value = '';
+        document.getElementById('prod-price').value = '';
+        document.getElementById('prod-stock').value = '1';
+        document.getElementById('prod-min-stock').value = '3';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeProductModal() {
+      const modal = document.getElementById('product-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function generateRandomSKU() {
+      const randomCode = '622' + Math.floor(1000 + Math.random() * 9000);
+      document.getElementById('prod-sku').value = randomCode;
+    }
+
+    function saveProductForm(e) {
+      e.preventDefault();
+      const editId = document.getElementById('edit-product-id').value;
+      const sku = document.getElementById('prod-sku').value.trim();
+      const category = document.getElementById('prod-category').value;
+      const name = document.getElementById('prod-name').value.trim();
+      const cost = parseFloat(document.getElementById('prod-cost').value) || 0;
+      const price = parseFloat(document.getElementById('prod-price').value) || 0;
+      const stock = parseInt(document.getElementById('prod-stock').value, 10) || 0;
+      const minStock = parseInt(document.getElementById('prod-min-stock').value, 10) || 0;
+
+      const duplicateSku = products.find(p => p.sku.toLowerCase() === sku.toLowerCase() && p.id !== editId);
+      if (duplicateSku) {
+        showToast('هذا الباركود مستخدم لمنتج آخر بالفعل', 'error');
+        return;
+      }
+
+      if (editId) {
+        const idx = products.findIndex(p => p.id === editId);
+        if (idx !== -1) {
+          products[idx] = { ...products[idx], sku, category, name, cost, price, stock, minStock };
+          showToast('تم تحديث بيانات المنتج بنجاح', 'success');
+        }
+      } else {
+        products.unshift({
+          id: 'p-' + Date.now(),
+          sku,
+          category,
+          name,
+          cost,
+          price,
+          stock,
+          minStock,
+        });
+        showToast('تمت إضافة المنتج إلى المخزون', 'success');
+      }
+
+      saveProducts();
+      closeProductModal();
+      renderInventoryTable();
+      renderPosProducts();
+    }
+
+    function confirmDeleteProduct(productId) {
+      const prod = products.find(p => p.id === productId);
+      if (!prod) return;
+      openConfirmModal(
+        'حذف منتج من المخزون',
+        `هل أنت متأكد من حذف "${prod.name}" نهائياً؟`,
+        () => {
+          products = products.filter(p => p.id !== productId);
+          cart = cart.filter(c => c.productId !== productId);
+          saveProducts();
+          renderInventoryTable();
+          renderPosProducts();
+          renderCart();
+          showToast('تم حذف المنتج من المخزون', 'info');
+        }
+      );
+    }
+
+    // ==========================================
+    // 8. التقارير والفواتير (Reports & Receipts)
+    // ==========================================
+    function setReportFilter(mode) {
+      reportFilter = mode;
+      document.querySelectorAll('.rep-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-marine-700', 'text-white');
+        btn.classList.add('bg-slate-100', 'text-slate-700');
+      });
+      const active = document.getElementById(`filter-rep-${mode}`);
+      active.classList.remove('bg-slate-100', 'text-slate-700');
+      active.classList.add('bg-marine-700', 'text-white');
+      renderReports();
+    }
+
+    function getFilteredSales() {
+      if (reportFilter === 'today') {
+        const todayStr = new Date().toLocaleDateString('ar-EG');
+        return sales.filter(s => new Date(s.dateISO).toLocaleDateString('ar-EG') === todayStr);
+      }
+      return sales;
+    }
+
+    function renderReports() {
+      const list = getFilteredSales();
+      const totalSales = list.reduce((s, inv) => s + Number(inv.grandTotal || 0), 0);
+      const totalProfit = list.reduce((s, inv) => s + Number(inv.netProfit || 0), 0);
+      const count = list.length;
+      const avg = count > 0 ? totalSales / count : 0;
+
+      const cashSales = list
+        .filter(inv => inv.paymentMethod === 'كاش')
+        .reduce((s, inv) => s + Number(inv.grandTotal || 0), 0);
+      const walletSales = list
+        .filter(inv => inv.paymentMethod === 'محفظة إلكترونية')
+        .reduce((s, inv) => s + Number(inv.grandTotal || 0), 0);
+      const instapaySales = list
+        .filter(inv => inv.paymentMethod === 'إنستاباي')
+        .reduce((s, inv) => s + Number(inv.grandTotal || 0), 0);
+
+      document.getElementById('rep-total-sales').textContent = formatMoney(totalSales);
+      document.getElementById('rep-total-profit').textContent = formatMoney(totalProfit);
+      document.getElementById('rep-invoices-count').textContent = count;
+      document.getElementById('rep-avg-invoice').textContent = formatMoney(avg);
+
+      document.getElementById('rep-cash-sales').textContent = formatMoney(cashSales);
+      document.getElementById('rep-wallet-sales').textContent = formatMoney(walletSales);
+      document.getElementById('rep-instapay-sales').textContent = formatMoney(instapaySales);
+
+      const tbody = document.getElementById('sales-history-body');
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-8 text-center text-xs font-bold text-slate-500">لا توجد فواتير مسجلة في هذه الفترة</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = list.map(inv => {
+        const dt = new Date(inv.dateISO);
+        const dateFormatted = dt.toLocaleDateString('ar-EG') + ' ' + dt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        const details = inv.paymentDetails || {};
+        let paymentBadge = `<span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800">كاش</span>`;
+        let proofText = '';
+
+        if (inv.paymentMethod === 'محفظة إلكترونية') {
+          paymentBadge = `<span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-900">${escapeHTML(details.walletProvider || 'محفظة')}</span>`;
+          proofText = `<div class="text-[11px] font-mono text-slate-600 mt-0.5">من: ${escapeHTML(details.senderPhone || '-')}</div>`;
+        } else if (inv.paymentMethod === 'إنستاباي') {
+          paymentBadge = `<span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-900">إنستاباي</span>`;
+          proofText = `<div class="text-[11px] font-mono text-slate-600 mt-0.5">مرجع: ${escapeHTML(details.referenceNumber || '-')}</div>`;
+        }
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3 px-4 font-mono text-xs font-bold text-marine-800">${escapeHTML(inv.id)}</td>
+            <td class="py-3 px-4 text-xs text-slate-600">${dateFormatted}</td>
+            <td class="py-3 px-4 text-xs">
+              <div class="font-bold text-slate-800">${escapeHTML(inv.cashier || settings.activeCashier)}</div>
+              <div class="text-[11px] text-slate-500">${escapeHTML(inv.shift || settings.activeShift)}</div>
+            </td>
+            <td class="py-3 px-4 text-xs font-bold text-slate-800">${escapeHTML(inv.customer)}</td>
+            <td class="py-3 px-4">
+              ${paymentBadge}
+              ${proofText}
+            </td>
+            <td class="py-3 px-4 font-mono text-xs font-extrabold text-marine-950">${formatMoney(inv.grandTotal)}</td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="openReceiptModal('${inv.id}')" class="px-3 py-1.5 rounded-lg bg-marine-50 hover:bg-marine-700 hover:text-white text-marine-700 text-xs font-bold transition">
+                <i class="fa-solid fa-eye ml-1"></i>
+                عرض / طباعة
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openReceiptModal(invoiceId) {
+      const inv = sales.find(s => s.id === invoiceId);
+      if (!inv) return;
+
+      const dt = new Date(inv.dateISO);
+      const area = document.getElementById('print-receipt-area');
+      const details = inv.paymentDetails || {};
+
+      let paymentProofHtml = `<span>${escapeHTML(inv.paymentMethod)}</span>`;
+      if (inv.paymentMethod === 'محفظة إلكترونية') {
+        paymentProofHtml = `
+          <div class="text-left font-mono text-[11px]">
+            <div>${escapeHTML(details.walletProvider || 'محفظة إلكترونية')}</div>
+            <div>رقم المحول: ${escapeHTML(details.senderPhone || '-')}</div>
+          </div>
+        `;
+      } else if (inv.paymentMethod === 'إنستاباي') {
+        paymentProofHtml = `
+          <div class="text-left font-mono text-[11px]">
+            <div>إنستاباي (InstaPay)</div>
+            <div>مرجع: ${escapeHTML(details.referenceNumber || '-')}</div>
+          </div>
+        `;
+      }
+
+      const logoHtml = settings.storeLogo
+        ? `<img src="${settings.storeLogo}" alt="شعار المتجر" class="w-12 h-12 rounded-xl object-cover mx-auto mb-1.5 border border-slate-200" />`
+        : '';
+
+      area.innerHTML = `
+        <div class="text-center border-b border-dashed border-slate-300 pb-3">
+          ${logoHtml}
+          <h4 class="font-extrabold text-base text-slate-900">${escapeHTML(settings.storeName)}</h4>
+          ${settings.storeSubtitle ? `<p class="text-[11px] text-slate-600">${escapeHTML(settings.storeSubtitle)}</p>` : ''}
+          ${settings.address ? `<p class="text-[11px] text-slate-500 mt-0.5">${escapeHTML(settings.address)}</p>` : ''}
+          ${settings.phone ? `<p class="text-[11px] font-mono text-slate-500">هاتف: ${escapeHTML(settings.phone)}</p>` : ''}
+        </div>
+
+        <div class="space-y-1 text-[11px] border-b border-dashed border-slate-300 pb-2.5">
+          <div class="flex justify-between">
+            <span>رقم الفاتورة:</span>
+            <span class="font-mono font-bold">${escapeHTML(inv.id)}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>التاريخ:</span>
+            <span class="font-mono">${dt.toLocaleDateString('ar-EG')} ${dt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>الكاشير / الشيفت:</span>
+            <span class="font-bold">${escapeHTML(inv.cashier || settings.activeCashier)} - ${escapeHTML(inv.shift || settings.activeShift)}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>العميل:</span>
+            <span class="font-bold">${escapeHTML(inv.customer)}</span>
+          </div>
+        </div>
+
+        <div class="space-y-2 border-b border-dashed border-slate-300 pb-2.5">
+          ${inv.items.map(item => `
+            <div class="flex justify-between items-start gap-2">
+              <div>
+                <div class="font-bold text-slate-800">${escapeHTML(item.name)}</div>
+                <div class="text-[10px] font-mono text-slate-500">${item.qty} × ${formatMoney(item.price)}</div>
+              </div>
+              <span class="font-mono font-bold">${formatMoney(item.qty * item.price)}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="space-y-1 text-[11px]">
+          <div class="flex justify-between">
+            <span>المجموع الفرعي:</span>
+            <span class="font-mono">${formatMoney(inv.subtotal)}</span>
+          </div>
+          ${inv.discount > 0 ? `
+            <div class="flex justify-between text-emerald-700">
+              <span>الخصم:</span>
+              <span class="font-mono">- ${formatMoney(inv.discount)}</span>
+            </div>
+          ` : ''}
+          ${inv.taxAmount > 0 ? `
+            <div class="flex justify-between">
+              <span>الضريبة (${inv.taxRate}%):</span>
+              <span class="font-mono">+ ${formatMoney(inv.taxAmount)}</span>
+            </div>
+          ` : ''}
+          <div class="flex justify-between text-sm font-extrabold text-slate-950 pt-1 border-t border-slate-200">
+            <span>الإجمالي:</span>
+            <span class="font-mono">${formatMoney(inv.grandTotal)}</span>
+          </div>
+          <div class="flex justify-between items-start pt-1">
+            <span>طريقة الدفع:</span>
+            ${paymentProofHtml}
+          </div>
+          ${inv.paymentMethod === 'كاش' ? `
+            <div class="flex justify-between">
+              <span>المدفوع / الباقي:</span>
+              <span class="font-mono">${formatMoney(inv.amountPaid)} / ${formatMoney(inv.changeDue)}</span>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="text-center text-[11px] text-slate-500 pt-3 border-t border-dashed border-slate-300">
+          ${escapeHTML(settings.footerNote)}
+        </div>
+      `;
+
+      const modal = document.getElementById('receipt-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeReceiptModal() {
+      const modal = document.getElementById('receipt-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function exportSalesCSV() {
+      if (sales.length === 0) {
+        showToast('لا توجد فواتير لتصديرها', 'warning');
+        return;
+      }
+
+      const headers = [
+        'رقم الفاتورة',
+        'التاريخ',
+        'الكاشير',
+        'الشيفت',
+        'العميل',
+        'طريقة الدفع',
+        'المحفظة',
+        'الرقم المحول منه',
+        'رقم مرجع إنستاباي',
+        'المجموع الفرعي',
+        'الخصم',
+        'الضريبة',
+        'الإجمالي',
+        'صافي الربح',
+      ];
+      const rows = sales.map(inv => {
+        const d = inv.paymentDetails || {};
+        return [
+          inv.id,
+          new Date(inv.dateISO).toLocaleString('ar-EG'),
+          inv.cashier || settings.activeCashier,
+          inv.shift || settings.activeShift,
+          inv.customer,
+          inv.paymentMethod,
+          d.walletProvider || '',
+          d.senderPhone || '',
+          d.referenceNumber || '',
+          inv.subtotal,
+          inv.discount,
+          inv.taxAmount,
+          inv.grandTotal,
+          inv.netProfit,
+        ];
+      });
+
+      const csvContent = '\uFEFF' + [headers, ...rows]
+        .map(r => r.map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `مبيعات-شبكة-وصنارة-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('تم تصدير ملف الفواتير بنجاح', 'success');
+    }
+
+    // ==========================================
+    // 9. الفئات والنسخ الاحتياطي وإعادة الضبط
+    // ==========================================
+    function renderCategoriesSettingsList() {
+      const container = document.getElementById('categories-list-container');
+      container.innerHTML = categories.map(cat => `
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold">
+          <span>${escapeHTML(cat)}</span>
+          ${categories.length > 1 ? `
+            <button onclick="deleteCategory('${escapeAttr(cat)}')" class="text-rose-500 hover:text-rose-700">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          ` : ''}
+        </span>
+      `).join('');
+    }
+
+    function addNewCategory() {
+      const input = document.getElementById('new-category-input');
+      const val = input.value.trim();
+      if (!val) return;
+      if (categories.includes(val)) {
+        showToast('الفئة موجودة مسبقاً', 'warning');
+        return;
+      }
+      categories.push(val);
+      saveCategories();
+      input.value = '';
+      populateCategoryControls();
+      renderCategoriesSettingsList();
+      showToast('تمت إضافة الفئة الجديدة', 'success');
+    }
+
+    function deleteCategory(cat) {
+      if (categories.length <= 1) return;
+      categories = categories.filter(c => c !== cat);
+      if (selectedPosCategory === cat) selectedPosCategory = 'الكل';
+      saveCategories();
+      populateCategoryControls();
+      renderCategoriesSettingsList();
+      renderPosProducts();
+      showToast('تم حذف الفئة', 'info');
+    }
+
+    function exportBackupJSON() {
+      const backup = {
+        app: 'NetAndHookFishingPOS',
+        version: '2.2',
+        exportedAt: new Date().toISOString(),
+        data: { products, sales, categories, settings },
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `نسخة-احتياطية-شبكة-وصنارة-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('تم تحميل ملف النسخة الاحتياطية', 'success');
+    }
+
+    function importBackupJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          const payload = parsed.data || parsed;
+          if (!Array.isArray(payload.products) || !Array.isArray(payload.sales)) {
+            throw new Error('بنية ملف النسخة غير صالحة');
+          }
+          products = payload.products;
+          sales = payload.sales;
+          categories = Array.isArray(payload.categories) && payload.categories.length > 0 ? payload.categories : [...DEFAULT_CATEGORIES];
+          settings = { ...DEFAULT_SETTINGS, ...(payload.settings || {}) };
+
+          saveProducts();
+          saveSales();
+          saveCategories();
+          saveSettings();
+
+          populateCategoryControls();
+          populateStaffControls();
+          applySettingsToUI();
+          fillSettingsForm();
+          renderPosProducts();
+          renderCart();
+          showToast('تمت استعادة النسخة الاحتياطية بنجاح', 'success');
+        } catch (err) {
+          showToast('فشل استيراد الملف: تأكد من صحة ملف JSON', 'error');
+        }
+        event.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+
+    function confirmResetDemoData() {
+      openConfirmModal(
+        'استعادة المنتجات الافتراضية',
+        'سيتم استبدال قائمة المنتجات الحالية بمنتجات الصيد الافتراضية دون حذف الفواتير. هل تود المتابعة؟',
+        () => {
+          products = [...DEFAULT_PRODUCTS];
+          categories = [...DEFAULT_CATEGORIES];
+          cart = [];
+          selectedPosCategory = 'الكل';
+          saveProducts();
+          saveCategories();
+          populateCategoryControls();
+          renderPosProducts();
+          renderInventoryTable();
+          renderCart();
+          showToast('تمت استعادة منتجات الصيد الافتراضية', 'success');
+        }
+      );
+    }
+
+    function confirmClearAllSales() {
+      openConfirmModal(
+        'مسح سجل الفواتير',
+        'سيتم حذف جميع الفواتير والتقارير المسجلة نهائياً. هل أنت متأكد؟',
+        () => {
+          sales = [];
+          saveSales();
+          renderReports();
+          showToast('تم مسح سجل الفواتير', 'info');
+        }
+      );
+    }
+
+    // ==========================================
+    // 10. نافذة التأكيد والإشعارات والأدوات المساعدة
+    // ==========================================
+    let pendingConfirmAction = null;
+
+    function openConfirmModal(title, message, onConfirm) {
+      pendingConfirmAction = onConfirm;
+      document.getElementById('confirm-modal-title').textContent = title;
+      document.getElementById('confirm-modal-msg').textContent = message;
+      const btn = document.getElementById('confirm-modal-btn');
+      btn.onclick = function () {
+        if (typeof pendingConfirmAction === 'function') {
+          pendingConfirmAction();
+        }
+        closeConfirmModal();
+      };
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeConfirmModal() {
+      pendingConfirmAction = null;
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const styles = {
+        success: 'bg-emerald-700 text-white border-emerald-500',
+        error: 'bg-rose-700 text-white border-rose-500',
+        warning: 'bg-amber-600 text-white border-amber-400',
+        info: 'bg-marine-900 text-white border-marine-600',
+      };
+      const icons = {
+        success: 'fa-circle-check',
+        error: 'fa-circle-xmark',
+        warning: 'fa-triangle-exclamation',
+        info: 'fa-circle-info',
+      };
+
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-lg text-xs font-bold transition-all duration-300 ${styles[type] || styles.info}`;
+      toast.innerHTML = `
+        <i class="fa-solid ${icons[type] || icons.info} text-sm shrink-0"></i>
+        <span class="flex-1">${escapeHTML(message)}</span>
+      `;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
+    }
+
+    function formatMoney(amount) {
+      const num = Number(amount) || 0;
+      return `${num.toFixed(2)} ج.م`;
+    }
+
+    function escapeHTML(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escapeAttr(str) {
+      return String(str ?? '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
