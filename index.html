@@ -42,6 +42,22 @@
         }
       }).catch(function () {});
     }
+
+    // تحميل مكتبة المسح الضوئي للباركود بالكاميرا مع مصدر احتياطي
+    function loadCameraBarcodeLibrary() {
+      if (window.Html5Qrcode) return;
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
+      s.async = true;
+      s.onerror = function () {
+        const fb = document.createElement('script');
+        fb.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+        fb.async = true;
+        document.head.appendChild(fb);
+      };
+      document.head.appendChild(s);
+    }
+    loadCameraBarcodeLibrary();
   </script>
   <style>
     body {
@@ -301,6 +317,16 @@
               <button type="button" onclick="scanBarcodeValue()" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold">
                 إضافة بالباركود
               </button>
+              <button type="button" id="btn-toggle-camera-scan" onclick="toggleCameraBarcodeScanner()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold">
+                📷 سكان بالكاميرا
+              </button>
+            </div>
+            <div id="pos-camera-scanner-box" class="hidden p-3 rounded-2xl bg-slate-900 border border-cyan-400/30 space-y-2">
+              <div class="flex items-center justify-between text-xs text-cyan-200 font-bold">
+                <span>وجّه كاميرا الهاتف نحو باركود المنتج</span>
+                <button type="button" onclick="stopCameraBarcodeScanner()" class="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[11px]">إيقاف الكاميرا</button>
+              </div>
+              <div id="pos-camera-reader" class="w-full max-w-sm mx-auto rounded-xl overflow-hidden bg-black"></div>
             </div>
             <input type="text" id="pos-search-input" oninput="renderPosGrid()" placeholder="ابحث باسم المنتج أو الباركود..."
               class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
@@ -775,6 +801,8 @@
     let pendingAdminFn = null;
     let lastRemoteStamp = '';
     let isApplyingRemote = false;
+    let html5QrScannerInstance = null;
+    let isCameraScanning = false;
 
     function showToast(msg, type = 'info') {
       const el = document.getElementById('toast-box');
@@ -1135,6 +1163,67 @@
       }
       addToCart(prod.id);
       inp.value = '';
+    }
+
+    // تشغيل أو إيقاف المسح الضوئي بالباركود عبر كاميرا الهاتف أو الجهاز
+    async function toggleCameraBarcodeScanner() {
+      if (isCameraScanning) {
+        await stopCameraBarcodeScanner();
+        return;
+      }
+
+      if (!window.Html5Qrcode) {
+        loadCameraBarcodeLibrary();
+        showToast('جارٍ تجهيز مكتبة الكاميرا، حاول بعد ثوانٍ أو استخدم قارئ الباركود', 'info');
+        return;
+      }
+
+      const box = document.getElementById('pos-camera-scanner-box');
+      box.classList.remove('hidden');
+
+      try {
+        html5QrScannerInstance = new window.Html5Qrcode('pos-camera-reader');
+        isCameraScanning = true;
+        document.getElementById('btn-toggle-camera-scan').textContent = '⏹ إيقاف الكاميرا';
+
+        await html5QrScannerInstance.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 240, height: 140 } },
+          (decodedText) => {
+            const code = String(decodedText || '').trim();
+            if (!code) return;
+            document.getElementById('pos-barcode-input').value = code;
+            const prod = products.find(p => p.sku === code);
+            if (prod) {
+              addToCart(prod.id);
+              showToast('تم مسح وإضافة المنتج: ' + prod.name, 'success');
+            } else {
+              showToast('تم مسح الباركود: ' + code + ' (غير مسجل في المخزون)', 'error');
+            }
+          },
+          () => {}
+        );
+      } catch (err) {
+        isCameraScanning = false;
+        document.getElementById('btn-toggle-camera-scan').textContent = '📷 سكان بالكاميرا';
+        box.classList.add('hidden');
+        showToast('تعذر فتح الكاميرا (تأكد من فتح الموقع عبر HTTPS ومنح صلاحية الكاميرا)', 'error');
+      }
+    }
+
+    async function stopCameraBarcodeScanner() {
+      const box = document.getElementById('pos-camera-scanner-box');
+      const btn = document.getElementById('btn-toggle-camera-scan');
+      if (html5QrScannerInstance && isCameraScanning) {
+        try {
+          await html5QrScannerInstance.stop();
+          await html5QrScannerInstance.clear();
+        } catch (e) {}
+      }
+      html5QrScannerInstance = null;
+      isCameraScanning = false;
+      if (btn) btn.textContent = '📷 سكان بالكاميرا';
+      if (box) box.classList.add('hidden');
     }
 
     function addToCart(id) {
