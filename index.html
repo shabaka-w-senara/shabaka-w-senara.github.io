@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#082f49" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>شبكة وصنارة - نظام كاشير وإدارة مخزون</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,6 +21,9 @@
               marine: {
                 50: '#f0f9ff',
                 100: '#e0f2fe',
+                200: '#bae6fd',
+                300: '#7dd3fc',
+                400: '#38bdf8',
                 500: '#0ea5e9',
                 600: '#0284c7',
                 700: '#0369a1',
@@ -29,15 +35,6 @@
           }
         }
       };
-    }
-
-    // إلغاء تسجيل أي Service Worker قديم قد يحتفظ بنسخة قديمة
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        for (let registration of registrations) {
-          registration.unregister();
-        }
-      }).catch(function () {});
     }
 
     // تحميل مكتبة المسح الضوئي للباركود بالكاميرا مع مصدر احتياطي
@@ -57,13 +54,16 @@
     loadCameraBarcodeLibrary();
   </script>
   <style>
-    body {
+    html, body {
       font-family: 'Tajawal', sans-serif;
       background-color: #f1f5f9;
       color: #0f172a;
       margin: 0;
+      overflow-x: hidden;
+      max-width: 100vw;
     }
 
+    /* خلفية بوابة الدخول البحرية */
     .sea-gate-bg {
       background:
         radial-gradient(circle at 15% 20%, rgba(34, 211, 238, 0.25), transparent 42%),
@@ -71,6 +71,7 @@
         linear-gradient(135deg, #041c2c 0%, #082f49 52%, #0c4a6e 100%);
     }
 
+    /* تنسيق طباعة A4 في صفحة واحدة فقط بدون تكرار الفاتورة */
     @page {
       size: A4 portrait;
       margin: 12mm;
@@ -133,33 +134,18 @@
         display: none !important;
       }
     }
-
-    /* تحسينات احترافية خاصة بالهاتف لمنع التمرير الأفقي وضبط الاحتواء */
-    @media (max-width: 640px) {
-      html, body {
-        max-width: 100vw;
-        overflow-x: hidden;
-      }
-      .mobile-scroll-tabs {
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-      }
-      .mobile-scroll-tabs::-webkit-scrollbar {
-        display: none;
-      }
-    }
   </style>
 </head>
-<body class="min-h-screen flex flex-col overflow-x-hidden">
+<body class="min-h-screen flex flex-col">
 
   <!-- شريط إشعارات مدمج بدون alert -->
-  <div id="toast-box" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[92vw] max-w-md text-center px-4 py-2.5 rounded-2xl shadow-xl text-xs sm:text-sm font-extrabold text-white bg-slate-900 border border-white/15 no-print"></div>
+  <div id="toast-box" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-2xl shadow-xl text-xs sm:text-sm font-extrabold text-white bg-slate-900 border border-white/15 no-print max-w-[92vw] text-center"></div>
 
   <!-- ================================================= -->
   <!-- بوابة الدخول الرئيسية (PIN للكاشير والإدارة) -->
   <!-- ================================================= -->
-  <div id="gate-screen" class="fixed inset-0 z-[80] sea-gate-bg flex items-center justify-center p-4 overflow-y-auto no-print">
-    <div class="w-full max-w-4xl bg-slate-950/90 border border-cyan-300/20 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 text-white my-auto">
+  <div id="gate-screen" class="fixed inset-0 z-[80] sea-gate-bg flex items-center justify-center p-3 sm:p-4 overflow-y-auto no-print">
+    <div class="w-full max-w-4xl bg-slate-950/85 border border-cyan-300/20 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 text-white my-auto">
 
       <!-- الجانب التعريفي البحري -->
       <div class="lg:col-span-5 p-5 sm:p-8 bg-gradient-to-b from-cyan-500/15 to-slate-950/90 border-b lg:border-b-0 lg:border-l border-white/10 flex flex-col justify-between gap-4 sm:gap-6">
@@ -167,24 +153,24 @@
           <div class="flex items-center gap-3">
             <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-cyan-400/15 border border-cyan-300/40 flex items-center justify-center overflow-hidden shrink-0">
               <img id="gate-logo-img" src="" alt="شعار المتجر" class="hidden w-full h-full object-cover" />
-              <span id="gate-logo-emoji" class="text-xl sm:text-2xl font-extrabold text-cyan-300">⚓</span>
+              <span id="gate-logo-emoji" class="text-2xl font-extrabold text-cyan-300">⚓</span>
             </div>
             <div class="min-w-0">
               <span class="inline-block text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-300/30 mb-1">
-                كاشير ومخزون ومرتجعات ومزامنة سحابية
+                كاشير ومخزون وذمم ومزامنة سحابية
               </span>
               <h2 id="gate-store-title" class="text-xl sm:text-2xl font-extrabold text-white truncate">شبكة وصنارة</h2>
             </div>
           </div>
 
           <p id="gate-store-desc" class="text-xs sm:text-sm text-cyan-100/80 leading-relaxed">
-            إدارة مبيعات ومخزون ومرتجعات مستلزمات الصيد والقصبات والماكينات والسنارات مع صلاحيات PIN لكل كاشير وللإدارة.
+            إدارة مبيعات ومخزون ومرتجعات وعملاء وموردين مع صلاحيات PIN لكل كاشير وللإدارة.
           </p>
 
-          <div class="p-3.5 sm:p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1.5 sm:space-y-2 text-xs font-bold">
-            <div class="text-cyan-200">• دخول الكاشير برمز PIN الخاص بالشيفت والمرتجعات والآجل</div>
-            <div class="text-amber-200">• المخزون والموردون والتقارير وتعديل الفواتير برمز PIN للإدارة</div>
-            <div class="text-emerald-200">• مزامنة سحابية عبر الأجهزة وتصدير Excel عربي سليم</div>
+          <div class="p-3.5 sm:p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2 text-xs font-bold">
+            <div class="text-cyan-200">• دخول الكاشير برمز PIN الخاص بالشيفت والمرتجعات</div>
+            <div class="text-amber-200">• المخزون والتقارير والذمم والموردين برمز PIN للإدارة</div>
+            <div class="text-emerald-200">• مزامنة سحابية للفريق وتطبيق PWA / APK بنفس التصميم</div>
           </div>
         </div>
 
@@ -194,15 +180,15 @@
         </div>
       </div>
 
-      <!-- نموذج الدخول الآمن بدون إظهار رموز PIN علناً -->
+      <!-- نموذج الدخول -->
       <div class="lg:col-span-7 p-5 sm:p-8 space-y-4 sm:space-y-5">
         <div class="flex items-center justify-between gap-2">
           <div>
             <h3 class="text-lg sm:text-xl font-extrabold text-white">تسجيل الدخول</h3>
-            <p class="text-xs text-slate-300">اختر نوع الدخول وأدخل رمز PIN السري</p>
+            <p class="text-xs text-slate-300">اختر نوع الدخول وأدخل رمز PIN</p>
           </div>
           <span id="gate-sync-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-cyan-200 border border-white/10 shrink-0">
-            سحابي + محلي
+            غرفة الفريق السحابية
           </span>
         </div>
 
@@ -232,7 +218,6 @@
             <label for="gate-cashier-pin" class="block text-xs font-bold text-cyan-100 mb-1.5">رمز PIN الخاص بالكاشير</label>
             <input type="password" id="gate-cashier-pin" inputmode="numeric" required placeholder="أدخل رمز PIN الخاص بالكاشير"
               class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white font-mono text-sm tracking-widest" />
-            <p class="text-[11px] text-slate-400 mt-1.5">يُدخل الكاشير رمز PIN الخاص بحسابه لبدء الشيفت.</p>
           </div>
 
           <button type="submit" class="w-full py-3 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-sm shadow-lg transition">
@@ -243,7 +228,7 @@
         <!-- دخول الإدارة -->
         <form id="form-gate-admin" onsubmit="loginAsAdmin(event)" class="hidden space-y-4">
           <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 text-xs text-amber-200">
-            دخول الإدارة يتيح إضافة/تعديل المخزون، عرض التقارير والأرباح، تعديل الفواتير، وتغيير رموز PIN.
+            دخول الإدارة يتيح إدارة المخزون والعملاء والذمم والموردين، عرض التقارير والأرباح، تعديل الفواتير، وتغيير رموز PIN.
           </div>
 
           <div>
@@ -261,52 +246,41 @@
   </div>
 
   <!-- ================================================= -->
-  <!-- الشريط العلوي المتجاوب للهاتف والكمبيوتر         -->
+  <!-- الشريط العلوي                                     -->
   <!-- ================================================= -->
-  <header class="bg-gradient-to-l from-marine-950 via-marine-900 to-marine-800 text-white shadow-lg sticky top-0 z-30 no-print">
-    <div class="max-w-7xl mx-auto px-2.5 sm:px-6 py-2.5 sm:py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
-      <div class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-400/15 border border-cyan-300/30 flex items-center justify-center overflow-hidden shrink-0">
-            <img id="header-logo-img" src="" alt="شعار" class="hidden w-full h-full object-cover" />
-            <span id="header-logo-emoji" class="text-lg sm:text-xl font-extrabold text-cyan-300">⚓</span>
-          </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <h1 id="header-store-title" class="text-base sm:text-xl font-extrabold truncate">شبكة وصنارة</h1>
-              <span id="header-role-badge" class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-cyan-400/15 text-cyan-200 border border-cyan-400/30">
-                كاشير
-              </span>
-            </div>
-            <p id="header-store-desc" class="text-[10px] sm:text-[11px] text-cyan-200/80 truncate">مستلزمات الصيد البحري والقصبات والماكينات والاكسسوارات</p>
-          </div>
+  <header class="bg-gradient-to-l from-marine-950 via-marine-900 to-marine-800 text-white shadow-lg sticky top-0 z-30 no-print w-full">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-400/15 border border-cyan-300/30 flex items-center justify-center overflow-hidden shrink-0">
+          <img id="header-logo-img" src="" alt="شعار" class="hidden w-full h-full object-cover" />
+          <span id="header-logo-emoji" class="text-xl font-extrabold text-cyan-300">⚓</span>
         </div>
-
-        <div class="flex items-center gap-1.5 md:hidden shrink-0">
-          <button type="button" onclick="openShiftCloseModal()" class="px-2.5 py-2 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 text-[11px] font-extrabold border border-amber-300/30">
-            إقفال الشيفت
-          </button>
-          <button type="button" onclick="lockToGate()" class="px-2.5 py-2 rounded-xl bg-white/10 hover:bg-rose-500 text-white text-[11px] font-bold border border-white/15 transition">
-            قفل
-          </button>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 id="header-store-title" class="text-base sm:text-xl font-extrabold truncate">شبكة وصنارة</h1>
+            <span id="header-role-badge" class="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-cyan-400/15 text-cyan-200 border border-cyan-400/30">
+              كاشير
+            </span>
+          </div>
+          <p id="header-store-desc" class="hidden sm:block text-[11px] text-cyan-200/80 truncate">مستلزمات الصيد البحري والقصبات والماكينات والاكسسوارات</p>
         </div>
       </div>
 
-      <nav class="flex items-center gap-1 bg-marine-950/70 p-1 rounded-2xl border border-white/10 overflow-x-auto mobile-scroll-tabs w-full md:w-auto">
+      <nav class="flex items-center gap-1 bg-marine-950/60 p-1 rounded-2xl border border-white/10 overflow-x-auto max-w-full order-3 lg:order-2 w-full lg:w-auto">
         <button onclick="openTab('pos')" id="tab-btn-pos" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-cyan-500 text-slate-950">نقطة البيع</button>
         <button onclick="openTab('inventory')" id="tab-btn-inventory" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap text-slate-200 hover:bg-white/10">المخزون</button>
         <button onclick="openTab('customers')" id="tab-btn-customers" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap text-slate-200 hover:bg-white/10">العملاء والآجل</button>
         <button onclick="openTab('suppliers')" id="tab-btn-suppliers" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap text-slate-200 hover:bg-white/10">الموردون والمشتريات</button>
         <button onclick="openTab('reports')" id="tab-btn-reports" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap text-slate-200 hover:bg-white/10">التقارير والفواتير</button>
-        <button onclick="openTab('settings')" id="tab-btn-settings" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap text-slate-200 hover:bg-white/10">الإعدادات</button>
+        <button onclick="openTab('settings')" id="tab-btn-settings" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap text-slate-200 hover:bg-white/10">الإعدادات والنسخ</button>
       </nav>
 
-      <div class="hidden md:flex items-center gap-2 shrink-0">
-        <span id="header-clock" class="font-mono text-xs text-cyan-100">--:--:--</span>
-        <button type="button" onclick="openShiftCloseModal()" class="px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-extrabold transition">
+      <div class="flex items-center gap-2 order-2 lg:order-3">
+        <button type="button" onclick="openShiftCloseModal()" class="px-2.5 sm:px-3 py-2 rounded-xl bg-amber-400/20 hover:bg-amber-400 text-amber-200 hover:text-slate-950 text-xs font-extrabold border border-amber-300/30 transition whitespace-nowrap">
           إقفال الشيفت (Z)
         </button>
-        <button type="button" onclick="lockToGate()" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-rose-500 text-white text-xs font-bold border border-white/15 transition">
+        <span id="header-clock" class="hidden xl:inline font-mono text-xs text-cyan-100">--:--:--</span>
+        <button type="button" onclick="lockToGate()" class="px-2.5 sm:px-3 py-2 rounded-xl bg-white/10 hover:bg-rose-500 text-white text-xs font-bold border border-white/15 transition whitespace-nowrap">
           قفل / تبديل
         </button>
       </div>
@@ -316,36 +290,49 @@
   <!-- ================================================= -->
   <!-- المحتوى الرئيسي                                   -->
   <!-- ================================================= -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5 no-print">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5 no-print">
 
-    <!-- 1. نقطة البيع + نظام المرتجعات + البيع الآجل -->
+    <!-- 1. نقطة البيع + نظام المرتجعات + تصميم احترافي للموبايل -->
     <section id="section-pos" class="space-y-4">
       <div class="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-2 text-xs">
         <div class="flex flex-wrap items-center gap-3 sm:gap-4">
           <div><span class="text-slate-400">الكاشير:</span> <strong id="pos-cashier-name" class="text-slate-800">--</strong></div>
           <div><span class="text-slate-400">الشيفت:</span> <strong id="pos-shift-name" class="text-slate-800">--</strong></div>
         </div>
-        <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-          <button type="button" onclick="openReturnModal()" class="flex-1 sm:flex-initial px-3 py-2 sm:py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 font-extrabold transition">
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="openReturnModal()" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 font-extrabold transition">
             ↩ مرتجع منتج / كمية
           </button>
-          <span class="text-emerald-700 font-bold hidden lg:inline">يُسجل الكاشير والشيفت والعميل الآجل تلقائياً</span>
+          <span class="text-emerald-700 font-bold hidden md:inline">يُسجل الكاشير والشيفت والعميل الآجل تلقائياً</span>
         </div>
+      </div>
+
+      <!-- مبدل عرض الموبايل بين المنتجات والسلة لراحة الاستخدام دون زحام -->
+      <div class="grid grid-cols-2 gap-2 lg:hidden bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+        <button type="button" id="mobile-pos-tab-products" onclick="setMobilePosView('products')" class="py-2.5 px-3 rounded-xl text-xs font-extrabold bg-marine-700 text-white transition">
+          🛍 المنتجات والباركود
+        </button>
+        <button type="button" id="mobile-pos-tab-cart" onclick="setMobilePosView('cart')" class="py-2.5 px-3 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 transition flex items-center justify-center gap-1.5">
+          <span>🧾 الفاتورة</span>
+          <span id="mobile-cart-badge" class="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-mono text-[11px]">0</span>
+        </button>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
         <!-- المنتجات والبحث -->
-        <div class="lg:col-span-7 space-y-3 sm:space-y-4 min-w-0">
+        <div id="pos-products-column" class="lg:col-span-7 space-y-4">
           <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-sm space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <div class="flex flex-col sm:flex-row gap-2">
               <input type="text" id="pos-barcode-input" onkeydown="handleBarcodeEnter(event)" placeholder="مسح أو إدخال باركود المنتج ثم Enter..."
-                class="sm:col-span-6 px-3.5 py-2.5 bg-marine-50/60 border border-marine-200 rounded-xl text-sm font-mono font-bold" />
-              <button type="button" onclick="scanBarcodeValue()" class="sm:col-span-3 px-3 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-extrabold">
-                إضافة بالباركود
-              </button>
-              <button type="button" id="btn-toggle-camera-scan" onclick="toggleCameraBarcodeScanner()" class="sm:col-span-3 px-3 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-extrabold">
-                📷 سكان بالكاميرا
-              </button>
+                class="flex-1 px-3.5 py-2.5 bg-marine-50/60 border border-marine-200 rounded-xl text-sm font-mono font-bold" />
+              <div class="grid grid-cols-2 sm:flex gap-2">
+                <button type="button" onclick="scanBarcodeValue()" class="px-3.5 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold whitespace-nowrap">
+                  إضافة بالباركود
+                </button>
+                <button type="button" id="btn-toggle-camera-scan" onclick="toggleCameraBarcodeScanner()" class="px-3.5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold whitespace-nowrap">
+                  📷 سكان بالكاميرا
+                </button>
+              </div>
             </div>
             <div id="pos-camera-scanner-box" class="hidden p-3 rounded-2xl bg-slate-900 border border-cyan-400/30 space-y-2">
               <div class="flex items-center justify-between text-xs text-cyan-200 font-bold">
@@ -356,29 +343,32 @@
             </div>
             <input type="text" id="pos-search-input" oninput="renderPosGrid()" placeholder="ابحث باسم المنتج أو الباركود..."
               class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
-            <div id="pos-categories-bar" class="flex items-center gap-1.5 overflow-x-auto mobile-scroll-tabs pb-1"></div>
+            <div id="pos-categories-bar" class="flex items-center gap-1.5 overflow-x-auto pb-1"></div>
           </div>
 
           <div id="pos-products-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
         </div>
 
         <!-- سلة الفاتورة -->
-        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-w-0">
+        <div id="pos-cart-column" class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="px-4 py-3 bg-marine-900 text-white font-extrabold text-sm flex items-center justify-between">
             <span>فاتورة البيع الحالية</span>
             <button type="button" onclick="clearCart()" class="text-xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-rose-500 transition">تفريغ</button>
           </div>
 
           <div class="p-3.5 sm:p-4 space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
               <input type="text" id="pos-customer-input" list="pos-customers-datalist" placeholder="اسم العميل (مثال: عميل نقدي)"
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
               <datalist id="pos-customers-datalist"></datalist>
-              <input type="tel" id="pos-customer-phone-input" placeholder="واتساب / هاتف العميل (اختياري)"
+            </div>
+
+            <div>
+              <input type="text" id="pos-customer-phone-input" placeholder="واتساب / هاتف العميل (اختياري لإرسال الفاتورة)"
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
             </div>
 
-            <div id="pos-cart-items" class="max-h-60 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-slate-50/50 text-xs"></div>
+            <div id="pos-cart-items" class="max-h-64 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-slate-50/50 text-xs"></div>
 
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div>
@@ -398,8 +388,8 @@
             </div>
 
             <div id="pos-credit-box" class="hidden p-2.5 rounded-xl bg-sky-50 border border-sky-200 space-y-2 text-xs">
-              <div class="font-bold text-sky-950">المدفوع الآن (للبيع الآجل / الدفع الجزئي):</div>
-              <input type="number" id="pos-paid-now-input" oninput="renderCart()" min="0" step="0.5" value="0" placeholder="المبلغ المدفوع الآن"
+              <div class="font-bold text-sky-900">بيانات الدفع الجزئي / الآجل (الذمم)</div>
+              <input type="number" id="pos-paid-amount-input" oninput="renderCart()" min="0" step="0.5" placeholder="المدفوع الآن (0 للآجل الكامل)"
                 class="w-full px-2.5 py-1.5 bg-white border border-sky-300 rounded-lg font-mono font-bold" />
             </div>
 
@@ -420,7 +410,9 @@
             <div class="p-3 rounded-xl bg-marine-50 border border-marine-100 space-y-1 text-xs">
               <div class="flex justify-between"><span>المجموع الفرعي:</span><span id="cart-subtotal" class="font-mono font-bold">0.00 ج.م</span></div>
               <div class="flex justify-between text-rose-600"><span>الخصم:</span><span id="cart-discount-view" class="font-mono font-bold">0.00 ج.م</span></div>
-              <div id="cart-remaining-row" class="hidden justify-between text-amber-800 font-bold"><span>المتبقي آجل على العميل:</span><span id="cart-remaining-view" class="font-mono">0.00 ج.م</span></div>
+              <div id="cart-credit-summary" class="hidden justify-between text-sky-800 font-bold pt-1 border-t border-sky-200/70">
+                <span>المتبقي آجل:</span><span id="cart-remaining-due" class="font-mono">0.00 ج.م</span>
+              </div>
               <div class="flex justify-between text-sm font-extrabold text-marine-950 pt-1 border-t border-marine-200">
                 <span>الإجمالي النهائي:</span><span id="cart-total" class="font-mono">0.00 ج.م</span>
               </div>
@@ -432,32 +424,43 @@
           </div>
         </div>
       </div>
+
+      <!-- شريط ملخص سريع أسفل شاشة الموبايل أثناء تصفح المنتجات -->
+      <div id="mobile-pos-floating-bar" class="lg:hidden sticky bottom-2 z-20 bg-marine-950 text-white rounded-2xl px-4 py-3 shadow-xl border border-cyan-400/30 flex items-center justify-between gap-3">
+        <div class="text-xs">
+          <div class="text-cyan-200 font-bold">الإجمالي (<span id="mobile-bar-items-count" class="font-mono">0</span> قطع)</div>
+          <div id="mobile-bar-total" class="font-mono font-extrabold text-sm text-white">0.00 ج.م</div>
+        </div>
+        <button type="button" onclick="setMobilePosView('cart')" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs">
+          عرض الفاتورة ←
+        </button>
+      </div>
     </section>
 
-    <!-- 2. المخزون + طباعة ملصق باركود -->
+    <!-- 2. المخزون + طباعة ملصقات الباركود -->
     <section id="section-inventory" class="hidden space-y-4">
       <div id="inv-role-note" class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm text-xs font-bold text-marine-900"></div>
 
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-sm">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
           <div class="text-xs text-slate-500 font-bold">عدد الأصناف</div>
-          <div id="inv-stat-count" class="text-xl sm:text-2xl font-extrabold font-mono text-marine-900 mt-1">0</div>
+          <div id="inv-stat-count" class="text-2xl font-extrabold font-mono text-marine-900 mt-1">0</div>
         </div>
-        <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-sm">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
           <div class="text-xs text-slate-500 font-bold">إجمالي القطع</div>
-          <div id="inv-stat-units" class="text-xl sm:text-2xl font-extrabold font-mono text-cyan-700 mt-1">0</div>
+          <div id="inv-stat-units" class="text-2xl font-extrabold font-mono text-cyan-700 mt-1">0</div>
         </div>
-        <div id="inv-cost-box" class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-sm">
+        <div id="inv-cost-box" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
           <div class="text-xs text-slate-500 font-bold">قيمة المخزون (تكلفة)</div>
-          <div id="inv-stat-cost" class="text-lg sm:text-xl font-extrabold font-mono text-slate-800 mt-1">0.00 ج.م</div>
+          <div id="inv-stat-cost" class="text-xl font-extrabold font-mono text-slate-800 mt-1">0.00 ج.م</div>
         </div>
-        <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-rose-200 bg-rose-50/40 shadow-sm">
+        <div class="bg-white rounded-2xl p-4 border border-rose-200 bg-rose-50/40 shadow-sm">
           <div class="text-xs text-rose-700 font-bold">أصناف منخفضة / نافذة</div>
-          <div id="inv-stat-low" class="text-xl sm:text-2xl font-extrabold font-mono text-rose-600 mt-1">0</div>
+          <div id="inv-stat-low" class="text-2xl font-extrabold font-mono text-rose-600 mt-1">0</div>
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2.5 justify-between">
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2.5 justify-between">
         <div class="flex flex-col sm:flex-row gap-2 flex-1">
           <input type="text" id="inv-search-input" oninput="renderInventory()" placeholder="ابحث في المخزون بالاسم أو الباركود..."
             class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
@@ -468,13 +471,13 @@
             <option value="out">النافذ</option>
           </select>
         </div>
-        <button id="inv-add-btn" type="button" onclick="requireAdminPin(() => openProductForm())" class="px-4 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-extrabold">
+        <button id="inv-add-btn" type="button" onclick="requireAdminPin(() => openProductForm())" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-extrabold whitespace-nowrap">
           + إضافة منتج (PIN الإدارة)
         </button>
       </div>
 
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
-        <table class="w-full min-w-[680px] text-right border-collapse">
+        <table class="w-full text-right border-collapse">
           <thead>
             <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
               <th class="py-3 px-4">الباركود</th>
@@ -492,25 +495,43 @@
       </div>
     </section>
 
-    <!-- 3. العملاء والبيع الآجل (الذمم / الكشكول) -->
+    <!-- 3. العملاء والبيع الآجل (الذمم) -->
     <section id="section-customers" class="hidden space-y-4">
-      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-2.5">
-        <input type="text" id="new-cust-name" placeholder="اسم العميل *" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
-        <input type="tel" id="new-cust-phone" placeholder="رقم هاتف / واتساب العميل" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
-        <input type="number" id="new-cust-credit" placeholder="رصيد آجل ابتدائي (ج.م)" min="0" step="0.5" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
-        <button type="button" onclick="addCustomerRecord()" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-extrabold">
-          + إضافة عميل
-        </button>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">عدد العملاء المسجلين</div>
+          <div id="cust-stat-count" class="text-2xl font-extrabold font-mono text-marine-900 mt-1">0</div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-rose-200 bg-rose-50/40 shadow-sm">
+          <div class="text-xs text-rose-700 font-bold">إجمالي المديونيات الآجلة (الذمم)</div>
+          <div id="cust-stat-debt" class="text-2xl font-extrabold font-mono text-rose-700 mt-1">0.00 ج.م</div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">عملاء عليهم رصيد مستحق</div>
+          <div id="cust-stat-debtors" class="text-2xl font-extrabold font-mono text-amber-700 mt-1">0</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <h3 class="font-extrabold text-sm text-marine-900 mb-3">إضافة عميل جديد / تحديث بيانات عميل</h3>
+        <form onsubmit="addOrUpdateCustomer(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
+          <input type="text" id="cust-name-input" required placeholder="اسم العميل" class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
+          <input type="text" id="cust-phone-input" placeholder="رقم واتساب / هاتف" class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+          <input type="number" id="cust-init-balance-input" step="0.5" min="0" value="0" placeholder="رصيد آجل سابق (اختياري)" class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+          <button type="submit" class="py-2.5 px-4 rounded-xl bg-marine-700 hover:bg-marine-800 text-white font-extrabold">
+            + حفظ العميل
+          </button>
+        </form>
       </div>
 
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
-        <table class="w-full min-w-[620px] text-right border-collapse">
+        <table class="w-full text-right border-collapse">
           <thead>
             <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
               <th class="py-3 px-4">العميل</th>
-              <th class="py-3 px-4">الهاتف / واتساب</th>
+              <th class="py-3 px-4">واتساب / هاتف</th>
               <th class="py-3 px-4">إجمالي المشتريات</th>
-              <th class="py-3 px-4">المتبقي آجل (ذمة)</th>
+              <th class="py-3 px-4">الرصيد المتبقي (ذمم)</th>
               <th class="py-3 px-4 text-center">تحصيل دفعة</th>
             </tr>
           </thead>
@@ -521,38 +542,65 @@
 
     <!-- 4. الموردون وفواتير المشتريات -->
     <section id="section-suppliers" class="hidden space-y-4">
-      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
-        <h3 class="font-extrabold text-sm text-marine-900">تسجيل فاتورة توريد / مشتريات (تزيد المخزون وتُحدّث التكلفة تلقائياً)</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 text-xs">
-          <input type="text" id="sup-name-input" placeholder="اسم المورد *" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
-          <select id="sup-prod-select" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
-          <input type="number" id="sup-qty-input" min="1" value="5" placeholder="الكمية الموردة" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold" />
-          <input type="number" id="sup-cost-input" min="0" step="0.5" placeholder="سعر شراء الوحدة الجديدة" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold" />
-          <button type="button" onclick="requireAdminPin(() => recordPurchaseInvoice(), 'تسجيل فاتورة مشتريات يتطلب رمز PIN للإدارة:')"
-            class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold">
-            + ترحيل التوريد
-          </button>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-5 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+          <h3 class="font-extrabold text-sm text-marine-900">تسجيل مورد جديد</h3>
+          <form onsubmit="addSupplierItem(event)" class="space-y-2.5 text-xs">
+            <input type="text" id="sup-name-input" required placeholder="اسم المورد أو الشركة" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
+            <input type="text" id="sup-phone-input" placeholder="رقم هاتف المورد" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+            <input type="text" id="sup-notes-input" placeholder="أصناف التوريد (مثال: قصبات، ضفائر، سنارات)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white font-extrabold">
+              + إضافة مورد
+            </button>
+          </form>
+          <div id="suppliers-list-box" class="space-y-2 pt-2 border-t border-slate-100 text-xs"></div>
         </div>
-      </div>
 
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
-        <table class="w-full min-w-[620px] text-right border-collapse">
-          <thead>
-            <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
-              <th class="py-3 px-4">رقم التوريد</th>
-              <th class="py-3 px-4">المورد</th>
-              <th class="py-3 px-4">الصنف</th>
-              <th class="py-3 px-4">الكمية</th>
-              <th class="py-3 px-4">إجمالي التكلفة</th>
-              <th class="py-3 px-4">التاريخ</th>
-            </tr>
-          </thead>
-          <tbody id="purchases-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
-        </table>
+        <div class="lg:col-span-7 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+          <h3 class="font-extrabold text-sm text-marine-900">إضافة فاتورة شراء / توريد (تزيد المخزون تلقائياً)</h3>
+          <form onsubmit="recordPurchaseInvoice(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <div>
+              <label class="block font-bold mb-1">المورد</label>
+              <select id="pur-supplier-select" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
+            </div>
+            <div>
+              <label class="block font-bold mb-1">المنتج</label>
+              <select id="pur-product-select" onchange="syncPurchaseUnitCost()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
+            </div>
+            <div>
+              <label class="block font-bold mb-1">الكمية الموردة</label>
+              <input type="number" id="pur-qty-input" min="1" value="5" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold" />
+            </div>
+            <div>
+              <label class="block font-bold mb-1">سعر شراء الوحدة (ج.م)</label>
+              <input type="number" id="pur-cost-input" min="0" step="0.5" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold" />
+            </div>
+            <div class="sm:col-span-2">
+              <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold">
+                ترحيل فاتورة المشتريات وتحديث المخزون
+              </button>
+            </div>
+          </form>
+
+          <div class="overflow-x-auto pt-2">
+            <table class="w-full text-right border-collapse">
+              <thead>
+                <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
+                  <th class="py-2.5 px-3">رقم التوريد</th>
+                  <th class="py-2.5 px-3">المورد</th>
+                  <th class="py-2.5 px-3">المنتج</th>
+                  <th class="py-2.5 px-3">الكمية</th>
+                  <th class="py-2.5 px-3">الإجمالي</th>
+                </tr>
+              </thead>
+              <tbody id="purchases-tbody" class="divide-y divide-slate-100 text-xs"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- 5. التقارير والفواتير -->
+    <!-- 5. التقارير والفواتير (فلترة حسب الشيفت والمنتج + تصدير Excel عربي سليم + سجل المرتجعات) -->
     <section id="section-reports" class="hidden space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
@@ -573,26 +621,26 @@
         </div>
       </div>
 
-      <!-- شريط الفلاتر وإقفال الشيفت وتصدير Excel -->
-      <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <!-- شريط الفلاتر (كل الفواتير / اليوم / فلترة حسب الشيفت والمنتج) وتصدير Excel -->
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-2">
-          <button type="button" id="rep-btn-all" onclick="setReportPeriod('all')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-marine-700 text-white transition">
+          <button type="button" id="rep-btn-all" onclick="setReportPeriod('all')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-marine-700 text-white transition">
             كل الفواتير
           </button>
-          <button type="button" id="rep-btn-today" onclick="setReportPeriod('today')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+          <button type="button" id="rep-btn-today" onclick="setReportPeriod('today')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
             مبيعات اليوم
           </button>
-          <select id="rep-shift-filter" onchange="renderReports()" class="px-3 py-2 rounded-xl text-xs font-bold bg-cyan-50 border border-cyan-200 text-cyan-950">
+          <select id="rep-shift-filter" onchange="renderReports()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-50 border border-cyan-200 text-cyan-950">
             <option value="all">كل الشيفتات</option>
           </select>
-          <select id="rep-product-filter" onchange="renderReports()" class="px-3 py-2 rounded-xl text-xs font-bold bg-marine-50 border border-marine-200 text-marine-950">
+          <select id="rep-product-filter" onchange="renderReports()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-marine-50 border border-marine-200 text-marine-950">
             <option value="all">كل المنتجات</option>
           </select>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
           <button type="button" onclick="openShiftCloseModal()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold transition">
-            🧾 إقفال الشيفت (Z-Report)
+            📊 إقفال الشيفت (Z-Report)
           </button>
           <button type="button" onclick="openReturnModal()" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition">
             ↩ تسجيل مرتجع
@@ -604,7 +652,7 @@
       </div>
 
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
-        <table class="w-full min-w-[680px] text-right border-collapse">
+        <table class="w-full text-right border-collapse">
           <thead>
             <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
               <th class="py-3 px-4">رقم الفاتورة</th>
@@ -625,7 +673,7 @@
           سجل المرتجعات المخصومة من المبيعات والمُعادة للمخزون
         </div>
         <div class="overflow-x-auto">
-          <table class="w-full min-w-[560px] text-right border-collapse">
+          <table class="w-full text-right border-collapse">
             <thead>
               <tr class="bg-slate-50 text-slate-600 text-xs font-bold border-b border-slate-200">
                 <th class="py-2.5 px-4">رقم المرتجع</th>
@@ -643,8 +691,8 @@
 
     <!-- 6. الإعدادات والنسخ الاحتياطي وتعديل PIN الكاشير والإدارة والتحكم الكامل بالفئات والمزامنة السحابية -->
     <section id="section-settings" class="hidden space-y-4">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-3">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
           <h3 class="font-extrabold text-base text-marine-900">بيانات المتجر والشعار والعنوان</h3>
           <input type="text" id="set-store-name" placeholder="اسم المتجر" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
           <input type="text" id="set-store-desc" placeholder="وصف المتجر" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
@@ -659,23 +707,23 @@
           </button>
         </div>
 
-        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-4">
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
           <h3 class="font-extrabold text-base text-marine-900">إدارة الكاشير والشيفتات والفئات وتعديل رموز PIN</h3>
 
           <div class="flex flex-col sm:flex-row gap-2">
             <input type="text" id="new-cashier-name" placeholder="اسم الكاشير" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
-            <input type="text" id="new-cashier-pin" inputmode="numeric" placeholder="PIN (4 أرقام أو أكثر)" class="sm:w-36 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
+            <input type="text" id="new-cashier-pin" inputmode="numeric" placeholder="PIN جديد للكاشير" class="sm:w-36 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
             <button type="button" onclick="addCashierProfile()" class="px-4 py-2 rounded-xl bg-marine-700 text-white text-xs font-bold">إضافة</button>
           </div>
           <div id="settings-cashiers-list" class="flex flex-wrap gap-2"></div>
 
           <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
             <div class="flex items-center justify-between">
-              <label class="block text-xs font-extrabold text-amber-950">تغيير رمز PIN الخاص بالإدارة</label>
-              <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-white border border-amber-300 text-amber-900">محمي</span>
+              <label class="block text-xs font-extrabold text-amber-950">رمز PIN الخاص بالإدارة</label>
+              <span id="current-admin-pin-label" class="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-white border border-amber-300 text-amber-900">مُفعّل</span>
             </div>
             <div class="flex gap-2">
-              <input type="password" id="set-admin-pin" inputmode="numeric" placeholder="أدخل رمز PIN الجديد للإدارة" class="flex-1 px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-mono font-bold" />
+              <input type="password" id="set-admin-pin" inputmode="numeric" placeholder="رمز PIN جديد للإدارة" class="flex-1 px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-mono font-bold" />
               <button type="button" onclick="saveAdminPin()" class="px-3.5 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-bold">حفظ PIN الإدارة</button>
             </div>
           </div>
@@ -686,6 +734,7 @@
           </div>
           <div id="settings-shifts-list" class="flex flex-wrap gap-2"></div>
 
+          <!-- التحكم الكامل في الفئات: إضافة، تعديل، إزالة -->
           <div class="p-3 rounded-xl bg-marine-50/70 border border-marine-200 space-y-2.5">
             <label class="block text-xs font-extrabold text-marine-950">التحكم في الفئات (إضافة / تعديل / إزالة)</label>
             <div class="flex gap-2">
@@ -696,10 +745,10 @@
           </div>
         </div>
 
-        <div class="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-3">
+        <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
           <h3 class="font-extrabold text-base text-marine-900">المزامنة السحابية والنسخ الاحتياطي JSON</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            <input type="text" id="set-cloud-room" placeholder="كود مزامنة المتجر" class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold" />
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="set-cloud-room" placeholder="كود مزامنة المتجر" class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold" />
             <button type="button" onclick="activateCloudRoom()" class="px-4 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold">
               تفعيل ومزامنة سحابية الآن
             </button>
@@ -717,7 +766,7 @@
   </main>
 
   <!-- ================================================= -->
-  <!-- النوافذ المنبثقة (PIN / مرتجع / منتج / فاتورة / باركود / إقفال شيفت) -->
+  <!-- النوافذ المنبثقة (PIN / مرتجع / منتج / ملصق باركود / إقفال شيفت / فاتورة) -->
   <!-- ================================================= -->
   <div id="modal-admin-pin" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
@@ -773,36 +822,7 @@
     </div>
   </div>
 
-  <!-- نافذة ملصق باركود وسعر المنتج -->
-  <div id="modal-barcode-label" class="fixed inset-0 bg-slate-950/70 z-[72] hidden items-center justify-center p-4 no-print">
-    <div class="bg-white rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
-      <div class="px-4 py-3 bg-marine-900 text-white font-extrabold text-xs flex justify-between items-center">
-        <span>ملصق باركود المنتج</span>
-        <button type="button" onclick="closeBarcodeLabelModal()">✕</button>
-      </div>
-      <div id="barcode-label-content" class="p-5 text-center space-y-2"></div>
-      <div class="px-4 py-3 bg-slate-50 border-t flex gap-2">
-        <button type="button" onclick="window.print()" class="flex-1 py-2 rounded-xl bg-marine-700 text-white text-xs font-extrabold">طباعة الملصق</button>
-        <button type="button" onclick="closeBarcodeLabelModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold">إغلاق</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- نافذة إقفال الشيفت وجرد الدرج (Z-Report) -->
-  <div id="modal-shift-close" class="fixed inset-0 bg-slate-950/70 z-[72] hidden items-center justify-center p-4 no-print">
-    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
-      <div class="px-4 py-3 bg-amber-900 text-white font-extrabold text-xs flex justify-between items-center">
-        <span>إقفال الشيفت وجرد الدرج (Z-Report)</span>
-        <button type="button" onclick="closeShiftCloseModal()">✕</button>
-      </div>
-      <div id="shift-close-body" class="p-5 space-y-2.5 text-xs"></div>
-      <div class="px-4 py-3 bg-slate-50 border-t flex gap-2">
-        <button type="button" onclick="window.print()" class="flex-1 py-2 rounded-xl bg-amber-600 text-white text-xs font-extrabold">طباعة تقرير الشيفت</button>
-        <button type="button" onclick="closeShiftCloseModal()" class="px-4 py-2 rounded-xl bg-slate-200 text-xs font-bold">إغلاق</button>
-      </div>
-    </div>
-  </div>
-
+  <!-- نافذة منتج -->
   <div id="modal-product" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
       <div class="px-4 py-3 bg-marine-900 text-white font-extrabold text-xs flex justify-between items-center">
@@ -847,6 +867,37 @@
     </div>
   </div>
 
+  <!-- نافذة ملصق الباركود -->
+  <div id="modal-barcode-label" class="fixed inset-0 bg-slate-950/70 z-[72] hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="px-4 py-3 bg-marine-900 text-white font-extrabold text-xs flex justify-between items-center">
+        <span>ملصق باركود وسعر المنتج</span>
+        <button type="button" onclick="closeBarcodeLabelModal()">✕</button>
+      </div>
+      <div id="barcode-label-content" class="p-5 text-center space-y-2 bg-white"></div>
+      <div class="px-4 py-3 bg-slate-50 border-t flex gap-2">
+        <button type="button" onclick="printSingleA4Receipt()" class="flex-1 py-2 rounded-xl bg-marine-700 text-white text-xs font-extrabold">طباعة الملصق</button>
+        <button type="button" onclick="closeBarcodeLabelModal()" class="px-3.5 py-2 rounded-xl bg-slate-200 text-xs font-bold">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة إقفال الشيفت وجرد الدرج Z-Report -->
+  <div id="modal-shift-close" class="fixed inset-0 bg-slate-950/70 z-[72] hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="px-4 py-3 bg-amber-900 text-white font-extrabold text-xs flex justify-between items-center">
+        <span>إقفال الشيفت وجرد الدرج (Z-Report)</span>
+        <button type="button" onclick="closeShiftCloseModal()">✕</button>
+      </div>
+      <div id="shift-close-body" class="p-4 space-y-2.5 text-xs"></div>
+      <div class="px-4 py-3 bg-slate-50 border-t flex gap-2">
+        <button type="button" onclick="printShiftCloseReport()" class="flex-1 py-2.5 rounded-xl bg-marine-700 text-white text-xs font-extrabold">طباعة تقرير الشيفت</button>
+        <button type="button" onclick="closeShiftCloseModal()" class="px-4 py-2.5 rounded-xl bg-slate-200 text-xs font-bold">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة تعديل فاتورة -->
   <div id="modal-edit-invoice" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
       <div class="px-4 py-3 bg-amber-900 text-white font-extrabold text-xs flex justify-between items-center">
@@ -892,11 +943,11 @@
       </div>
       <div id="receipt-body" class="p-6 text-xs sm:text-sm space-y-3 bg-white"></div>
       <div class="px-4 py-3 bg-slate-50 border-t flex flex-wrap gap-2 no-print">
+        <button type="button" onclick="shareCurrentReceiptWhatsApp()" class="py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold">
+          💬 إرسال واتساب
+        </button>
         <button type="button" onclick="printSingleA4Receipt()" class="flex-1 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-extrabold">
           طباعة A4 للعميل
-        </button>
-        <button type="button" onclick="shareCurrentReceiptWhatsApp()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold">
-          💬 واتساب
         </button>
         <button type="button" onclick="closeReceipt()" class="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-xs font-bold">إغلاق</button>
       </div>
@@ -909,8 +960,10 @@
       SALES: 'shabaka_pos_sales_v4',
       RETURNS: 'shabaka_pos_returns_v4',
       CUSTOMERS: 'shabaka_pos_customers_v4',
+      SUPPLIERS: 'shabaka_pos_suppliers_v4',
       PURCHASES: 'shabaka_pos_purchases_v4',
       SETTINGS: 'shabaka_pos_settings_v4',
+      SESSION: 'shabaka_pos_session_v4',
     };
 
     const SHARED_TEAM_ROOM = 'shabaka-w-senara-team-shared';
@@ -947,19 +1000,96 @@
     let sales = [];
     let returnsLog = [];
     let customers = [];
+    let suppliers = [];
     let purchases = [];
     let settings = { ...DEFAULT_SETTINGS };
     let cart = [];
     let selectedCategory = 'الكل';
     let reportPeriod = 'all';
     let currentReceiptInvoiceId = null;
-    let session = { authenticated: false, role: 'cashier', cashier: 'كاشير 1', shift: 'الشيفت الصباحي' };
+    let session = { authenticated: false, role: 'cashier', cashier: 'كاشير 1', shift: 'الشيفت الصباحي', activeTab: 'pos' };
     let pendingAdminFn = null;
     let lastRemoteStamp = '';
     let isApplyingRemote = false;
     let html5QrScannerInstance = null;
     let isCameraScanning = false;
+    let mobilePosView = 'products';
 
+    // حفظ الجلسة والتبويب النشط لاستعادتهما تلقائياً عند عمل Refresh
+    function saveSessionState() {
+      try {
+        sessionStorage.setItem(KEYS.SESSION, JSON.stringify({
+          authenticated: Boolean(session.authenticated),
+          role: session.role === 'admin' ? 'admin' : 'cashier',
+          cashier: session.cashier || settings.activeCashier || 'كاشير 1',
+          shift: session.shift || settings.activeShift || 'الشيفت الصباحي',
+          activeTab: session.activeTab || 'pos'
+        }));
+      } catch (e) {}
+    }
+
+    function restoreSessionState() {
+      try {
+        const raw = sessionStorage.getItem(KEYS.SESSION);
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.authenticated) {
+          session = {
+            authenticated: true,
+            role: parsed.role === 'admin' ? 'admin' : 'cashier',
+            cashier: parsed.cashier || settings.activeCashier || 'كاشير 1',
+            shift: parsed.shift || settings.activeShift || 'الشيفت الصباحي',
+            activeTab: parsed.activeTab || 'pos'
+          };
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    function clearSessionState() {
+      session.authenticated = false;
+      try {
+        sessionStorage.removeItem(KEYS.SESSION);
+      } catch (e) {}
+    }
+
+    // تفعيل خصائص PWA ديناميكياً دون الإضرار بالمنصة أو الكود
+    function setupPwaManifestAndWorker() {
+      try {
+        const manifestObj = {
+          name: settings.storeName || 'شبكة وصنارة',
+          short_name: settings.storeName || 'شبكة وصنارة',
+          start_url: window.location.pathname || './',
+          display: 'standalone',
+          background_color: '#082f49',
+          theme_color: '#082f49',
+          dir: 'rtl',
+          lang: 'ar'
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        let link = document.querySelector('link[rel="manifest"]');
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'manifest';
+          document.head.appendChild(link);
+        }
+        link.href = manifestUrl;
+
+        if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+          const swCode = `
+            self.addEventListener('install', event => { self.skipWaiting(); });
+            self.addEventListener('activate', event => { event.waitUntil(self.clients.claim()); });
+          `;
+          const swBlob = new Blob([swCode], { type: 'application/javascript' });
+          const swUrl = URL.createObjectURL(swBlob);
+          navigator.serviceWorker.register(swUrl).catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    // دمج القوائم حسب المعرف الفريد (id) حتى لا تُحذف بيانات جهاز آخر أثناء التزامن
     function mergeById(localList, remoteList) {
       const map = new Map();
       (Array.isArray(remoteList) ? remoteList : []).forEach(item => {
@@ -978,7 +1108,7 @@
       const el = document.getElementById('toast-box');
       if (!el) return;
       el.textContent = msg;
-      el.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[92vw] max-w-md text-center px-4 py-2.5 rounded-2xl shadow-xl text-xs sm:text-sm font-extrabold text-white no-print ' +
+      el.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-2xl shadow-xl text-xs sm:text-sm font-extrabold text-white no-print max-w-[92vw] text-center ' +
         (type === 'error' ? 'bg-rose-700' : type === 'success' ? 'bg-emerald-700' : 'bg-slate-900');
       el.classList.remove('hidden');
       clearTimeout(window.__toastTimer);
@@ -999,6 +1129,7 @@
         sales = JSON.parse(localStorage.getItem(KEYS.SALES) || 'null') || [];
         returnsLog = JSON.parse(localStorage.getItem(KEYS.RETURNS) || 'null') || [];
         customers = JSON.parse(localStorage.getItem(KEYS.CUSTOMERS) || 'null') || [];
+        suppliers = JSON.parse(localStorage.getItem(KEYS.SUPPLIERS) || 'null') || [];
         purchases = JSON.parse(localStorage.getItem(KEYS.PURCHASES) || 'null') || [];
         const savedSet = JSON.parse(localStorage.getItem(KEYS.SETTINGS) || 'null') || {};
         settings = {
@@ -1020,6 +1151,7 @@
         sales = [];
         returnsLog = [];
         customers = [];
+        suppliers = [];
         purchases = [];
         settings = {
           ...DEFAULT_SETTINGS,
@@ -1035,9 +1167,9 @@
       localStorage.setItem(KEYS.SALES, JSON.stringify(sales));
       localStorage.setItem(KEYS.RETURNS, JSON.stringify(returnsLog));
       localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(customers));
+      localStorage.setItem(KEYS.SUPPLIERS, JSON.stringify(suppliers));
       localStorage.setItem(KEYS.PURCHASES, JSON.stringify(purchases));
       localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
-      refreshCustomersDatalist();
       if (pushCloud && !isApplyingRemote) {
         pushToCloud();
       }
@@ -1045,7 +1177,7 @@
 
     function getCloudUrl() {
       const room = String(settings.cloudRoom || SHARED_TEAM_ROOM).trim().replace(/[^a-zA-Z0-9_-]/g, '_') || SHARED_TEAM_ROOM;
-      return 'https://kvdb.io/ShabakaWSenaraLiveV4/' + encodeURIComponent(room);
+      return 'https://kvdb.io/ShabakaWSenaraLiveV3/' + encodeURIComponent(room);
     }
 
     async function pushToCloud() {
@@ -1056,11 +1188,24 @@
           if (preRes.ok) latestRemote = await preRes.json();
         } catch (e) {}
 
-        const mergedProducts = latestRemote && Array.isArray(latestRemote.products) ? mergeById(products, latestRemote.products) : products;
-        const mergedSales = latestRemote && Array.isArray(latestRemote.sales) ? mergeById(sales, latestRemote.sales) : sales;
-        const mergedReturns = latestRemote && Array.isArray(latestRemote.returnsLog) ? mergeById(returnsLog, latestRemote.returnsLog) : returnsLog;
-        const mergedCustomers = latestRemote && Array.isArray(latestRemote.customers) ? mergeById(customers, latestRemote.customers) : customers;
-        const mergedPurchases = latestRemote && Array.isArray(latestRemote.purchases) ? mergeById(purchases, latestRemote.purchases) : purchases;
+        const mergedProducts = latestRemote && Array.isArray(latestRemote.products)
+          ? mergeById(products, latestRemote.products)
+          : products;
+        const mergedSales = latestRemote && Array.isArray(latestRemote.sales)
+          ? mergeById(sales, latestRemote.sales)
+          : sales;
+        const mergedReturns = latestRemote && Array.isArray(latestRemote.returnsLog)
+          ? mergeById(returnsLog, latestRemote.returnsLog)
+          : returnsLog;
+        const mergedCustomers = latestRemote && Array.isArray(latestRemote.customers)
+          ? mergeById(customers, latestRemote.customers)
+          : customers;
+        const mergedSuppliers = latestRemote && Array.isArray(latestRemote.suppliers)
+          ? mergeById(suppliers, latestRemote.suppliers)
+          : suppliers;
+        const mergedPurchases = latestRemote && Array.isArray(latestRemote.purchases)
+          ? mergeById(purchases, latestRemote.purchases)
+          : purchases;
 
         const mergedSettings = {
           ...DEFAULT_SETTINGS,
@@ -1080,6 +1225,7 @@
             sales: mergedSales,
             returnsLog: mergedReturns,
             customers: mergedCustomers,
+            suppliers: mergedSuppliers,
             purchases: mergedPurchases,
             settings: mergedSettings
           }),
@@ -1092,6 +1238,7 @@
           sales = mergedSales;
           returnsLog = mergedReturns;
           customers = mergedCustomers;
+          suppliers = mergedSuppliers;
           purchases = mergedPurchases;
           settings = mergedSettings;
           saveState(false);
@@ -1114,6 +1261,7 @@
         if (Array.isArray(data.sales)) sales = mergeById(sales, data.sales);
         if (Array.isArray(data.returnsLog)) returnsLog = mergeById(returnsLog, data.returnsLog);
         if (Array.isArray(data.customers)) customers = mergeById(customers, data.customers);
+        if (Array.isArray(data.suppliers)) suppliers = mergeById(suppliers, data.suppliers);
         if (Array.isArray(data.purchases)) purchases = mergeById(purchases, data.purchases);
         if (data.settings) {
           settings = {
@@ -1127,6 +1275,7 @@
         saveState(false);
         applyBranding();
         fillGateSelectors();
+        refreshCustomersDatalist();
         renderPosCategories();
         renderPosGrid();
         renderCart();
@@ -1210,7 +1359,9 @@
       const name = document.getElementById('gate-cashier-select').value;
       const shift = document.getElementById('gate-shift-select').value;
       const pin = document.getElementById('gate-cashier-pin').value.trim();
+
       await pullFromCloud();
+
       const prof = settings.cashierProfiles.find(p => p.name === name);
       if (!prof || pin !== String(prof.pin)) {
         showToast('رمز PIN الخاص بالكاشير غير صحيح', 'error');
@@ -1219,33 +1370,37 @@
       settings.activeCashier = name;
       settings.activeShift = shift;
       saveState(true);
-      session = { authenticated: true, role: 'cashier', cashier: name, shift };
+      session = { authenticated: true, role: 'cashier', cashier: name, shift, activeTab: 'pos' };
+      saveSessionState();
       document.getElementById('gate-cashier-pin').value = '';
       document.getElementById('gate-screen').classList.add('hidden');
       syncRoleUI();
       openTab('pos');
-      showToast(`مرحباً ${name} (${shift})`, 'success');
+      showToast(`مرحباً ${name} (${shift}) — بيانات الفريق السحابية محدثة`, 'success');
     }
 
     async function loginAsAdmin(e) {
       e.preventDefault();
       const pin = document.getElementById('gate-admin-pin').value.trim();
+
       await pullFromCloud();
+
       if (pin !== String(settings.adminPin || '9999')) {
         showToast('رمز PIN الخاص بالإدارة غير صحيح', 'error');
         return;
       }
-      session = { authenticated: true, role: 'admin', cashier: settings.activeCashier, shift: settings.activeShift };
+      session = { authenticated: true, role: 'admin', cashier: settings.activeCashier, shift: settings.activeShift, activeTab: 'pos' };
+      saveSessionState();
       document.getElementById('gate-admin-pin').value = '';
       document.getElementById('gate-screen').classList.add('hidden');
       syncRoleUI();
       openTab('pos');
-      showToast('تم الدخول بصلاحية الإدارة', 'success');
+      showToast('تم الدخول بصلاحية الإدارة ومزامنة بيانات الفريق', 'success');
     }
 
     function lockToGate() {
       stopCameraBarcodeScanner();
-      session.authenticated = false;
+      clearSessionState();
       fillGateSelectors();
       switchGateMode('cashier');
       document.getElementById('gate-screen').classList.remove('hidden');
@@ -1302,7 +1457,7 @@
       document.getElementById('rep-profit-box').classList.toggle('hidden', !isAdmin());
       document.getElementById('inv-role-note').textContent = isAdmin()
         ? 'وضع الإدارة: يمكنك إضافة وتعديل وحذف المنتجات وطباعة الباركود والاطلاع على التكاليف والأرباح.'
-        : 'وضع الكاشير: متاح لك البحث ومشاهدة الاستوك وطباعة الباركود. التعديل يتطلب PIN الإدارة.';
+        : 'وضع الكاشير: متاح لك البحث وطباعة ملصق الباركود ومشاهدة الاستوك المتاح والمنخفض والنافذ.';
     }
 
     function openTab(tab) {
@@ -1311,40 +1466,82 @@
         return;
       }
       if (tab !== 'pos') stopCameraBarcodeScanner();
-      if ((tab === 'reports' || tab === 'settings') && !isAdmin()) {
+      if ((tab === 'reports' || tab === 'settings' || tab === 'suppliers') && !isAdmin()) {
         requireAdminPin(() => {
           session.role = 'admin';
+          saveSessionState();
           syncRoleUI();
           showSection(tab);
-        }, 'الدخول إلى التقارير أو الإعدادات يتطلب رمز PIN الخاص بالإدارة:');
+        }, 'الدخول إلى هذا القسم يتطلب رمز PIN الخاص بالإدارة:');
         return;
       }
       showSection(tab);
     }
 
     function showSection(tab) {
-      ['pos', 'inventory', 'customers', 'suppliers', 'reports', 'settings'].forEach(s => {
-        document.getElementById('section-' + s).classList.toggle('hidden', s !== tab);
+      const allowedTabs = ['pos', 'inventory', 'customers', 'suppliers', 'reports', 'settings'];
+      const targetTab = allowedTabs.includes(tab) ? tab : 'pos';
+      session.activeTab = targetTab;
+      saveSessionState();
+
+      allowedTabs.forEach(s => {
+        document.getElementById('section-' + s).classList.toggle('hidden', s !== targetTab);
         const btn = document.getElementById('tab-btn-' + s);
         if (btn) {
-          btn.className = s === tab
+          btn.className = s === targetTab
             ? 'px-3 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-cyan-500 text-slate-950'
             : 'px-3 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap text-slate-200 hover:bg-white/10';
         }
       });
       syncRoleUI();
-      if (tab === 'pos') { refreshCustomersDatalist(); renderPosCategories(); renderPosGrid(); renderCart(); }
-      if (tab === 'inventory') renderInventory();
-      if (tab === 'customers') renderCustomers();
-      if (tab === 'suppliers') renderSuppliers();
-      if (tab === 'reports') { populateReportShiftFilter(); populateReportProductFilter(); renderReports(); }
-      if (tab === 'settings') fillSettings();
+      if (targetTab === 'pos') { refreshCustomersDatalist(); setMobilePosView(mobilePosView); renderPosCategories(); renderPosGrid(); renderCart(); }
+      if (targetTab === 'inventory') renderInventory();
+      if (targetTab === 'customers') renderCustomers();
+      if (targetTab === 'suppliers') renderSuppliers();
+      if (targetTab === 'reports') { populateReportShiftFilter(); populateReportProductFilter(); renderReports(); }
+      if (targetTab === 'settings') fillSettings();
+    }
+
+    // إدارة عرض نقطة البيع على الموبايل دون تداخل
+    function setMobilePosView(view) {
+      mobilePosView = view === 'cart' ? 'cart' : 'products';
+      const isDesktop = window.innerWidth >= 1024;
+      const prodCol = document.getElementById('pos-products-column');
+      const cartCol = document.getElementById('pos-cart-column');
+      const floatingBar = document.getElementById('mobile-pos-floating-bar');
+      const tabProd = document.getElementById('mobile-pos-tab-products');
+      const tabCart = document.getElementById('mobile-pos-tab-cart');
+
+      if (prodCol && cartCol) {
+        if (isDesktop) {
+          prodCol.classList.remove('hidden');
+          cartCol.classList.remove('hidden');
+        } else {
+          prodCol.classList.toggle('hidden', mobilePosView !== 'products');
+          cartCol.classList.toggle('hidden', mobilePosView !== 'cart');
+        }
+      }
+
+      if (floatingBar) {
+        floatingBar.classList.toggle('hidden', isDesktop || mobilePosView === 'cart');
+      }
+
+      if (tabProd && tabCart) {
+        tabProd.className = mobilePosView === 'products'
+          ? 'py-2.5 px-3 rounded-xl text-xs font-extrabold bg-marine-700 text-white transition'
+          : 'py-2.5 px-3 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 transition';
+        tabCart.className = mobilePosView === 'cart'
+          ? 'py-2.5 px-3 rounded-xl text-xs font-extrabold bg-marine-700 text-white transition flex items-center justify-center gap-1.5'
+          : 'py-2.5 px-3 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 transition flex items-center justify-center gap-1.5';
+      }
     }
 
     function renderPosCategories() {
       const bar = document.getElementById('pos-categories-bar');
       const cats = Array.isArray(settings.categories) ? settings.categories : CATEGORIES;
-      if (selectedCategory !== 'الكل' && !cats.includes(selectedCategory)) selectedCategory = 'الكل';
+      if (selectedCategory !== 'الكل' && !cats.includes(selectedCategory)) {
+        selectedCategory = 'الكل';
+      }
       const allCats = ['الكل', ...cats];
       bar.innerHTML = allCats.map(c => `
         <button type="button" onclick="selectedCategory='${esc(c)}';renderPosCategories();renderPosGrid();"
@@ -1409,17 +1606,21 @@
         await stopCameraBarcodeScanner();
         return;
       }
+
       if (!window.Html5Qrcode) {
         loadCameraBarcodeLibrary();
-        showToast('جارٍ تجهيز مكتبة الكاميرا، حاول بعد ثوانٍ', 'info');
+        showToast('جارٍ تجهيز مكتبة الكاميرا، حاول بعد ثوانٍ أو استخدم قارئ الباركود', 'info');
         return;
       }
+
       const box = document.getElementById('pos-camera-scanner-box');
       box.classList.remove('hidden');
+
       try {
         html5QrScannerInstance = new window.Html5Qrcode('pos-camera-reader');
         isCameraScanning = true;
         document.getElementById('btn-toggle-camera-scan').textContent = '⏹ إيقاف الكاميرا';
+
         await html5QrScannerInstance.start(
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 240, height: 140 } },
@@ -1432,7 +1633,7 @@
               addToCart(prod.id);
               showToast('تم مسح وإضافة المنتج: ' + prod.name, 'success');
             } else {
-              showToast('تم مسح الباركود: ' + code, 'error');
+              showToast('تم مسح الباركود: ' + code + ' (غير مسجل في المخزون)', 'error');
             }
           },
           () => {}
@@ -1441,7 +1642,7 @@
         isCameraScanning = false;
         document.getElementById('btn-toggle-camera-scan').textContent = '📷 سكان بالكاميرا';
         box.classList.add('hidden');
-        showToast('تعذر فتح الكاميرا (تحقق من صلاحية الكاميرا و HTTPS)', 'error');
+        showToast('تعذر فتح الكاميرا (تأكد من فتح الموقع عبر HTTPS ومنح صلاحية الكاميرا)', 'error');
       }
     }
 
@@ -1494,6 +1695,7 @@
 
     function renderCart() {
       const box = document.getElementById('pos-cart-items');
+      const totalUnits = cart.reduce((s, i) => s + Number(i.qty || 0), 0);
       if (!cart.length) {
         box.innerHTML = '<div class="py-8 text-center text-slate-400 font-bold">السلة فارغة</div>';
       } else {
@@ -1511,22 +1713,26 @@
       const disc = Math.min(Math.max(0, parseFloat(document.getElementById('pos-discount-input').value) || 0), sub);
       const tot = Math.max(0, sub - disc);
       const method = document.getElementById('pos-payment-select').value;
-      const paidNow = Math.min(Math.max(0, parseFloat(document.getElementById('pos-paid-now-input')?.value) || 0), tot);
-      const remaining = Math.max(0, tot - paidNow);
+      const paidNow = Math.min(Math.max(0, parseFloat(document.getElementById('pos-paid-amount-input')?.value) || 0), tot);
+      const remainingDue = method === 'آجل (ذمم)' ? Math.max(0, tot - paidNow) : 0;
 
       document.getElementById('cart-subtotal').textContent = fmt(sub);
       document.getElementById('cart-discount-view').textContent = fmt(disc);
       document.getElementById('cart-total').textContent = fmt(tot);
 
-      const remRow = document.getElementById('cart-remaining-row');
-      if (method === 'آجل (ذمم)') {
-        remRow.classList.remove('hidden');
-        remRow.classList.add('flex');
-        document.getElementById('cart-remaining-view').textContent = fmt(remaining);
-      } else {
-        remRow.classList.add('hidden');
-        remRow.classList.remove('flex');
+      const creditSummary = document.getElementById('cart-credit-summary');
+      if (creditSummary) {
+        creditSummary.classList.toggle('hidden', method !== 'آجل (ذمم)');
+        creditSummary.classList.toggle('flex', method === 'آجل (ذمم)');
+        document.getElementById('cart-remaining-due').textContent = fmt(remainingDue);
       }
+
+      const mBadge = document.getElementById('mobile-cart-badge');
+      const mCount = document.getElementById('mobile-bar-items-count');
+      const mTotal = document.getElementById('mobile-bar-total');
+      if (mBadge) mBadge.textContent = String(totalUnits);
+      if (mCount) mCount.textContent = String(totalUnits);
+      if (mTotal) mTotal.textContent = fmt(tot);
     }
 
     function completeSale() {
@@ -1537,8 +1743,8 @@
       const method = document.getElementById('pos-payment-select').value;
       const phone = document.getElementById('pos-wallet-phone').value.trim();
       const ref = document.getElementById('pos-instapay-ref').value.trim();
-      const custName = document.getElementById('pos-customer-input').value.trim() || 'عميل نقدي';
-      const custPhone = document.getElementById('pos-customer-phone-input').value.trim();
+      const customerName = document.getElementById('pos-customer-input').value.trim() || 'عميل نقدي';
+      const customerPhone = document.getElementById('pos-customer-phone-input').value.trim();
 
       if (method === 'محفظة إلكترونية' && !phone) {
         showToast('أدخل رقم المحفظة المحول منها', 'error');
@@ -1548,8 +1754,8 @@
         showToast('أدخل الرقم المرجعي لإنستاباي', 'error');
         return;
       }
-      if (method === 'آجل (ذمم)' && custName === 'عميل نقدي') {
-        showToast('اكتب اسم العميل لتسجيل البيع الآجل عليه', 'error');
+      if (method === 'آجل (ذمم)' && customerName === 'عميل نقدي') {
+        showToast('اكتب اسم العميل لتسجيل الرصيد الآجل عليه', 'error');
         return;
       }
 
@@ -1563,19 +1769,26 @@
       const disc = Math.min(Math.max(0, parseFloat(document.getElementById('pos-discount-input').value) || 0), sub);
       const total = Math.max(0, sub - disc);
       const paidNow = method === 'آجل (ذمم)'
-        ? Math.min(Math.max(0, parseFloat(document.getElementById('pos-paid-now-input')?.value) || 0), total)
+        ? Math.min(Math.max(0, parseFloat(document.getElementById('pos-paid-amount-input')?.value) || 0), total)
         : total;
-      const remainingCredit = Math.max(0, total - paidNow);
+      const remainingDue = method === 'آجل (ذمم)' ? Math.max(0, total - paidNow) : 0;
 
-      let custRec = customers.find(c => c.name === custName);
-      if (!custRec && custName !== 'عميل نقدي') {
-        custRec = { id: 'CUST-' + Date.now().toString().slice(-6), name: custName, phone: custPhone, totalBought: 0, balanceDue: 0 };
-        customers.unshift(custRec);
-      }
-      if (custRec) {
-        if (custPhone) custRec.phone = custPhone;
-        custRec.totalBought = Number(custRec.totalBought || 0) + total;
-        custRec.balanceDue = Number(custRec.balanceDue || 0) + remainingCredit;
+      if (customerName !== 'عميل نقدي') {
+        let cust = customers.find(c => c.name === customerName);
+        if (!cust) {
+          cust = {
+            id: 'CUST-' + Date.now().toString().slice(-6),
+            name: customerName,
+            phone: customerPhone || '',
+            totalPurchases: 0,
+            balanceDue: 0,
+          };
+          customers.unshift(cust);
+        } else if (customerPhone && !cust.phone) {
+          cust.phone = customerPhone;
+        }
+        cust.totalPurchases = Number(cust.totalPurchases || 0) + total;
+        cust.balanceDue = Number(cust.balanceDue || 0) + remainingDue;
       }
 
       const inv = {
@@ -1584,14 +1797,14 @@
         dateISO: new Date().toISOString(),
         cashier: session.cashier,
         shift: session.shift,
-        customer: custName,
-        customerPhone: custPhone || (custRec ? custRec.phone : ''),
+        customer: customerName,
+        customerPhone,
         items: cart.map(x => ({ ...x })),
         subtotal: sub,
         discount: disc,
         total,
         paidNow,
-        remainingCredit,
+        remainingDue,
         profit: total - cost,
         method,
         proof: method === 'محفظة إلكترونية'
@@ -1599,7 +1812,7 @@
           : method === 'إنستاباي'
           ? `مرجع: ${ref}`
           : method === 'آجل (ذمم)'
-          ? `آجل (مدفوع ${paidNow.toFixed(2)} / متبقي ${remainingCredit.toFixed(2)})`
+          ? `آجل (متبقي: ${remainingDue.toFixed(2)} ج.م)`
           : 'كاش'
       };
 
@@ -1611,209 +1824,192 @@
       document.getElementById('pos-customer-phone-input').value = '';
       document.getElementById('pos-wallet-phone').value = '';
       document.getElementById('pos-instapay-ref').value = '';
-      if (document.getElementById('pos-paid-now-input')) document.getElementById('pos-paid-now-input').value = 0;
+      if (document.getElementById('pos-paid-amount-input')) document.getElementById('pos-paid-amount-input').value = '';
+      refreshCustomersDatalist();
       renderPosGrid();
       renderCart();
       openReceipt(inv.id);
       showToast('تم إصدار الفاتورة ' + inv.id, 'success');
     }
 
+    // =================================================
+    // العملاء والبيع الآجل (الذمم)
+    // =================================================
     function refreshCustomersDatalist() {
       const dl = document.getElementById('pos-customers-datalist');
       if (!dl) return;
       dl.innerHTML = customers.map(c => `<option value="${esc(c.name)}"></option>`).join('');
     }
 
-    function addCustomerRecord() {
-      const name = (document.getElementById('new-cust-name').value || '').trim();
-      const phone = (document.getElementById('new-cust-phone').value || '').trim();
-      const credit = Math.max(0, parseFloat(document.getElementById('new-cust-credit').value) || 0);
-      if (!name) {
-        showToast('أدخل اسم العميل أولاً', 'error');
+    function addOrUpdateCustomer(e) {
+      e.preventDefault();
+      const name = document.getElementById('cust-name-input').value.trim();
+      const phone = document.getElementById('cust-phone-input').value.trim();
+      const initBal = Math.max(0, parseFloat(document.getElementById('cust-init-balance-input').value) || 0);
+      if (!name) return;
+
+      let existing = customers.find(c => c.name === name);
+      if (existing) {
+        if (phone) existing.phone = phone;
+        existing.balanceDue = Number(existing.balanceDue || 0) + initBal;
+      } else {
+        customers.unshift({
+          id: 'CUST-' + Date.now().toString().slice(-6),
+          name,
+          phone,
+          totalPurchases: 0,
+          balanceDue: initBal,
+        });
+      }
+      document.getElementById('cust-name-input').value = '';
+      document.getElementById('cust-phone-input').value = '';
+      document.getElementById('cust-init-balance-input').value = '0';
+      saveState(true);
+      refreshCustomersDatalist();
+      renderCustomers();
+      showToast('تم حفظ بيانات العميل والذمم', 'success');
+    }
+
+    function collectCustomerDebt(custId) {
+      const cust = customers.find(c => c.id === custId);
+      if (!cust || Number(cust.balanceDue || 0) <= 0) return;
+      const raw = window.prompt(`الرصيد المستحق على (${cust.name}): ${Number(cust.balanceDue).toFixed(2)} ج.م\nأدخل مبلغ التحصيل الآن:`, String(Number(cust.balanceDue).toFixed(2)));
+      if (raw === null) return;
+      const amount = parseFloat(raw);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        showToast('أدخل مبلغ تحصيل صحيح', 'error');
         return;
       }
-      customers.unshift({
-        id: 'CUST-' + Date.now().toString().slice(-6),
-        name,
-        phone,
-        totalBought: credit,
-        balanceDue: credit
-      });
-      document.getElementById('new-cust-name').value = '';
-      document.getElementById('new-cust-phone').value = '';
-      document.getElementById('new-cust-credit').value = '';
+      const collected = Math.min(amount, Number(cust.balanceDue));
+      cust.balanceDue = Math.max(0, Number(cust.balanceDue) - collected);
       saveState(true);
       renderCustomers();
-      showToast('تمت إضافة العميل بنجاح', 'success');
+      showToast(`تم تحصيل ${collected.toFixed(2)} ج.م من ${cust.name}`, 'success');
     }
 
     function renderCustomers() {
-      const tb = document.getElementById('customers-tbody');
-      if (!tb) return;
-      tb.innerHTML = customers.map((c, idx) => `
+      const totalDebt = customers.reduce((s, c) => s + Number(c.balanceDue || 0), 0);
+      const debtorsCount = customers.filter(c => Number(c.balanceDue || 0) > 0).length;
+      document.getElementById('cust-stat-count').textContent = customers.length;
+      document.getElementById('cust-stat-debt').textContent = fmt(totalDebt);
+      document.getElementById('cust-stat-debtors').textContent = debtorsCount;
+
+      document.getElementById('customers-tbody').innerHTML = customers.map(c => `
         <tr>
-          <td class="py-3 px-4 font-bold">${esc(c.name)}</td>
-          <td class="py-3 px-4 font-mono text-xs">${esc(c.phone || '-')}</td>
-          <td class="py-3 px-4 font-mono text-xs font-bold">${fmt(c.totalBought)}</td>
-          <td class="py-3 px-4 font-mono text-xs font-extrabold ${Number(c.balanceDue || 0) > 0 ? 'text-rose-600' : 'text-emerald-700'}">${fmt(c.balanceDue)}</td>
+          <td class="py-3 px-4 font-bold text-slate-800">${esc(c.name)}</td>
+          <td class="py-3 px-4 font-mono text-xs">${esc(c.phone || '—')}</td>
+          <td class="py-3 px-4 font-mono text-xs font-bold">${fmt(c.totalPurchases || 0)}</td>
+          <td class="py-3 px-4 font-mono text-xs font-extrabold ${Number(c.balanceDue || 0) > 0 ? 'text-rose-700' : 'text-emerald-700'}">${fmt(c.balanceDue || 0)}</td>
           <td class="py-3 px-4 text-center">
-            <button type="button" onclick="collectCustomerPayment(${idx})" class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 text-xs font-bold">
-              تحصيل دفعة
-            </button>
+            ${Number(c.balanceDue || 0) > 0
+              ? `<button type="button" onclick="collectCustomerDebt('${esc(c.id)}')" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">تحصيل دفعة</button>`
+              : `<span class="text-xs text-slate-400 font-bold">خالص</span>`}
           </td>
         </tr>
       `).join('') || '<tr><td colspan="5" class="py-6 text-center text-xs text-slate-400 font-bold">لا يوجد عملاء مسجلون بعد</td></tr>';
     }
 
-    function collectCustomerPayment(idx) {
-      const c = customers[idx];
-      if (!c) return;
-      const raw = window.prompt(`الرصيد المتبقي على (${c.name}): ${Number(c.balanceDue || 0).toFixed(2)} ج.م — أدخل قيمة الدفعة المحصلة:`, String(Number(c.balanceDue || 0)));
-      if (raw === null) return;
-      const amt = Math.max(0, parseFloat(raw) || 0);
-      if (amt <= 0) return;
-      c.balanceDue = Math.max(0, Number(c.balanceDue || 0) - amt);
+    // =================================================
+    // الموردون وفواتير المشتريات
+    // =================================================
+    function addSupplierItem(e) {
+      e.preventDefault();
+      const name = document.getElementById('sup-name-input').value.trim();
+      const phone = document.getElementById('sup-phone-input').value.trim();
+      const notes = document.getElementById('sup-notes-input').value.trim();
+      if (!name) return;
+      suppliers.unshift({
+        id: 'SUP-' + Date.now().toString().slice(-6),
+        name,
+        phone,
+        notes,
+      });
+      document.getElementById('sup-name-input').value = '';
+      document.getElementById('sup-phone-input').value = '';
+      document.getElementById('sup-notes-input').value = '';
       saveState(true);
-      renderCustomers();
-      showToast(`تم تحصيل ${fmt(amt)} من (${c.name})`, 'success');
+      renderSuppliers();
+      showToast('تمت إضافة المورد بنجاح', 'success');
     }
 
-    function renderSuppliers() {
-      const sel = document.getElementById('sup-prod-select');
-      if (sel) {
-        sel.innerHTML = products.map(p => `<option value="${esc(p.id)}">${esc(p.name)} (حالي: ${p.stock})</option>`).join('');
-      }
-      const tb = document.getElementById('purchases-tbody');
-      if (!tb) return;
-      tb.innerHTML = purchases.map(pur => `
-        <tr>
-          <td class="py-3 px-4 font-mono text-xs font-bold">${esc(pur.id)}</td>
-          <td class="py-3 px-4 font-bold">${esc(pur.supplierName)}</td>
-          <td class="py-3 px-4 text-xs">${esc(pur.productName)}</td>
-          <td class="py-3 px-4 font-mono font-bold">${pur.qty}</td>
-          <td class="py-3 px-4 font-mono text-xs font-extrabold">${fmt(pur.totalCost)}</td>
-          <td class="py-3 px-4 text-xs text-slate-500">${esc(pur.date)}</td>
-        </tr>
-      `).join('') || '<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400 font-bold">لا توجد فواتير توريد مسجلة بعد</td></tr>';
-    }
-
-    function recordPurchaseInvoice() {
-      const supName = (document.getElementById('sup-name-input').value || '').trim();
-      const pid = document.getElementById('sup-prod-select').value;
-      const qty = Math.max(1, parseInt(document.getElementById('sup-qty-input').value, 10) || 1);
-      const unitCost = Math.max(0, parseFloat(document.getElementById('sup-cost-input').value) || 0);
+    function syncPurchaseUnitCost() {
+      const pid = document.getElementById('pur-product-select')?.value;
       const prod = products.find(p => p.id === pid);
-      if (!supName || !prod) {
-        showToast('أدخل اسم المورد واختر المنتج', 'error');
+      const costInp = document.getElementById('pur-cost-input');
+      if (prod && costInp) costInp.value = prod.cost || 0;
+    }
+
+    function recordPurchaseInvoice(e) {
+      e.preventDefault();
+      const supId = document.getElementById('pur-supplier-select').value;
+      const pid = document.getElementById('pur-product-select').value;
+      const qty = Math.max(1, parseInt(document.getElementById('pur-qty-input').value, 10) || 1);
+      const unitCost = Math.max(0, parseFloat(document.getElementById('pur-cost-input').value) || 0);
+      const sup = suppliers.find(s => s.id === supId);
+      const prod = products.find(p => p.id === pid);
+
+      if (!sup || !prod) {
+        showToast('أضف مورداً ومنتجاً أولاً', 'error');
         return;
       }
 
       prod.stock = Number(prod.stock || 0) + qty;
-      if (unitCost > 0) prod.cost = unitCost;
+      prod.cost = unitCost;
 
       purchases.unshift({
         id: 'PUR-' + Date.now().toString().slice(-6),
-        supplierName: supName,
-        productId: prod.id,
+        date: new Date().toLocaleDateString('ar-EG'),
+        supplierName: sup.name,
         productName: prod.name,
         qty,
-        unitCost: prod.cost,
-        totalCost: qty * Number(prod.cost || 0),
-        date: new Date().toLocaleString('ar-EG'),
+        unitCost,
+        total: qty * unitCost,
       });
 
-      document.getElementById('sup-name-input').value = '';
-      document.getElementById('sup-cost-input').value = '';
       saveState(true);
       renderSuppliers();
       renderInventory();
       renderPosGrid();
-      showToast(`تم ترحيل التوريد وإضافة ${qty} قطعة إلى (${prod.name})`, 'success');
+      showToast(`تم ترحيل التوريد وزيادة مخزون (${prod.name}) بمقدار ${qty}`, 'success');
     }
 
-    function openBarcodeLabelModal(prodId) {
-      const p = products.find(x => x.id === prodId);
-      if (!p) return;
-      document.getElementById('barcode-label-content').innerHTML = `
-        <div class="font-extrabold text-sm text-marine-950">${esc(settings.storeName)}</div>
-        <div class="font-bold text-xs text-slate-800">${esc(p.name)}</div>
-        <div class="py-2 px-3 my-1 rounded-xl border border-dashed border-slate-400 bg-slate-50 font-mono text-lg tracking-widest font-extrabold">${esc(p.sku)}</div>
-        <div class="font-mono font-extrabold text-base text-emerald-700">${fmt(p.price)}</div>
-      `;
-      const m = document.getElementById('modal-barcode-label');
-      m.classList.remove('hidden');
-      m.classList.add('flex');
-    }
+    function renderSuppliers() {
+      const supSel = document.getElementById('pur-supplier-select');
+      const prodSel = document.getElementById('pur-product-select');
+      if (supSel) {
+        supSel.innerHTML = suppliers.length
+          ? suppliers.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')
+          : '<option value="">أضف مورداً أولاً</option>';
+      }
+      if (prodSel) {
+        prodSel.innerHTML = products.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+        syncPurchaseUnitCost();
+      }
 
-    function closeBarcodeLabelModal() {
-      const m = document.getElementById('modal-barcode-label');
-      m.classList.add('hidden');
-      m.classList.remove('flex');
-    }
-
-    function openShiftCloseModal() {
-      const activeShift = session.shift || settings.activeShift;
-      const shiftSales = sales.filter(s => (s.shift || '') === activeShift);
-      const shiftReturns = returnsLog.filter(r => (r.shift || '') === activeShift);
-
-      const sumByMethod = (label) => shiftSales
-        .filter(s => (s.method || '') === label)
-        .reduce((acc, s) => acc + Number(s.total || 0), 0);
-
-      const cashTotal = sumByMethod('كاش');
-      const walletTotal = sumByMethod('محفظة إلكترونية');
-      const instaTotal = sumByMethod('إنستاباي');
-      const creditTotal = sumByMethod('آجل (ذمم)');
-      const returnsTotal = shiftReturns.reduce((acc, r) => acc + Number(r.amount || 0), 0);
-      const netShiftTotal = Math.max(0, cashTotal + walletTotal + instaTotal + creditTotal - returnsTotal);
-
-      document.getElementById('shift-close-body').innerHTML = `
-        <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 font-bold text-amber-950">
-          <div>الشيفت: <strong>${esc(activeShift)}</strong> — الكاشير: <strong>${esc(session.cashier)}</strong></div>
-          <div class="text-[11px] text-amber-800 mt-0.5 font-mono">${new Date().toLocaleString('ar-EG')}</div>
+      document.getElementById('suppliers-list-box').innerHTML = suppliers.map(s => `
+        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+          <div>
+            <div class="font-bold text-slate-800">${esc(s.name)}</div>
+            <div class="text-[11px] text-slate-500">${esc(s.notes || '')}</div>
+          </div>
+          <span class="font-mono text-xs text-marine-800">${esc(s.phone || '')}</span>
         </div>
-        <div class="divide-y border rounded-xl px-3">
-          <div class="py-2 flex justify-between"><span>مبيعات كاش:</span><span class="font-mono font-bold">${fmt(cashTotal)}</span></div>
-          <div class="py-2 flex justify-between"><span>محفظة إلكترونية:</span><span class="font-mono font-bold">${fmt(walletTotal)}</span></div>
-          <div class="py-2 flex justify-between"><span>إنستاباي:</span><span class="font-mono font-bold">${fmt(instaTotal)}</span></div>
-          <div class="py-2 flex justify-between"><span>مبيعات آجلة:</span><span class="font-mono font-bold">${fmt(creditTotal)}</span></div>
-          <div class="py-2 flex justify-between text-rose-700"><span>المرتجعات:</span><span class="font-mono font-bold">-${fmt(returnsTotal)}</span></div>
-          <div class="py-2.5 flex justify-between font-extrabold text-sm text-marine-950"><span>صافي الشيفت:</span><span class="font-mono">${fmt(netShiftTotal)}</span></div>
-        </div>
-      `;
-      const m = document.getElementById('modal-shift-close');
-      m.classList.remove('hidden');
-      m.classList.add('flex');
+      `).join('') || '<div class="text-slate-400 font-bold">لا يوجد موردون مسجلون</div>';
+
+      document.getElementById('purchases-tbody').innerHTML = purchases.map(pur => `
+        <tr>
+          <td class="py-2.5 px-3 font-mono font-bold">${esc(pur.id)}</td>
+          <td class="py-2.5 px-3 font-bold">${esc(pur.supplierName)}</td>
+          <td class="py-2.5 px-3">${esc(pur.productName)}</td>
+          <td class="py-2.5 px-3 font-mono font-bold">${pur.qty}</td>
+          <td class="py-2.5 px-3 font-mono font-extrabold text-marine-900">${fmt(pur.total)}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" class="py-5 text-center text-slate-400 font-bold">لا توجد فواتير مشتريات بعد</td></tr>';
     }
 
-    function closeShiftCloseModal() {
-      const m = document.getElementById('modal-shift-close');
-      m.classList.add('hidden');
-      m.classList.remove('flex');
-    }
-
-    function shareCurrentReceiptWhatsApp() {
-      const inv = sales.find(x => x.id === currentReceiptInvoiceId);
-      if (!inv) return;
-      const lines = [
-        `*${settings.storeName}*`,
-        `فاتورة: *${inv.id}*`,
-        `التاريخ: ${inv.date}`,
-        `العميل: ${inv.customer}`,
-        `--------------------`,
-        ...(inv.items || []).map(i => `• ${i.name} × ${i.qty} = ${(i.price * i.qty).toFixed(2)} ج.م`),
-        `--------------------`,
-        `الإجمالي النهائي: *${Number(inv.total || 0).toFixed(2)} ج.م*`,
-        `الدفع: ${inv.proof || inv.method}`
-      ];
-      const rawPhone = String(inv.customerPhone || '').replace(/[^0-9]/g, '');
-      const waPhone = rawPhone ? (rawPhone.startsWith('20') ? rawPhone : '20' + rawPhone.replace(/^0+/, '')) : '';
-      const url = waPhone
-        ? `https://wa.me/${waPhone}?text=${encodeURIComponent(lines.join('\n'))}`
-        : `https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`;
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-
+    // =================================================
+    // نظام المرتجعات (إرجاع منتج أو عدد معين من القطع)
+    // =================================================
     function openReturnModal() {
       const sel = document.getElementById('ret-product-select');
       if (!products.length) {
@@ -1881,6 +2077,9 @@
       showToast(`تم تسجيل مرتجع (${qty} × ${prod.name}) وإعادة الكمية للمخزون`, 'success');
     }
 
+    // =================================================
+    // المخزون وطباعة ملصق الباركود
+    // =================================================
     function renderInventory() {
       const q = (document.getElementById('inv-search-input').value || '').trim().toLowerCase();
       const filter = document.getElementById('inv-stock-filter').value;
@@ -1914,9 +2113,9 @@
             <td class="py-3 px-4 font-mono text-xs font-bold">${fmt(p.price)}</td>
             <td class="py-3 px-4 font-mono font-bold">${p.stock}</td>
             <td class="py-3 px-4">${st}</td>
-            <td class="py-3 px-4 text-center space-x-1 space-x-reverse">
-              <button type="button" onclick="openBarcodeLabelModal('${p.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold">
-                باركود
+            <td class="py-3 px-4 text-center space-x-1 space-x-reverse whitespace-nowrap">
+              <button type="button" onclick="openBarcodeLabelModal('${p.id}')" class="px-2.5 py-1 rounded-lg bg-cyan-50 hover:bg-cyan-600 hover:text-white text-cyan-900 text-xs font-bold">
+                🏷 ملصق
               </button>
               <button type="button" onclick="requireAdminPin(() => openProductForm('${p.id}'), 'تعديل المخزون يتطلب رمز PIN للإدارة:')"
                 class="px-2.5 py-1 rounded-lg bg-marine-50 hover:bg-marine-700 hover:text-white text-marine-800 text-xs font-bold">
@@ -1926,6 +2125,32 @@
           </tr>
         `;
       }).join('');
+    }
+
+    function openBarcodeLabelModal(id) {
+      const prod = products.find(p => p.id === id);
+      if (!prod) return;
+      const bars = String(prod.sku || '000000').split('').map((ch, i) => {
+        const w = (i % 2 === 0) ? 2 : 4;
+        return `<span style="display:inline-block;width:${w}px;height:38px;background:#0f172a;margin:0 1.5px;"></span>`;
+      }).join('');
+
+      document.getElementById('barcode-label-content').innerHTML = `
+        <div class="font-extrabold text-sm text-marine-950">${esc(settings.storeName)}</div>
+        <div class="font-bold text-xs text-slate-700">${esc(prod.name)}</div>
+        <div class="py-2 flex items-center justify-center">${bars}</div>
+        <div class="font-mono text-xs font-bold tracking-widest text-slate-800">${esc(prod.sku)}</div>
+        <div class="font-mono text-base font-extrabold text-emerald-700 pt-1">${fmt(prod.price)}</div>
+      `;
+      const m = document.getElementById('modal-barcode-label');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeBarcodeLabelModal() {
+      const m = document.getElementById('modal-barcode-label');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
     }
 
     function openProductForm(id = null) {
@@ -1989,14 +2214,76 @@
       showToast('تم حفظ المنتج وتحديث المخزون', 'success');
     }
 
+    // =================================================
+    // إقفال الشيفت وجرد الدرج Z-Report
+    // =================================================
+    function openShiftCloseModal() {
+      const currentShift = session.shift || settings.activeShift || 'الشيفت الصباحي';
+      const shiftSales = sales.filter(s => (s.shift || '') === currentShift);
+      const shiftReturns = returnsLog.filter(r => (r.shift || '') === currentShift);
+
+      const cashTotal = shiftSales.filter(s => s.method === 'كاش').reduce((sum, s) => sum + Number(s.total || 0), 0);
+      const walletTotal = shiftSales.filter(s => s.method === 'محفظة إلكترونية').reduce((sum, s) => sum + Number(s.total || 0), 0);
+      const instapayTotal = shiftSales.filter(s => s.method === 'إنستاباي').reduce((sum, s) => sum + Number(s.total || 0), 0);
+      const creditTotal = shiftSales.filter(s => s.method === 'آجل (ذمم)').reduce((sum, s) => sum + Number(s.remainingDue || 0), 0);
+      const returnsTotal = shiftReturns.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      const netCashDrawer = Math.max(0, cashTotal - returnsTotal);
+
+      document.getElementById('shift-close-body').innerHTML = `
+        <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 font-bold text-amber-950">
+          الشيفت: <span class="underline">${esc(currentShift)}</span> — الكاشير: <span>${esc(session.cashier)}</span>
+        </div>
+        <div class="space-y-1.5 border-b border-slate-100 pb-2">
+          <div class="flex justify-between"><span>مبيعات الكاش:</span><strong class="font-mono">${fmt(cashTotal)}</strong></div>
+          <div class="flex justify-between"><span>مبيعات المحافظ الإلكترونية:</span><strong class="font-mono">${fmt(walletTotal)}</strong></div>
+          <div class="flex justify-between"><span>مبيعات إنستاباي:</span><strong class="font-mono">${fmt(instapayTotal)}</strong></div>
+          <div class="flex justify-between text-sky-800"><span>البيع الآجل (ذمم):</span><strong class="font-mono">${fmt(creditTotal)}</strong></div>
+          <div class="flex justify-between text-rose-700"><span>مرتجعات الشيفت:</span><strong class="font-mono">-${fmt(returnsTotal)}</strong></div>
+        </div>
+        <div class="flex justify-between text-sm font-extrabold text-marine-950 bg-marine-50 p-3 rounded-xl">
+          <span>صافي النقدية المتوقعة في الدرج:</span>
+          <span class="font-mono">${fmt(netCashDrawer)}</span>
+        </div>
+      `;
+      const m = document.getElementById('modal-shift-close');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeShiftCloseModal() {
+      const m = document.getElementById('modal-shift-close');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function printShiftCloseReport() {
+      const bodyHtml = document.getElementById('shift-close-body').innerHTML;
+      document.getElementById('receipt-body').innerHTML = `
+        <div class="text-center border-b border-slate-300 pb-3 mb-3">
+          <div class="font-extrabold text-xl text-marine-950">${esc(settings.storeName)}</div>
+          <div class="font-bold text-sm text-slate-700">تقرير إقفال الشيفت وجرد الدرج (Z-Report)</div>
+          <div class="font-mono text-xs text-slate-500 mt-1">${esc(new Date().toLocaleString('ar-EG'))}</div>
+        </div>
+        <div>${bodyHtml}</div>
+      `;
+      closeShiftCloseModal();
+      const m = document.getElementById('modal-receipt');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      window.print();
+    }
+
+    // =================================================
+    // التقارير وفلترة الشيفتات والمنتجات وتصدير Excel العربي المنظم
+    // =================================================
     function setReportPeriod(mode) {
       reportPeriod = mode;
       document.getElementById('rep-btn-all').className = mode === 'all'
-        ? 'px-3.5 py-2 rounded-xl text-xs font-bold bg-marine-700 text-white transition'
-        : 'px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+        ? 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-marine-700 text-white transition'
+        : 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
       document.getElementById('rep-btn-today').className = mode === 'today'
-        ? 'px-3.5 py-2 rounded-xl text-xs font-bold bg-marine-700 text-white transition'
-        : 'px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+        ? 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-marine-700 text-white transition'
+        : 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
       renderReports();
     }
 
@@ -2019,15 +2306,22 @@
       if (!sel) return;
       const currentVal = sel.value || 'all';
       const prodMap = new Map();
-      (products || []).forEach(p => { if (p && p.id) prodMap.set(String(p.id), p.name); });
+      (products || []).forEach(p => {
+        if (p && p.id) prodMap.set(String(p.id), p.name);
+      });
       (sales || []).forEach(inv => {
         (inv.items || []).forEach(it => {
-          if (it && it.id && !prodMap.has(String(it.id))) prodMap.set(String(it.id), it.name || ('منتج ' + it.id));
+          if (it && it.id && !prodMap.has(String(it.id))) {
+            prodMap.set(String(it.id), it.name || ('منتج ' + it.id));
+          }
         });
       });
       (returnsLog || []).forEach(ret => {
-        if (ret && ret.productId && !prodMap.has(String(ret.productId))) prodMap.set(String(ret.productId), ret.productName || ('منتج ' + ret.productId));
+        if (ret && ret.productId && !prodMap.has(String(ret.productId))) {
+          prodMap.set(String(ret.productId), ret.productName || ('منتج ' + ret.productId));
+        }
       });
+
       sel.innerHTML = '<option value="all">كل المنتجات</option>' +
         Array.from(prodMap.entries()).map(([pid, pname]) => `<option value="${esc(pid)}">${esc(pname)}</option>`).join('');
       sel.value = Array.from(sel.options).some(o => o.value === currentVal) ? currentVal : 'all';
@@ -2098,7 +2392,7 @@
           <td class="py-3 px-4 text-xs font-bold">${esc(inv.customer)}</td>
           <td class="py-3 px-4 text-xs">${esc(inv.proof || inv.method)}</td>
           <td class="py-3 px-4 font-mono text-xs font-extrabold">${fmt(displayTotal)}</td>
-          <td class="py-3 px-4 text-center space-x-1 space-x-reverse">
+          <td class="py-3 px-4 text-center space-x-1 space-x-reverse whitespace-nowrap">
             <button type="button" onclick="openReceipt('${inv.id}')" class="px-2.5 py-1 rounded-lg bg-marine-50 text-marine-800 text-xs font-bold">قراءة / طباعة</button>
             <button type="button" onclick="requireAdminPin(() => openEditInvoice('${inv.id}'), 'تعديل الفواتير المصدرة يتطلب رمز PIN الخاص بالإدارة:')"
               class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-xs font-bold">تعديل (PIN)</button>
@@ -2258,6 +2552,28 @@
       m.classList.add('flex');
     }
 
+    function shareCurrentReceiptWhatsApp() {
+      const inv = sales.find(x => x.id === currentReceiptInvoiceId);
+      if (!inv) return;
+      const lines = [
+        `*${settings.storeName}*`,
+        `فاتورة رقم: ${inv.id}`,
+        `التاريخ: ${inv.date}`,
+        `العميل: ${inv.customer}`,
+        `--------------------`,
+        ...(inv.items || []).map(i => `• ${i.name} × ${i.qty} = ${fmt(i.price * i.qty)}`),
+        `--------------------`,
+        `الإجمالي النهائي: *${fmt(inv.total)}*`,
+        `الدفع: ${inv.proof || inv.method}`
+      ];
+      const text = encodeURIComponent(lines.join('\n'));
+      const rawPhone = String(inv.customerPhone || '').replace(/[^0-9]/g, '');
+      const waUrl = rawPhone
+        ? `https://wa.me/${rawPhone.startsWith('0') ? '2' + rawPhone : rawPhone}?text=${text}`
+        : `https://wa.me/?text=${text}`;
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+    }
+
     function printSingleA4Receipt() {
       window.print();
     }
@@ -2302,18 +2618,23 @@
       showToast('تم تحديث الفاتورة ' + id, 'success');
     }
 
+    // =================================================
+    // الإعدادات وتعديل PIN الكاشير والإدارة والتحكم الكامل بالفئات
+    // =================================================
     function fillSettings() {
       document.getElementById('set-store-name').value = settings.storeName;
       document.getElementById('set-store-desc').value = settings.storeDesc;
       document.getElementById('set-store-addr').value = settings.storeAddr;
       document.getElementById('set-store-phone').value = settings.storePhone;
       document.getElementById('set-admin-pin').value = '';
+      const adminLbl = document.getElementById('current-admin-pin-label');
+      if (adminLbl) adminLbl.textContent = 'مُفعّل';
       document.getElementById('set-cloud-room').value = settings.cloudRoom;
 
       document.getElementById('settings-cashiers-list').innerHTML = settings.cashierProfiles.map((p, idx) => `
         <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-marine-50 border border-marine-200 text-xs font-bold">
           <span>${esc(p.name)}</span>
-          <span class="font-mono text-slate-500 bg-white px-1.5 py-0.5 rounded border border-marine-200">PIN: ••••</span>
+          <span class="text-slate-500 bg-white px-1.5 py-0.5 rounded border border-marine-200">PIN محفوظ</span>
           <button type="button" onclick="editCashierProfile(${idx})" class="px-2 py-0.5 rounded-lg bg-marine-700 hover:bg-marine-800 text-white text-[11px] font-bold">
             تعديل
           </button>
@@ -2346,6 +2667,7 @@
       settings.storeAddr = document.getElementById('set-store-addr').value.trim();
       settings.storePhone = document.getElementById('set-store-phone').value.trim();
       saveState(true);
+      setupPwaManifestAndWorker();
       applyBranding();
       showToast('تم حفظ بيانات المتجر', 'success');
     }
@@ -2366,12 +2688,8 @@
     function addCashierProfile() {
       const name = document.getElementById('new-cashier-name').value.trim();
       const pin = (document.getElementById('new-cashier-pin').value || '').trim();
-      if (!name) {
-        showToast('أدخل اسم الكاشير أولاً', 'error');
-        return;
-      }
-      if (pin.length < 4) {
-        showToast('أدخل رمز PIN للكاشير (4 أرقام على الأقل)', 'error');
+      if (!name || pin.length < 4) {
+        showToast('أدخل اسم الكاشير ورمز PIN (4 أرقام على الأقل)', 'error');
         return;
       }
       settings.cashierProfiles.push({ name, pin });
@@ -2395,7 +2713,7 @@
         return;
       }
 
-      const updatedPinRaw = window.prompt(`أدخل رمز PIN الجديد لـ (${updatedName}):`, '');
+      const updatedPinRaw = window.prompt(`أدخل رمز PIN الجديد الخاص بـ (${updatedName}):`, '');
       if (updatedPinRaw === null) return;
       const updatedPin = updatedPinRaw.trim();
       if (updatedPin.length < 4) {
@@ -2408,6 +2726,7 @@
       if (session.cashier === oldName) session.cashier = updatedName;
 
       saveState(true);
+      saveSessionState();
       fillGateSelectors();
       fillSettings();
       syncRoleUI();
@@ -2421,7 +2740,6 @@
         return;
       }
       settings.adminPin = pin;
-      document.getElementById('set-admin-pin').value = '';
       saveState(true);
       fillSettings();
       showToast('تم تحديث رمز PIN للإدارة', 'success');
@@ -2508,7 +2826,7 @@
     }
 
     function exportBackupJSON() {
-      const blob = new Blob([JSON.stringify({ products, sales, returnsLog, customers, purchases, settings }, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify({ products, sales, returnsLog, customers, suppliers, purchases, settings }, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'shabaka-w-senara-backup.json';
@@ -2526,6 +2844,7 @@
           if (Array.isArray(d.sales)) sales = d.sales;
           if (Array.isArray(d.returnsLog)) returnsLog = d.returnsLog;
           if (Array.isArray(d.customers)) customers = d.customers;
+          if (Array.isArray(d.suppliers)) suppliers = d.suppliers;
           if (Array.isArray(d.purchases)) purchases = d.purchases;
           if (d.settings) settings = { ...DEFAULT_SETTINGS, ...d.settings };
           saveState(true);
@@ -2540,11 +2859,24 @@
       r.readAsText(f);
     }
 
-    // بدء التشغيل الفوري
+    // بدء التشغيل الفوري مع الحفاظ على الجلسة والتبويب الحالي عند عمل Refresh
     loadState();
+    setupPwaManifestAndWorker();
     applyBranding();
+    setMobilePosView(mobilePosView);
+    window.addEventListener('resize', () => setMobilePosView(mobilePosView));
     fillGateSelectors();
     refreshCustomersDatalist();
+
+    const restoredSession = restoreSessionState();
+    if (restoredSession) {
+      document.getElementById('gate-screen').classList.add('hidden');
+      syncRoleUI();
+      showSection(session.activeTab || 'pos');
+    } else {
+      document.getElementById('gate-screen').classList.remove('hidden');
+    }
+
     pullFromCloud();
     setInterval(pullFromCloud, 8000);
     setInterval(() => {
