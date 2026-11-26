@@ -238,7 +238,7 @@
 
           <div>
             <label for="gate-admin-pin" class="block text-xs font-bold text-amber-200 mb-1.5">رمز PIN الخاص بالإدارة</label>
-            <input type="password" id="gate-admin-pin" inputmode="numeric" required placeholder="أدخل رمز PIN للإدارة (الافتراضي: 9999)"
+            <input type="password" id="gate-admin-pin" inputmode="numeric" required placeholder="أدخل رمز PIN الخاص بالإدارة"
               class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-white font-mono text-sm tracking-widest" />
           </div>
 
@@ -303,7 +303,7 @@
           <button type="button" onclick="openReturnModal()" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 font-extrabold transition">
             ↩ مرتجع منتج / كمية
           </button>
-          <span class="text-emerald-700 font-bold hidden md:inline">يُسجل الكاشير والشيفت والعميل الآجل تلقائياً</span>
+          <span class="text-emerald-700 font-bold hidden md:inline">يُسجل الكاشير والشيفت والعميل تلقائياً</span>
         </div>
       </div>
 
@@ -312,6 +312,7 @@
         <!-- المنتجات والبحث وشريط الفئات الاحترافي -->
         <div id="pos-products-column" class="lg:col-span-7 space-y-4">
           <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-sm space-y-3">
+            <div class="flex flex-col sm:flex-row gap-2">
               <input type="text" id="pos-barcode-input" onkeydown="handleBarcodeEnter(event)" placeholder="مسح أو إدخال باركود المنتج ثم Enter..."
                 class="flex-1 px-3.5 py-2 bg-marine-50/60 border border-marine-200 rounded-xl text-sm font-mono font-bold" />
               <button type="button" onclick="scanBarcodeValue()" class="px-4 py-2 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-bold">
@@ -337,7 +338,7 @@
         </div>
 
         <!-- سلة الفاتورة -->
-        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div id="pos-cart-column" class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="px-4 py-3 bg-marine-900 text-white font-extrabold text-sm flex items-center justify-between">
             <span>فاتورة البيع الحالية</span>
             <button type="button" onclick="clearCart()" class="text-xs px-2.5 py-1 rounded-lg bg-white/10 hover:bg-rose-500 transition">تفريغ</button>
@@ -395,7 +396,7 @@
       </div>
     </section>
 
-    <!-- 2. المخزون + طباعة ملصقات الباركود -->
+    <!-- 2. المخزون -->
     <section id="section-inventory" class="hidden space-y-4">
       <div id="inv-role-note" class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm text-xs font-bold text-marine-900"></div>
 
@@ -453,7 +454,7 @@
       </div>
     </section>
 
-    <!-- 3. التقارير والفواتير (فلترة حسب الشيفت والمنتج + تصدير Excel عربي سليم + سجل المرتجعات) -->
+    <!-- 3. التقارير والفواتير -->
     <section id="section-reports" class="hidden space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
@@ -474,7 +475,7 @@
         </div>
       </div>
 
-      <!-- شريط الفلاتر (كل الفواتير / اليوم / فلترة حسب الشيفت والمنتج) وتصدير Excel -->
+      <!-- شريط الفلاتر وتصدير Excel -->
       <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-2">
           <button type="button" id="rep-btn-all" onclick="setReportPeriod('all')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-marine-700 text-white transition">
@@ -562,7 +563,7 @@
 
           <div class="flex flex-col sm:flex-row gap-2">
             <input type="text" id="new-cashier-name" placeholder="اسم الكاشير" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
-            <input type="text" id="new-cashier-pin" inputmode="numeric" placeholder="PIN (مثال: 2222)" class="sm:w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
+            <input type="text" id="new-cashier-pin" inputmode="numeric" placeholder="PIN (4 أرقام)" class="sm:w-32 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono" />
             <button type="button" onclick="addCashierProfile()" class="px-4 py-2 rounded-xl bg-marine-700 text-white text-xs font-bold">إضافة</button>
           </div>
           <div id="settings-cashiers-list" class="flex flex-wrap gap-2"></div>
@@ -644,21 +645,26 @@
         <button type="button" onclick="closeReturnModal()">✕</button>
       </div>
       <form onsubmit="submitReturnItem(event)" class="p-4 space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold mb-1">رقم الفاتورة (اختياري)</label>
+            <input type="text" id="ret-invoice-input" oninput="syncReturnInvoiceItems()" placeholder="مثال: INV-123456"
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">سعر الوحدة المرتجعة</label>
+            <input type="text" id="ret-unit-price-view" readonly
+              class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl font-mono font-bold text-slate-700" />
+          </div>
+        </div>
         <div>
           <label class="block font-bold mb-1">اختر المنتج المرتجع</label>
           <select id="ret-product-select" onchange="updateReturnPreview()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold"></select>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block font-bold mb-1">الكمية المرتجعة (عدد القطع)</label>
-            <input type="number" id="ret-qty-input" oninput="updateReturnPreview()" min="1" value="1" required
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold" />
-          </div>
-          <div>
-            <label class="block font-bold mb-1">رقم الفاتورة (اختياري)</label>
-            <input type="text" id="ret-invoice-input" placeholder="مثال: INV-123456"
-              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
-          </div>
+        <div>
+          <label class="block font-bold mb-1">الكمية المرتجعة (عدد القطع)</label>
+          <input type="number" id="ret-qty-input" oninput="updateReturnPreview()" min="1" value="1" required
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold" />
         </div>
         <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between font-bold text-rose-900">
           <span>قيمة المرتجع المخصومة:</span>
@@ -821,18 +827,39 @@
     let html5QrScannerInstance = null;
     let isCameraScanning = false;
 
-    // دمج القوائم حسب المعرف الفريد (id) حتى لا تُحذف بيانات جهاز آخر أثناء التزامن
-    function mergeById(localList, remoteList) {
+    // دمج القوائم حسب المعرف الفريد (id) مع احترام التحديثات الأحدث ومنع عودة الفواتير الفارغة
+    function mergeById(localList, remoteList, options = {}) {
+      const { dropEmptyInvoices = false } = options;
       const map = new Map();
+
       (Array.isArray(remoteList) ? remoteList : []).forEach(item => {
-        if (item && item.id) map.set(String(item.id), { ...item });
+        if (!item || !item.id) return;
+        if (dropEmptyInvoices && Array.isArray(item.items) && item.items.length === 0) return;
+        map.set(String(item.id), { ...item });
       });
+
       (Array.isArray(localList) ? localList : []).forEach(item => {
-        if (item && item.id) {
-          const prev = map.get(String(item.id));
-          map.set(String(item.id), prev ? { ...prev, ...item } : { ...item });
+        if (!item || !item.id) return;
+        if (dropEmptyInvoices && Array.isArray(item.items) && item.items.length === 0) {
+          map.delete(String(item.id));
+          return;
+        }
+        const prev = map.get(String(item.id));
+        if (!prev) {
+          map.set(String(item.id), { ...item });
+          return;
+        }
+        const localUpdated = Number(item.updatedAt || 0);
+        const remoteUpdated = Number(prev.updatedAt || 0);
+        if (localUpdated > remoteUpdated) {
+          map.set(String(item.id), { ...prev, ...item });
+        } else if (remoteUpdated > localUpdated) {
+          map.set(String(item.id), { ...item, ...prev });
+        } else {
+          map.set(String(item.id), { ...prev, ...item });
         }
       });
+
       return Array.from(map.values());
     }
 
@@ -858,7 +885,8 @@
     function loadState() {
       try {
         products = JSON.parse(localStorage.getItem(KEYS.PRODUCTS) || 'null') || [...DEFAULT_PRODUCTS];
-        sales = JSON.parse(localStorage.getItem(KEYS.SALES) || 'null') || [];
+        const rawSales = JSON.parse(localStorage.getItem(KEYS.SALES) || 'null') || [];
+        sales = Array.isArray(rawSales) ? rawSales.filter(s => s && Array.isArray(s.items) && s.items.length > 0) : [];
         returnsLog = JSON.parse(localStorage.getItem(KEYS.RETURNS) || 'null') || [];
         const savedSet = JSON.parse(localStorage.getItem(KEYS.SETTINGS) || 'null') || {};
         settings = {
@@ -889,10 +917,12 @@
     }
 
     function saveState(pushCloud = true) {
-      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
-      localStorage.setItem(KEYS.SALES, JSON.stringify(sales));
-      localStorage.setItem(KEYS.RETURNS, JSON.stringify(returnsLog));
-      localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+      try {
+        localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
+        localStorage.setItem(KEYS.SALES, JSON.stringify(sales));
+        localStorage.setItem(KEYS.RETURNS, JSON.stringify(returnsLog));
+        localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+      } catch (e) {}
       if (pushCloud && !isApplyingRemote) {
         pushToCloud();
       }
@@ -915,8 +945,8 @@
           ? mergeById(products, latestRemote.products)
           : products;
         const mergedSales = latestRemote && Array.isArray(latestRemote.sales)
-          ? mergeById(sales, latestRemote.sales)
-          : sales;
+          ? mergeById(sales, latestRemote.sales, { dropEmptyInvoices: true })
+          : sales.filter(s => Array.isArray(s.items) && s.items.length > 0);
         const mergedReturns = latestRemote && Array.isArray(latestRemote.returnsLog)
           ? mergeById(returnsLog, latestRemote.returnsLog)
           : returnsLog;
@@ -966,7 +996,7 @@
         lastRemoteStamp = data.stamp;
         isApplyingRemote = true;
         if (Array.isArray(data.products)) products = mergeById(products, data.products);
-        if (Array.isArray(data.sales)) sales = mergeById(sales, data.sales);
+        if (Array.isArray(data.sales)) sales = mergeById(sales, data.sales, { dropEmptyInvoices: true });
         if (Array.isArray(data.returnsLog)) returnsLog = mergeById(returnsLog, data.returnsLog);
         if (data.settings) {
           settings = {
@@ -1050,7 +1080,7 @@
       const prof = settings.cashierProfiles.find(p => p.name === name) || settings.cashierProfiles[0];
       const hint = document.getElementById('gate-cashier-hint');
       if (hint && prof) {
-        hint.textContent = `رمز PIN الخاص بـ (${prof.name}) الافتراضي: ${prof.pin}`;
+        hint.textContent = `أدخل رمز PIN الخاص بالكاشير (${prof.name}) لبدء الشيفت`;
       }
     }
 
@@ -1170,6 +1200,31 @@
         : 'وضع الكاشير: متاح لك البحث ومشاهدة الاستوك المتاح والمنخفض والنافذ فقط. التعديل يتطلب PIN الإدارة.';
     }
 
+    function showSection(tab) {
+      ['pos', 'inventory', 'reports', 'settings'].forEach(t => {
+        const sec = document.getElementById('section-' + t);
+        const btn = document.getElementById('tab-btn-' + t);
+        if (sec) sec.classList.toggle('hidden', t !== tab);
+        if (btn) {
+          btn.className = t === tab
+            ? 'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-cyan-500 text-slate-950'
+            : 'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10';
+        }
+      });
+
+      if (tab === 'pos') {
+        renderPosCategories();
+        renderPosGrid();
+        renderCart();
+      } else if (tab === 'inventory') {
+        renderInventory();
+      } else if (tab === 'reports') {
+        renderReports();
+      } else if (tab === 'settings') {
+        fillSettings();
+      }
+    }
+
     function openTab(tab) {
       if (!session.authenticated) {
         document.getElementById('gate-screen').classList.remove('hidden');
@@ -1185,15 +1240,6 @@
         return;
       }
       showSection(tab);
-    }
-
-    // إبقاء عمود المنتجات والفئات وعمود الفاتورة ظاهرين معاً في نفس الصفحة
-    function setMobilePosView(view) {
-      mobilePosView = view === 'cart' ? 'cart' : 'products';
-      const prodCol = document.getElementById('pos-products-column');
-      const cartCol = document.getElementById('pos-cart-column');
-      if (prodCol) prodCol.classList.remove('hidden');
-      if (cartCol) cartCol.classList.remove('hidden');
     }
 
     function renderPosCategories() {
@@ -1367,12 +1413,12 @@
           </div>
         `).join('');
       }
-      const mBadge = document.getElementById('mobile-cart-badge');
-      const mCount = document.getElementById('mobile-bar-items-count');
-      const mTotal = document.getElementById('mobile-bar-total');
-      if (mBadge) mBadge.textContent = String(totalUnits);
-      if (mCount) mCount.textContent = String(totalUnits);
-      if (mTotal) mTotal.textContent = fmt(tot);
+      const sub = cart.reduce((s, i) => s + i.price * i.qty, 0);
+      const disc = Math.min(Math.max(0, parseFloat(document.getElementById('pos-discount-input').value) || 0), sub);
+      const tot = Math.max(0, sub - disc);
+      document.getElementById('cart-subtotal').textContent = fmt(sub);
+      document.getElementById('cart-discount-view').textContent = fmt(disc);
+      document.getElementById('cart-total').textContent = fmt(tot);
     }
 
     function completeSale() {
@@ -1406,6 +1452,7 @@
         id: 'INV-' + Date.now().toString().slice(-6),
         date: new Date().toLocaleString('ar-EG'),
         dateISO: new Date().toISOString(),
+        updatedAt: Date.now(),
         cashier: session.cashier,
         shift: session.shift,
         customer: document.getElementById('pos-customer-input').value.trim() || 'عميل نقدي',
@@ -1432,18 +1479,46 @@
     }
 
     // =================================================
-    // نظام المرتجعات (إرجاع منتج أو عدد معين من القطع)
+    // نظام المرتجعات (إرجاع منتج أو عدد معين من القطع وتحديث الفاتورة الأصلية)
     // =================================================
-    function openReturnModal() {
+    function syncReturnInvoiceItems() {
+      const invoiceRef = (document.getElementById('ret-invoice-input')?.value || '').trim();
       const sel = document.getElementById('ret-product-select');
+      if (!sel) return;
+
+      const inv = invoiceRef
+        ? sales.find(s => String(s.id || '').trim().toLowerCase() === invoiceRef.toLowerCase())
+        : null;
+
+      if (inv && Array.isArray(inv.items) && inv.items.length) {
+        const grouped = new Map();
+        inv.items.forEach(it => {
+          if (!it || !it.id) return;
+          const pid = String(it.id);
+          const prev = grouped.get(pid) || { id: pid, name: it.name || ('منتج ' + pid), qty: 0 };
+          prev.qty += Number(it.qty || 0);
+          grouped.set(pid, prev);
+        });
+        const invItems = Array.from(grouped.values()).filter(x => x.qty > 0);
+        if (invItems.length) {
+          sel.innerHTML = invItems.map(x => `<option value="${esc(x.id)}">${esc(x.name)} (مباع في الفاتورة: ${x.qty})</option>`).join('');
+          updateReturnPreview();
+          return;
+        }
+      }
+
+      sel.innerHTML = products.map(p => `<option value="${esc(p.id)}">${esc(p.name)} (${fmt(p.price)})</option>`).join('');
+      updateReturnPreview();
+    }
+
+    function openReturnModal() {
       if (!products.length) {
         showToast('لا توجد منتجات متاحة للمرتجع', 'error');
         return;
       }
-      sel.innerHTML = products.map(p => `<option value="${esc(p.id)}">${esc(p.name)} (${fmt(p.price)})</option>`).join('');
       document.getElementById('ret-qty-input').value = '1';
       document.getElementById('ret-invoice-input').value = '';
-      updateReturnPreview();
+      syncReturnInvoiceItems();
       const m = document.getElementById('modal-return');
       m.classList.remove('hidden');
       m.classList.add('flex');
@@ -1452,6 +1527,75 @@
     function closeReturnModal() {
       const m = document.getElementById('modal-return');
       m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function updateReturnPreview() {
+      const invoiceRef = document.getElementById('ret-invoice-input')?.value.trim() || '';
+      const pid = document.getElementById('ret-product-select')?.value;
+      const qty = Math.max(1, parseInt(document.getElementById('ret-qty-input')?.value, 10) || 1);
+      const prod = products.find(p => String(p.id) === String(pid));
+      const inv = invoiceRef
+        ? sales.find(s => String(s.id || '').trim().toLowerCase() === invoiceRef.toLowerCase())
+        : null;
+
+      let unitPrice = Number(prod?.price || 0);
+      if (inv && Array.isArray(inv.items)) {
+        const matched = inv.items.filter(it => String(it.id) === String(pid));
+        if (matched.length) {
+          const soldQty = matched.reduce((sum, it) => sum + Number(it.qty || 0), 0);
+          const rawLineTotal = matched.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0);
+          const sub = Number(inv.subtotal || 0);
+          const disc = Number(inv.discount || 0);
+          const factor = sub > 0 ? Math.max(0, (sub - disc) / sub) : 1;
+          if (soldQty > 0) unitPrice = (rawLineTotal * factor) / soldQty;
+        }
+      }
+
+      const unitView = document.getElementById('ret-unit-price-view');
+      if (unitView) unitView.value = fmt(unitPrice);
+      const previewEl = document.getElementById('ret-amount-preview');
+      if (previewEl) previewEl.textContent = fmt(unitPrice * qty);
+    }
+
+    function submitReturnItem(e) {
+      e.preventDefault();
+      const pid = document.getElementById('ret-product-select')?.value;
+      const qty = Math.max(1, parseInt(document.getElementById('ret-qty-input')?.value, 10) || 1);
+      const invoiceRef = document.getElementById('ret-invoice-input')?.value.trim() || '';
+      const prod = products.find(p => String(p.id) === String(pid));
+      if (!prod) {
+        showToast('اختر منتجاً صحيحاً', 'error');
+        return;
+      }
+
+      const inv = invoiceRef
+        ? sales.find(s => String(s.id || '').trim().toLowerCase() === invoiceRef.toLowerCase())
+        : null;
+
+      let unitPrice = Number(prod.price || 0);
+      let unitCost = Number(prod.cost || 0);
+
+      if (inv && Array.isArray(inv.items)) {
+        const matched = inv.items.filter(it => String(it.id) === String(pid));
+        if (matched.length) {
+          const soldQty = matched.reduce((sum, it) => sum + Number(it.qty || 0), 0);
+          const rawLineTotal = matched.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0);
+          const sub = Number(inv.subtotal || 0);
+          const disc = Number(inv.discount || 0);
+          const factor = sub > 0 ? Math.max(0, (sub - disc) / sub) : 1;
+          if (soldQty > 0) unitPrice = (rawLineTotal * factor) / soldQty;
+          unitCost = matched.reduce((sum, it) => sum + Number(it.cost ?? prod.cost ?? 0) * Number(it.qty || 0), 0) / Math.max(1, soldQty);
+        }
+      }
+
+      prod.stock = Number(prod.stock || 0) + qty;
+      const refundAmount = unitPrice * qty;
+      const refundCost = unitCost * qty;
+
+      if (inv && Array.isArray(inv.items)) {
+        const targetInv = sales.find(s => String(s.id) === String(inv.id));
+        if (targetInv && Array.isArray(targetInv.items)) {
           let leftToDeduct = qty;
           for (let i = targetInv.items.length - 1; i >= 0 && leftToDeduct > 0; i--) {
             const it = targetInv.items[i];
@@ -1468,13 +1612,17 @@
             }
           }
 
-          const newSubtotal = targetInv.items.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0);
-          const newCost = targetInv.items.reduce((sum, it) => sum + Number(it.cost ?? prod.cost ?? 0) * Number(it.qty || 0), 0);
-          targetInv.subtotal = newSubtotal;
-          targetInv.discount = Math.min(Number(targetInv.discount || 0), newSubtotal);
-          targetInv.total = Math.max(0, newSubtotal - targetInv.discount);
-          targetInv.profit = targetInv.total - newCost;
-          targetInv.updatedAt = Date.now();
+          if (targetInv.items.length === 0) {
+            sales = sales.filter(s => String(s.id) !== String(targetInv.id));
+          } else {
+            const newSubtotal = targetInv.items.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0);
+            const newCost = targetInv.items.reduce((sum, it) => sum + Number(it.cost ?? prod.cost ?? 0) * Number(it.qty || 0), 0);
+            targetInv.subtotal = newSubtotal;
+            targetInv.discount = Math.min(Number(targetInv.discount || 0), newSubtotal);
+            targetInv.total = Math.max(0, newSubtotal - targetInv.discount);
+            targetInv.profit = targetInv.total - newCost;
+            targetInv.updatedAt = Date.now();
+          }
         }
       }
 
@@ -1485,7 +1633,7 @@
         productId: prod.id,
         productName: prod.name,
         qty,
-        invoiceRef: invoiceRef || 'مرتجع مباشر',
+        invoiceRef: inv ? inv.id : (invoiceRef || 'مرتجع مباشر'),
         cashier: session.cashier,
         shift: session.shift,
         amount: refundAmount,
@@ -1666,9 +1814,10 @@
       const todayStr = new Date().toLocaleDateString('ar-EG');
 
       const filteredSales = sales.filter(inv => {
+        if (!Array.isArray(inv.items) || inv.items.length === 0) return false;
         const okPeriod = reportPeriod !== 'today' || new Date(inv.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr;
         const okShift = selectedShift === 'all' || (inv.shift || '') === selectedShift;
-        const okProd = selectedProduct === 'all' || (Array.isArray(inv.items) && inv.items.some(it => String(it.id) === String(selectedProduct)));
+        const okProd = selectedProduct === 'all' || inv.items.some(it => String(it.id) === String(selectedProduct));
         return okPeriod && okShift && okProd;
       });
 
@@ -1705,7 +1854,6 @@
 
       const grossSales = filteredSales.reduce((s, x) => s + getSaleRelevantAmount(x), 0);
       const totalReturns = filteredReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
-      // الفواتير المرتبطة تم تحديث مبالغها بالفعل؛ نخصم فقط المرتجعات غير المرتبطة بفاتورة محددة لتفادي الخصم المزدوج
       const unlinkedReturns = filteredReturns
         .filter(r => !sales.some(inv => String(inv.id || '').trim().toLowerCase() === String(r.invoiceRef || '').trim().toLowerCase()))
         .reduce((s, r) => s + Number(r.amount || 0), 0);
@@ -1819,20 +1967,6 @@
               xmlns="http://www.w3.org/TR/REC-html40" dir="rtl" lang="ar">
         <head>
           <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-          <!--[if gte mso 9]>
-          <xml>
-            <x:ExcelWorkbook>
-              <x:ExcelWorksheets>
-                <x:ExcelWorksheet>
-                  <x:Name>تقرير المبيعات</x:Name>
-                  <x:WorksheetOptions>
-                    <x:DisplayRightToLeft/>
-                  </x:WorksheetOptions>
-                </x:ExcelWorksheet>
-              </x:ExcelWorksheets>
-            </x:ExcelWorkbook>
-          </xml>
-          <![endif]-->
           <style>
             body { font-family: Tahoma, Arial, sans-serif; direction: rtl; }
             table { border-collapse: collapse; width: 100%; direction: rtl; }
@@ -1943,6 +2077,7 @@
       inv.method = document.getElementById('edit-inv-method').value;
       inv.discount = Math.min(Math.max(0, parseFloat(document.getElementById('edit-inv-discount').value) || 0), inv.subtotal);
       inv.total = Math.max(0, inv.subtotal - inv.discount);
+      inv.updatedAt = Date.now();
       saveState(true);
       closeEditInvoiceModal();
       renderReports();
@@ -2183,10 +2318,14 @@
     }
 
     // بدء التشغيل الفوري
-    loadState();
-    applyBranding();
-    fillGateSelectors();
-    pullFromCloud();
+    try {
+      loadState();
+      applyBranding();
+      fillGateSelectors();
+      pullFromCloud();
+    } catch (e) {
+      console.error('Initialization error:', e);
+    }
     setInterval(pullFromCloud, 8000);
     setInterval(() => {
       const now = new Date();
