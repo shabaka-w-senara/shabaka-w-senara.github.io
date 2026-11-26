@@ -55,7 +55,7 @@
           id: 'shabaka-w-senara-pos-apk',
           name: 'شبكة وصنارة - نظام كاشير وإدارة مخزون',
           short_name: 'شبكة وصنارة',
-          description: 'نظام نقاط البيع والمخزون ووحدات القياس والمرتجعات والمصروفات والذمم والموردين وإقفال الشيفت لمتجر شبكة وصنارة',
+          description: 'نظام نقاط البيع والمخزون بالكيلو والجرام والفئات الشجرية والمصروفات والذمم والموردين وإقفال الشيفت لمتجر شبكة وصنارة',
           start_url: './',
           scope: './',
           display: 'standalone',
@@ -212,20 +212,20 @@
             </div>
             <div>
               <span class="inline-block text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-300/30 mb-1">
-                كاشير ومخزون ووحدات ومصروفات وZ-Report
+                كاشير ومخزون بالكيلو والجرام وفئات شجرية وZ-Report
               </span>
               <h2 id="gate-store-title" class="text-2xl font-extrabold text-white">شبكة وصنارة</h2>
             </div>
           </div>
 
           <p id="gate-store-desc" class="text-xs sm:text-sm text-cyan-100/80 leading-relaxed">
-            إدارة مبيعات ومخزون بالوحدة (الكمية، الجرام، مللي، وزن) ومرتجعات ومصروفات والذمم والعملاء والموردين وإقفال الشيفت (Z-Report) وملصقات الباركود وإرسال الفواتير عبر واتساب.
+            إدارة مبيعات ومخزون بالوحدة (الكمية، الكيلو، الجرام، مللي، وزن) وفئات رئيسية وفرعية وماركات ومرتجعات ومصروفات وإقفال الشيفت (Z-Report) وملصقات الباركود وواتساب.
           </p>
 
           <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2 text-xs font-bold">
-            <div class="text-cyan-200">• دخول الكاشير برمز PIN الخاص بالشيفت والبيع بالكمية أو الوزن/الجرام/مللي</div>
-            <div class="text-amber-200">• المخزون والتقارير والمصروفات والموردين وتعديل الفواتير برمز PIN للإدارة</div>
-            <div class="text-emerald-200">• إقفال وردية Z-Report مطابقة للدرج وملصقات باركود وواتساب وتصدير Excel</div>
+            <div class="text-cyan-200">• دخول الكاشير برمز PIN والبيع بالقطعة أو الكيلو أو الجرام بدقة</div>
+            <div class="text-amber-200">• المخزون والفئات الشجرية والمصروفات والتقارير برمز PIN للإدارة</div>
+            <div class="text-emerald-200">• إقفال وردية Z-Report مطابقة للدرج وملصقات باركود وتصدير Excel</div>
           </div>
         </div>
 
@@ -284,7 +284,7 @@
         <!-- دخول الإدارة -->
         <form id="form-gate-admin" onsubmit="loginAsAdmin(event)" class="hidden space-y-4">
           <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 text-xs text-amber-200">
-            دخول الإدارة يتيح إضافة/تعديل المخزون ووحدات القياس والمصروفات والموردين والعملاء، عرض التقارير والأرباح، إقفال الشيفت، وتعديل الفواتير ورموز PIN.
+            دخول الإدارة يتيح إضافة/تعديل المخزون ووحدات القياس (الكيلو/الجرام) والفئات الشجرية والفرعية والمصروفات والموردين والتقارير ورموز PIN.
           </div>
 
           <div>
@@ -329,7 +329,7 @@
         <button onclick="openTab('customers')" id="tab-btn-customers" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap">العملاء والذمم</button>
         <button onclick="openTab('suppliers')" id="tab-btn-suppliers" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap">الموردون والمشتريات</button>
         <button onclick="openTab('reports')" id="tab-btn-reports" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap">التقارير والفواتير</button>
-        <button onclick="openTab('settings')" id="tab-btn-settings" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap">الإعدادات والنسخ</button>
+        <button onclick="openTab('settings')" id="tab-btn-settings" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap">الإعدادات والفئات</button>
       </nav>
 
       <div class="flex items-center gap-2">
@@ -349,7 +349,7 @@
   <!-- ================================================= -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 space-y-5 no-print">
 
-    <!-- 1. نقطة البيع + نظام المرتجعات + إخراج مصروف من الدرج + البيع بالوحدة (كمية / جرام / مللي / وزن) -->
+    <!-- 1. نقطة البيع + الفئات الشجرية + البيع بالكيلو والجرام والكمية + المصروفات + المرتجعات -->
     <section id="section-pos" class="space-y-4">
       <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-2 text-xs">
         <div class="flex flex-wrap items-center gap-4">
@@ -365,14 +365,14 @@
             📊 إقفال الشيفت (Z-Report)
           </button>
           <button type="button" onclick="openReturnModal()" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 font-extrabold transition">
-            ↩ مرتجع منتج / كمية
+            ↩ مرتجع منتج / وزن
           </button>
         </div>
       </div>
 
-      <!-- عرض ثابت يجمع شريط الفئات والمنتجات بجانب سلة الفاتورة مباشرة -->
+      <!-- عرض ثابت يجمع شريط الفئات الشجرية والمنتجات بجانب سلة الفاتورة مباشرة -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start">
-        <!-- المنتجات والبحث وشريط الفئات الاحترافي -->
+        <!-- المنتجات والبحث وشريط الفئات الرئيسية والفرعية -->
         <div id="pos-products-column" class="lg:col-span-7 space-y-4">
           <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-sm space-y-3">
             <div class="flex flex-col sm:flex-row gap-2">
@@ -392,9 +392,12 @@
               </div>
               <div id="pos-camera-reader" class="w-full max-w-sm mx-auto rounded-xl overflow-hidden bg-black"></div>
             </div>
-            <input type="text" id="pos-search-input" oninput="renderPosGrid()" placeholder="ابحث باسم المنتج أو الباركود..."
+            <input type="text" id="pos-search-input" oninput="renderPosGrid()" placeholder="ابحث باسم المنتج أو الماركة أو الفئة أو الباركود..."
               class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+            <!-- شريط الفئات الرئيسية -->
             <div id="pos-categories-bar" class="flex items-center gap-1.5 overflow-x-auto pb-1"></div>
+            <!-- شريط الفئات الفرعية (يظهر تلقائياً عند اختيار فئة رئيسية لها فئات فرعية) -->
+            <div id="pos-subcategories-bar" class="hidden flex items-center gap-1.5 overflow-x-auto pt-1.5 border-t border-slate-100"></div>
           </div>
 
           <div id="pos-products-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
@@ -418,7 +421,7 @@
 
             <div id="pos-customer-debt-alert" class="hidden p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-[11px] font-bold text-amber-950"></div>
 
-            <div id="pos-cart-items" class="max-h-72 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-slate-50/50 text-xs"></div>
+            <div id="pos-cart-items" class="max-h-80 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl p-2 bg-slate-50/50 text-xs"></div>
 
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div>
@@ -480,7 +483,7 @@
       </div>
     </section>
 
-    <!-- 2. المخزون + وحدات القياس + طباعة ملصقات الباركود -->
+    <!-- 2. المخزون + الكيلو والجرام + الفئات الرئيسية والفرعية والماركة + طباعة ملصقات الباركود -->
     <section id="section-inventory" class="hidden space-y-4">
       <div id="inv-role-note" class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm text-xs font-bold text-marine-900"></div>
 
@@ -505,7 +508,7 @@
 
       <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2.5 justify-between">
         <div class="flex flex-col sm:flex-row gap-2 flex-1">
-          <input type="text" id="inv-search-input" oninput="renderInventory()" placeholder="ابحث في المخزون بالاسم أو الباركود..."
+          <input type="text" id="inv-search-input" oninput="renderInventory()" placeholder="ابحث في المخزون بالاسم أو الماركة أو الفئة أو الباركود..."
             class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
           <select id="inv-stock-filter" onchange="renderInventory()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
             <option value="all">كل الاستوك</option>
@@ -524,8 +527,8 @@
           <thead>
             <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
               <th class="py-3 px-4">الباركود</th>
-              <th class="py-3 px-4">المنتج</th>
-              <th class="py-3 px-4">الفئة</th>
+              <th class="py-3 px-4">المنتج والماركة</th>
+              <th class="py-3 px-4">الفئة الرئيسية / الفرعية</th>
               <th class="py-3 px-4">الوحدة</th>
               <th id="inv-th-cost" class="py-3 px-4">سعر الشراء للوحدة</th>
               <th class="py-3 px-4">سعر البيع للوحدة</th>
@@ -751,7 +754,7 @@
               <select id="pur-product-select" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
             </div>
             <div>
-              <label class="block font-bold mb-1">الكمية / الوزن المورد (حسب الوحدة)</label>
+              <label class="block font-bold mb-1">الكمية / الوزن المورد (حسب وحدة المخزون)</label>
               <input type="number" id="pur-qty-input" min="0.001" step="any" value="1" required
                 class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold" />
             </div>
@@ -882,7 +885,7 @@
       </div>
     </section>
 
-    <!-- 7. الإعدادات والنسخ الاحتياطي وتعديل PIN الكاشير والإدارة والتحكم الكامل بالفئات والمزامنة السحابية -->
+    <!-- 7. الإعدادات والفئات الشجرية المتطورة وتعديل PIN والنسخ الاحتياطي -->
     <section id="section-settings" class="hidden space-y-4">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
@@ -901,7 +904,7 @@
         </div>
 
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-          <h3 class="font-extrabold text-base text-marine-900">إدارة الكاشير والشيفتات والفئات وتعديل رموز PIN</h3>
+          <h3 class="font-extrabold text-base text-marine-900">إدارة الكاشير والشيفتات وتعديل رموز PIN</h3>
 
           <div class="flex flex-col sm:flex-row gap-2">
             <input type="text" id="new-cashier-name" placeholder="اسم الكاشير" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
@@ -926,16 +929,40 @@
             <button type="button" onclick="addShiftItem()" class="px-4 py-2 rounded-xl bg-cyan-700 text-white text-xs font-bold">إضافة شيفت</button>
           </div>
           <div id="settings-shifts-list" class="flex flex-wrap gap-2"></div>
+        </div>
 
-          <!-- التحكم الكامل في الفئات: إضافة، تعديل، إزالة -->
-          <div class="p-3 rounded-xl bg-marine-50/70 border border-marine-200 space-y-2.5">
-            <label class="block text-xs font-extrabold text-marine-950">التحكم في الفئات (إضافة / تعديل / إزالة)</label>
-            <div class="flex gap-2">
-              <input type="text" id="new-category-name" placeholder="اسم فئة جديدة (مثال: عوامات وبلد)..." class="flex-1 px-3 py-2 bg-white border border-marine-200 rounded-xl text-xs font-bold" />
-              <button type="button" onclick="addCategoryItem()" class="px-4 py-2 rounded-xl bg-marine-800 hover:bg-marine-900 text-white text-xs font-bold">إضافة فئة</button>
+        <!-- نظام الفئات الشجرية المتطور (فئة رئيسية -> فئات فرعية تحتها -> ماركات ومنتجات) -->
+        <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-marine-200 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="font-extrabold text-base text-marine-950">إدارة الفئات الرئيسية والفئات الفرعية المتدرجة</h3>
+              <p class="text-xs text-slate-500">أضف فئة رئيسية (مثل: أعواد صيد الأسماك) ثم أضف تحتها فئات فرعية (مثل: أعواد صيد المياه العذبة / أعواد صيد المياه المالحة) وربطها بالماركة داخل المنتج.</p>
             </div>
-            <div id="settings-categories-list" class="flex flex-wrap gap-2"></div>
           </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <!-- إضافة فئة رئيسية -->
+            <div class="p-3.5 rounded-2xl bg-marine-50/70 border border-marine-200 space-y-2">
+              <label class="block text-xs font-extrabold text-marine-950">1. إضافة فئة رئيسية جديدة</label>
+              <div class="flex gap-2">
+                <input type="text" id="new-category-name" placeholder="مثال: أعواد صيد الأسماك..." class="flex-1 px-3 py-2 bg-white border border-marine-200 rounded-xl text-xs font-bold" />
+                <button type="button" onclick="addCategoryItem()" class="px-4 py-2 rounded-xl bg-marine-800 hover:bg-marine-900 text-white text-xs font-bold whitespace-nowrap">+ فئة رئيسية</button>
+              </div>
+            </div>
+
+            <!-- إضافة فئة فرعية تحت فئة رئيسية -->
+            <div class="p-3.5 rounded-2xl bg-cyan-50/70 border border-cyan-200 space-y-2">
+              <label class="block text-xs font-extrabold text-cyan-950">2. إضافة فئة فرعية تحت فئة رئيسية</label>
+              <div class="flex flex-col sm:flex-row gap-2">
+                <select id="new-subcat-parent-select" class="px-3 py-2 bg-white border border-cyan-200 rounded-xl text-xs font-bold"></select>
+                <input type="text" id="new-subcategory-name" placeholder="مثال: أعواد صيد المياه العذبة..." class="flex-1 px-3 py-2 bg-white border border-cyan-200 rounded-xl text-xs font-bold" />
+                <button type="button" onclick="addSubcategoryItem()" class="px-4 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold whitespace-nowrap">+ فئة فرعية</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- عرض شجرة الفئات الرئيسية والفرعية مع إمكانية التعديل والحذف -->
+          <div id="settings-categories-tree" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
         </div>
 
         <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
@@ -959,7 +986,7 @@
   </main>
 
   <!-- ================================================= -->
-  <!-- النوافذ المنبثقة (PIN / مرتجع / مصروف درج / منتج بالوحدة / فاتورة / طباعة / Z-Report / باركود) -->
+  <!-- النوافذ المنبثقة (PIN / مرتجع / مصروف درج / منتج بالكيلو والجرام والفئات الفرعية / فاتورة / Z-Report / باركود) -->
   <!-- ================================================= -->
   <div id="modal-admin-pin" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
@@ -1027,11 +1054,11 @@
     </div>
   </div>
 
-  <!-- نافذة تسجيل مرتجع (إرجاع منتج أو عدد معين / وزن / جرام / مللي) -->
+  <!-- نافذة تسجيل مرتجع (إرجاع منتج أو عدد معين / كيلو / جرام / مللي) -->
   <div id="modal-return" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
       <div class="px-4 py-3 bg-rose-900 text-white font-extrabold text-xs flex justify-between items-center">
-        <span>مرتجع منتج / كمية / وزن</span>
+        <span>مرتجع منتج / كمية / كيلو / جرام</span>
         <button type="button" onclick="closeReturnModal()">✕</button>
       </div>
       <form onsubmit="submitReturnItem(event)" class="p-4 space-y-3 text-xs">
@@ -1068,49 +1095,66 @@
     </div>
   </div>
 
-  <!-- نافذة إضافة / تعديل منتج مع خيارات الوحدة (الكمية - الجرام - مللي - وزن) -->
+  <!-- نافذة إضافة / تعديل منتج مع خيارات الوحدة (الكمية - الكيلو - الجرام - مللي - وزن) والفئات الرئيسية والفرعية والماركة -->
   <div id="modal-product" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4 no-print">
-    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200">
       <div class="px-4 py-3 bg-marine-900 text-white font-extrabold text-xs flex justify-between items-center">
         <span id="modal-product-title">إضافة / تعديل منتج</span>
         <button type="button" onclick="closeProductModal()">✕</button>
       </div>
-      <form onsubmit="saveProductForm(event)" class="p-4 space-y-3 text-xs">
+      <form onsubmit="saveProductForm(event)" class="p-4 space-y-3 text-xs max-h-[85vh] overflow-y-auto">
         <input type="hidden" id="prod-edit-id" />
-        <div>
-          <label class="block font-bold mb-1">اسم المنتج</label>
-          <input type="text" id="prod-name-input" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold mb-1">اسم المنتج</label>
+            <input type="text" id="prod-name-input" required placeholder="مثال: عود صيد كربون 3.6 متر" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">الماركة / الموديل (اختياري)</label>
+            <input type="text" id="prod-brand-input" placeholder="مثال: شيمانو / دايوا / بن..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold" />
+          </div>
         </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div>
             <label class="block font-bold mb-1">الباركود</label>
             <input type="text" id="prod-sku-input" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
           </div>
           <div>
-            <label class="block font-bold mb-1">الفئة</label>
-            <select id="prod-cat-input" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
+            <label class="block font-bold mb-1">الفئة الرئيسية</label>
+            <select id="prod-cat-input" onchange="populateProductSubcategorySelect()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
           </div>
           <div>
-            <label class="block font-bold mb-1">الوحدة</label>
-            <select id="prod-unit-input" onchange="updateProductUnitLabels()" class="w-full px-3 py-2 bg-cyan-50/70 border border-cyan-300 rounded-xl font-extrabold text-marine-950">
-              <option value="الكمية">الكمية</option>
-              <option value="الجرام">الجرام</option>
-              <option value="مللي">مللي</option>
-              <option value="وزن">وزن</option>
-            </select>
+            <label class="block font-bold mb-1">الفئة الفرعية (تحت الفئة)</label>
+            <select id="prod-subcat-input" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
           </div>
         </div>
+
+        <div>
+          <label class="block font-bold mb-1">الوحدة الحسابية</label>
+          <select id="prod-unit-input" onchange="updateProductUnitLabels()" class="w-full px-3 py-2 bg-cyan-50/70 border border-cyan-300 rounded-xl font-extrabold text-marine-950">
+            <option value="الكمية">الكمية (قطعة / علبة)</option>
+            <option value="الكيلو">الكيلو (سعر الكيلو والبيع بالكيلو أو الجرام)</option>
+            <option value="الجرام">الجرام (سعر الجرام والبيع بالجرام)</option>
+            <option value="مللي">مللي (سعر المللي والبيع بالمللي)</option>
+            <option value="وزن">وزن (كجم كسري)</option>
+          </select>
+        </div>
+
+        <!-- صندوق توضيحي للمعادلة الحسابية للكيلو والجرام -->
+        <div id="prod-unit-guide-box" class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-950 leading-relaxed"></div>
+
         <div class="grid grid-cols-3 gap-2">
           <div>
             <label id="prod-cost-label" class="block font-bold mb-1">سعر الشراء للوحدة</label>
-            <input type="number" id="prod-cost-input" step="0.01" min="0" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+            <input type="number" id="prod-cost-input" step="0.001" min="0" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
           </div>
           <div>
             <label id="prod-price-label" class="block font-bold mb-1">سعر البيع للوحدة</label>
-            <input type="number" id="prod-price-input" step="0.01" min="0" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
+            <input type="number" id="prod-price-input" step="0.001" min="0" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
           </div>
           <div>
-            <label id="prod-stock-label" class="block font-bold mb-1">الكمية بالمخزون</label>
+            <label id="prod-stock-label" class="block font-bold mb-1">الرصيد بالمخزون</label>
             <input type="number" id="prod-stock-input" step="any" min="0" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono" />
           </div>
         </div>
@@ -1262,7 +1306,7 @@
       SETTINGS: 'shabaka_pos_settings_v3',
     };
 
-    const UNIT_OPTIONS = ['الكمية', 'الجرام', 'مللي', 'وزن'];
+    const UNIT_OPTIONS = ['الكمية', 'الكيلو', 'الجرام', 'مللي', 'وزن'];
 
     const EXPENSE_CATEGORIES = [
       'الايجار',
@@ -1278,14 +1322,20 @@
     // كود الغرفة/الفريق المشترك افتراضياً حتى يشترك جميع أعضاء الفريق تلقائياً في نفس البيانات السحابية
     const SHARED_TEAM_ROOM = 'shabaka-w-senara-team-shared';
 
-    const CATEGORIES = ['قصبات الصيد', 'ماكينات الصيد', 'خيوط وضفائر', 'سنارات وخطاطيف', 'طعوم صناعية', 'اكسسوارات'];
+    const CATEGORIES = ['أعواد صيد الأسماك', 'ماكينات الصيد', 'خيوط وضفائر', 'سنارات وخطاطيف', 'طعوم صناعية', 'اكسسوارات'];
+
+    const DEFAULT_SUBCATEGORIES = {
+      'أعواد صيد الأسماك': ['أعواد صيد المياه العذبة', 'أعواد صيد المياه المالحة'],
+      'ماكينات الصيد': ['ماكينات سبينينج', 'ماكينات جر وتسقيط'],
+      'خيوط وضفائر': ['خيط نايلون', 'ضفيرة بريد'],
+    };
 
     const DEFAULT_PRODUCTS = [
-      { id: '1', sku: '6221001', name: 'قصبة صيد بحري كربون 3.6 متر', category: 'قصبات الصيد', unit: 'الكمية', cost: 650, price: 950, stock: 12, minStock: 3 },
-      { id: '2', sku: '6222001', name: 'ماكينة صيد مقاس 6000 دولاب معدني', category: 'ماكينات الصيد', unit: 'الكمية', cost: 580, price: 850, stock: 8, minStock: 2 },
-      { id: '3', sku: '6223001', name: 'ضفيرة صيد 4 خيوط 300 متر', category: 'خيوط وضفائر', unit: 'الكمية', cost: 140, price: 230, stock: 25, minStock: 5 },
-      { id: '4', sku: '6224001', name: 'علبة سنارات صلب متنوعة (100 قطعة)', category: 'سنارات وخطاطيف', unit: 'الكمية', cost: 75, price: 125, stock: 2, minStock: 4 },
-      { id: '5', sku: '6225001', name: 'طعم صناعي جمبري مضيء (5 قطع)', category: 'طعوم صناعية', unit: 'الكمية', cost: 60, price: 110, stock: 0, minStock: 3 },
+      { id: '1', sku: '6221001', name: 'عود صيد كربون 3.6 متر', brand: 'دايوا', category: 'أعواد صيد الأسماك', subcategory: 'أعواد صيد المياه المالحة', unit: 'الكمية', cost: 650, price: 950, stock: 12, minStock: 3 },
+      { id: '2', sku: '6222001', name: 'ماكينة صيد مقاس 6000 دولاب معدني', brand: 'شيمانو', category: 'ماكينات الصيد', subcategory: 'ماكينات جر وتسقيط', unit: 'الكمية', cost: 580, price: 850, stock: 8, minStock: 2 },
+      { id: '3', sku: '6223001', name: 'رصاص صيد بلد متنوع بالكيلو', brand: 'محلي', category: 'اكسسوارات', subcategory: '', unit: 'الكيلو', cost: 110, price: 160, stock: 15.5, minStock: 3 },
+      { id: '4', sku: '6224001', name: 'عجينة طعم صيد جاهزة بالجرام', brand: 'بحري', category: 'طعوم صناعية', subcategory: '', unit: 'الجرام', cost: 0.15, price: 0.30, stock: 2500, minStock: 300 },
+      { id: '5', sku: '6225001', name: 'عود صيد تلسكوبي خفيف 2.7 متر', brand: 'أوكوما', category: 'أعواد صيد الأسماك', subcategory: 'أعواد صيد المياه العذبة', unit: 'الكمية', cost: 320, price: 480, stock: 6, minStock: 2 },
     ];
 
     const DEFAULT_SUPPLIERS = [
@@ -1305,6 +1355,7 @@
       ],
       shifts: ['الشيفت الصباحي', 'الشيفت المسائي'],
       categories: [...CATEGORIES],
+      subcategories: JSON.parse(JSON.stringify(DEFAULT_SUBCATEGORIES)),
       activeCashier: 'كاشير 1',
       activeShift: 'الشيفت الصباحي',
       cloudRoom: SHARED_TEAM_ROOM,
@@ -1321,6 +1372,7 @@
     let settings = { ...DEFAULT_SETTINGS };
     let cart = [];
     let selectedCategory = 'الكل';
+    let selectedSubcategory = 'الكل';
     let reportPeriod = 'all';
     let session = { authenticated: false, role: 'cashier', cashier: 'كاشير 1', shift: 'الشيفت الصباحي' };
     let pendingAdminFn = null;
@@ -1331,28 +1383,42 @@
     let currentReceiptInvoiceId = null;
     let currentBarcodeProductId = null;
 
-    // دوال مساعدة لوحدات القياس (الكمية - الجرام - مللي - وزن)
+    // =================================================
+    // المعالجة الحسابية الاحترافية للوحدات (الكمية - الكيلو - الجرام - مللي - وزن)
+    // =================================================
     function normalizeUnit(u) {
       return UNIT_OPTIONS.includes(u) ? u : 'الكمية';
     }
 
     function isFractionalUnit(u) {
       const unit = normalizeUnit(u);
-      return unit === 'الجرام' || unit === 'مللي' || unit === 'وزن';
+      return unit === 'الكيلو' || unit === 'الجرام' || unit === 'مللي' || unit === 'وزن';
+    }
+
+    function isKiloBasedUnit(u) {
+      const unit = normalizeUnit(u);
+      return unit === 'الكيلو' || unit === 'وزن';
     }
 
     function getUnitDisplayLabel(u) {
       const unit = normalizeUnit(u);
       if (unit === 'الكمية') return 'قطعة';
+      if (unit === 'الكيلو') return 'كيلو';
       if (unit === 'الجرام') return 'جرام';
       if (unit === 'مللي') return 'مللي';
-      return 'وزن (كجم)';
+      return 'كجم';
     }
 
+    // تنسيق عرض الكمية بذكاء: إذا كانت الوحدة "الكيلو" وكان المقدار أقل من 1 كيلو يعرض (مثال: 0.250 كيلو / 250 جرام)
     function formatQtyWithUnit(qty, u) {
+      const unit = normalizeUnit(u);
       const n = Number(qty || 0);
       const cleanNum = Number.isInteger(n) ? String(n) : String(Number(n.toFixed(3)));
-      return `${cleanNum} ${getUnitDisplayLabel(u)}`;
+      if (isKiloBasedUnit(unit) && n > 0 && n < 1) {
+        const grams = Math.round(n * 1000);
+        return `${cleanNum} كيلو (${grams} جم)`;
+      }
+      return `${cleanNum} ${getUnitDisplayLabel(unit)}`;
     }
 
     function roundMoney(v) {
@@ -1422,10 +1488,25 @@
       return String(str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
 
+    function ensureSubcategoriesMap(rawMap, catsList) {
+      const map = (rawMap && typeof rawMap === 'object' && !Array.isArray(rawMap)) ? { ...rawMap } : {};
+      (catsList || []).forEach(c => {
+        if (!Array.isArray(map[c])) {
+          map[c] = Array.isArray(DEFAULT_SUBCATEGORIES[c]) ? [...DEFAULT_SUBCATEGORIES[c]] : [];
+        }
+      });
+      return map;
+    }
+
     function loadState() {
       try {
         const rawProducts = JSON.parse(localStorage.getItem(KEYS.PRODUCTS) || 'null') || [...DEFAULT_PRODUCTS];
-        products = rawProducts.map(p => ({ ...p, unit: normalizeUnit(p.unit) }));
+        products = rawProducts.map(p => ({
+          ...p,
+          unit: normalizeUnit(p.unit),
+          subcategory: p.subcategory || '',
+          brand: p.brand || ''
+        }));
         const rawSales = JSON.parse(localStorage.getItem(KEYS.SALES) || 'null') || [];
         sales = Array.isArray(rawSales) ? rawSales.filter(s => s && Array.isArray(s.items) && s.items.length > 0 && !s._deleted) : [];
         returnsLog = (JSON.parse(localStorage.getItem(KEYS.RETURNS) || 'null') || []).filter(r => r && !r._deleted);
@@ -1435,6 +1516,7 @@
         expensesLog = (JSON.parse(localStorage.getItem(KEYS.EXPENSES) || 'null') || []).filter(e => e && !e._deleted);
         zReportsLog = (JSON.parse(localStorage.getItem(KEYS.Z_REPORTS) || 'null') || []).filter(z => z && !z._deleted);
         const savedSet = JSON.parse(localStorage.getItem(KEYS.SETTINGS) || 'null') || {};
+        const loadedCats = Array.isArray(savedSet.categories) ? [...savedSet.categories] : [...CATEGORIES];
         settings = {
           ...DEFAULT_SETTINGS,
           ...savedSet,
@@ -1444,9 +1526,8 @@
           shifts: Array.isArray(savedSet.shifts) && savedSet.shifts.length
             ? savedSet.shifts
             : [...DEFAULT_SETTINGS.shifts],
-          categories: Array.isArray(savedSet.categories)
-            ? [...savedSet.categories]
-            : [...CATEGORIES],
+          categories: loadedCats,
+          subcategories: ensureSubcategoriesMap(savedSet.subcategories, loadedCats),
           cloudRoom: savedSet.cloudRoom || SHARED_TEAM_ROOM,
         };
       } catch (e) {
@@ -1462,6 +1543,7 @@
           ...DEFAULT_SETTINGS,
           cashierProfiles: DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p })),
           categories: [...CATEGORIES],
+          subcategories: ensureSubcategoriesMap(DEFAULT_SUBCATEGORIES, CATEGORIES),
           cloudRoom: SHARED_TEAM_ROOM
         };
       }
@@ -1501,7 +1583,7 @@
         const mergedProducts = (latestRemote && Array.isArray(latestRemote.products)
           ? mergeById(products, latestRemote.products)
           : products.filter(x => !x._deleted)
-        ).map(p => ({ ...p, unit: normalizeUnit(p.unit) }));
+        ).map(p => ({ ...p, unit: normalizeUnit(p.unit), subcategory: p.subcategory || '', brand: p.brand || '' }));
 
         const mergedSales = latestRemote && Array.isArray(latestRemote.sales)
           ? mergeById(sales, latestRemote.sales, { dropEmptyInvoices: true })
@@ -1525,11 +1607,13 @@
           ? mergeById(zReportsLog, latestRemote.zReportsLog)
           : zReportsLog.filter(x => !x._deleted);
 
+        const activeCats = Array.isArray(settings.categories) ? [...settings.categories] : [...CATEGORIES];
         const mergedSettings = {
           ...DEFAULT_SETTINGS,
           ...(latestRemote && latestRemote.settings ? latestRemote.settings : {}),
           ...settings,
-          categories: Array.isArray(settings.categories) ? [...settings.categories] : [...CATEGORIES],
+          categories: activeCats,
+          subcategories: ensureSubcategoriesMap(settings.subcategories, activeCats),
           cloudRoom: settings.cloudRoom || SHARED_TEAM_ROOM,
         };
 
@@ -1580,7 +1664,7 @@
         lastRemoteStamp = data.stamp;
         isApplyingRemote = true;
         if (Array.isArray(data.products)) {
-          products = mergeById(products, data.products).map(p => ({ ...p, unit: normalizeUnit(p.unit) }));
+          products = mergeById(products, data.products).map(p => ({ ...p, unit: normalizeUnit(p.unit), subcategory: p.subcategory || '', brand: p.brand || '' }));
         }
         if (Array.isArray(data.sales)) sales = mergeById(sales, data.sales, { dropEmptyInvoices: true });
         if (Array.isArray(data.returnsLog)) returnsLog = mergeById(returnsLog, data.returnsLog);
@@ -1590,11 +1674,13 @@
         if (Array.isArray(data.expensesLog)) expensesLog = mergeById(expensesLog, data.expensesLog);
         if (Array.isArray(data.zReportsLog)) zReportsLog = mergeById(zReportsLog, data.zReportsLog);
         if (data.settings) {
+          const remoteCats = Array.isArray(data.settings.categories) ? [...data.settings.categories] : (settings.categories || [...CATEGORIES]);
           settings = {
             ...DEFAULT_SETTINGS,
             ...settings,
             ...data.settings,
-            categories: Array.isArray(data.settings.categories) ? [...data.settings.categories] : (settings.categories || [...CATEGORIES]),
+            categories: remoteCats,
+            subcategories: ensureSubcategoriesMap(data.settings.subcategories || settings.subcategories, remoteCats),
             cloudRoom: settings.cloudRoom || SHARED_TEAM_ROOM
           };
         }
@@ -1790,7 +1876,7 @@
       document.getElementById('inv-th-cost').classList.toggle('hidden', !isAdmin());
       document.getElementById('rep-profit-box').classList.toggle('hidden', !isAdmin());
       document.getElementById('inv-role-note').textContent = isAdmin()
-        ? 'وضع الإدارة: يمكنك إضافة وتعديل المنتجات ووحدات القياس (الكمية، الجرام، مللي، وزن) وطباعة ملصقات الباركود.'
+        ? 'وضع الإدارة: يمكنك إضافة وتعديل المنتجات ووحدات القياس (الكمية، الكيلو، الجرام، مللي، وزن) والفئات الرئيسية والفرعية والماركة.'
         : 'وضع الكاشير: متاح لك البحث وطباعة ملصقات الباركود ومشاهدة الاستوك المتاح ووحدة كل صنف. التعديل يتطلب PIN الإدارة.';
       updatePosDrawerIndicator();
     }
@@ -1839,25 +1925,63 @@
           session.role = 'admin';
           syncRoleUI();
           showSection(tab);
-        }, 'الدخول إلى الموردين أو التقارير أو الإعدادات يتطلب رمز PIN الخاص بالإدارة:');
+        }, 'الدخول إلى الموردين أو التقارير أو الإعدادات والفئات يتطلب رمز PIN الخاص بالإدارة:');
         return;
       }
       showSection(tab);
     }
 
+    // =================================================
+    // الفئات الرئيسية والفرعية في نقطة البيع
+    // =================================================
+    function selectMainCategory(cat) {
+      selectedCategory = cat;
+      selectedSubcategory = 'الكل';
+      renderPosCategories();
+      renderPosGrid();
+    }
+
+    function selectSubCategory(sub) {
+      selectedSubcategory = sub;
+      renderPosCategories();
+      renderPosGrid();
+    }
+
     function renderPosCategories() {
       const bar = document.getElementById('pos-categories-bar');
+      const subBar = document.getElementById('pos-subcategories-bar');
       const cats = Array.isArray(settings.categories) ? settings.categories : CATEGORIES;
       if (selectedCategory !== 'الكل' && !cats.includes(selectedCategory)) {
         selectedCategory = 'الكل';
+        selectedSubcategory = 'الكل';
       }
       const allCats = ['الكل', ...cats];
       bar.innerHTML = allCats.map(c => `
-        <button type="button" onclick="selectedCategory='${esc(c)}';renderPosCategories();renderPosGrid();"
+        <button type="button" onclick="selectMainCategory('${esc(c)}')"
           class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap ${selectedCategory === c ? 'bg-marine-700 text-white' : 'bg-slate-100 text-slate-700'}">
           ${esc(c)}
         </button>
       `).join('');
+
+      if (subBar) {
+        const subs = selectedCategory !== 'الكل' && settings.subcategories && Array.isArray(settings.subcategories[selectedCategory])
+          ? settings.subcategories[selectedCategory]
+          : [];
+        if (subs.length) {
+          subBar.classList.remove('hidden');
+          const allSubs = ['الكل', ...subs];
+          subBar.innerHTML = `<span class="text-[11px] font-extrabold text-cyan-800 whitespace-nowrap pl-1">التصنيف الفرعي:</span>` +
+            allSubs.map(sc => `
+              <button type="button" onclick="selectSubCategory('${esc(sc)}')"
+                class="px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap ${selectedSubcategory === sc ? 'bg-cyan-600 text-white' : 'bg-cyan-50 text-cyan-950 border border-cyan-200'}">
+                ${esc(sc)}
+              </button>
+            `).join('');
+        } else {
+          subBar.classList.add('hidden');
+          subBar.innerHTML = '';
+        }
+      }
     }
 
     function renderPosGrid() {
@@ -1865,13 +1989,20 @@
       const grid = document.getElementById('pos-products-grid');
       const list = products.filter(p => {
         const okCat = selectedCategory === 'الكل' || p.category === selectedCategory;
-        const okQ = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
-        return okCat && okQ;
+        const okSub = selectedSubcategory === 'الكل' || (p.subcategory || '') === selectedSubcategory;
+        const okQ = !q ||
+          p.name.toLowerCase().includes(q) ||
+          (p.brand || '').toLowerCase().includes(q) ||
+          (p.category || '').toLowerCase().includes(q) ||
+          (p.subcategory || '').toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q);
+        return okCat && okSub && okQ;
       });
       grid.innerHTML = list.map(p => {
         const unit = normalizeUnit(p.unit);
         const unitLabel = getUnitDisplayLabel(unit);
         const stockText = p.stock <= 0 ? 'نافذ' : `متاح: ${formatQtyWithUnit(p.stock, unit)}`;
+        const catHierarchy = p.subcategory ? `${p.category} ← ${p.subcategory}` : p.category;
         return `
         <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex flex-col justify-between gap-2">
           <div>
@@ -1881,7 +2012,11 @@
                 ${esc(unit)}
               </span>
             </div>
-            <div class="font-bold text-sm text-slate-800 mt-1.5">${esc(p.name)}</div>
+            <div class="font-bold text-sm text-slate-800 mt-1.5">
+              ${esc(p.name)}
+              ${p.brand ? `<span class="inline-block mr-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-[10px] font-extrabold">${esc(p.brand)}</span>` : ''}
+            </div>
+            <div class="text-[10px] text-slate-500 font-bold mt-0.5">${esc(catHierarchy)}</div>
             <div class="text-[11px] mt-1 ${p.stock <= 0 ? 'text-rose-600 font-bold' : p.stock <= p.minStock ? 'text-amber-600 font-bold' : 'text-emerald-700 font-bold'}">
               ${esc(stockText)}
             </div>
@@ -2002,7 +2137,7 @@
         cart.push({
           id: prod.id,
           sku: prod.sku,
-          name: prod.name,
+          name: prod.brand ? `${prod.name} (${prod.brand})` : prod.name,
           unit,
           price: prod.price,
           cost: prod.cost,
@@ -2012,6 +2147,7 @@
       renderCart();
     }
 
+    // تحديث الكمية بالكيلو أو الجرام أو القطعة بدقة
     function updateCartItemQty(index, rawVal) {
       const item = cart[index];
       if (!item) return;
@@ -2037,11 +2173,19 @@
       renderCart();
     }
 
+    // إدخال الوزن بالجرام لمنتج مسجل بالكيلو (مثال: 200 جرام -> 0.200 كيلو تلقائياً)
+    function updateCartItemFromGrams(index, gramsRaw) {
+      const grams = parseFloat(gramsRaw);
+      if (Number.isNaN(grams) || grams <= 0) return;
+      const kilos = Math.round((grams / 1000) * 1000) / 1000;
+      updateCartItemQty(index, kilos);
+    }
+
     function stepCartItemQty(index, delta) {
       const item = cart[index];
       if (!item) return;
       const unit = normalizeUnit(item.unit);
-      const step = isFractionalUnit(unit) ? (unit === 'وزن' ? 0.25 : 50) : 1;
+      const step = isKiloBasedUnit(unit) ? 0.25 : (isFractionalUnit(unit) ? 50 : 1);
       const next = Math.round((Number(item.qty || 0) + (delta * step)) * 1000) / 1000;
       if (next <= 0) {
         cart.splice(index, 1);
@@ -2110,6 +2254,26 @@
           const unitLbl = getUnitDisplayLabel(unit);
           const stepAttr = isFractionalUnit(unit) ? 'any' : '1';
           const lineTotal = roundMoney(item.price * item.qty);
+          const isKilo = isKiloBasedUnit(unit);
+          const gramsEquivalent = isKilo ? Math.round(Number(item.qty || 0) * 1000) : 0;
+
+          const kiloHelperMarkup = isKilo ? `
+            <div class="flex flex-wrap items-center justify-between gap-1.5 pt-1.5 border-t border-slate-100 text-[11px]">
+              <div class="flex items-center gap-1">
+                <span class="text-slate-500 font-bold">أو بالجرام:</span>
+                <input type="number" value="${gramsEquivalent}" min="1" step="1"
+                  onchange="updateCartItemFromGrams(${i}, this.value)"
+                  class="w-20 px-1.5 py-0.5 text-center bg-amber-50 border border-amber-200 rounded-lg font-mono font-bold text-amber-950" />
+                <span class="text-amber-900 font-bold">جم</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button type="button" onclick="updateCartItemFromGrams(${i}, 100)" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-cyan-100 font-mono font-bold">100جم</button>
+                <button type="button" onclick="updateCartItemFromGrams(${i}, 250)" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-cyan-100 font-mono font-bold">250جم</button>
+                <button type="button" onclick="updateCartItemFromGrams(${i}, 500)" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-cyan-100 font-mono font-bold">500جم</button>
+              </div>
+            </div>
+          ` : '';
+
           return `
           <div class="py-2.5 space-y-1.5">
             <div class="flex items-start justify-between gap-2">
@@ -2121,16 +2285,19 @@
               </div>
               <button type="button" onclick="cart.splice(${i},1);renderCart();" class="text-rose-600 font-bold px-2">✕</button>
             </div>
-            <div class="flex items-center justify-between gap-2 bg-white p-1.5 rounded-xl border border-slate-200">
-              <div class="flex items-center gap-1">
-                <button type="button" onclick="stepCartItemQty(${i}, -1)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 font-extrabold text-slate-700">-</button>
-                <input type="number" value="${item.qty}" min="0.001" step="${stepAttr}"
-                  onchange="updateCartItemQty(${i}, this.value)"
-                  class="w-20 px-1.5 py-0.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-mono font-extrabold text-marine-950" />
-                <button type="button" onclick="stepCartItemQty(${i}, 1)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 font-extrabold text-slate-700">+</button>
-                <span class="text-[11px] font-bold text-slate-600 pr-1">${esc(unitLbl)}</span>
+            <div class="space-y-1.5 bg-white p-2 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="stepCartItemQty(${i}, -1)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 font-extrabold text-slate-700">-</button>
+                  <input type="number" value="${item.qty}" min="0.001" step="${stepAttr}"
+                    onchange="updateCartItemQty(${i}, this.value)"
+                    class="w-20 px-1.5 py-0.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-mono font-extrabold text-marine-950" />
+                  <button type="button" onclick="stepCartItemQty(${i}, 1)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 font-extrabold text-slate-700">+</button>
+                  <span class="text-[11px] font-bold text-slate-600 pr-1">${esc(unitLbl)}</span>
+                </div>
+                <div class="font-mono font-extrabold text-emerald-700">${fmt(lineTotal)}</div>
               </div>
-              <div class="font-mono font-extrabold text-emerald-700">${fmt(lineTotal)}</div>
+              ${kiloHelperMarkup}
             </div>
           </div>
         `;
@@ -2597,7 +2764,7 @@
     }
 
     // =================================================
-    // نظام المرتجعات (إرجاع منتج أو عدد معين / وزن وتحديث الفاتورة الأصلية)
+    // نظام المرتجعات (إرجاع منتج أو عدد معين / كيلو / جرام وتحديث الفاتورة الأصلية)
     // =================================================
     function syncReturnInvoiceItems() {
       const invoiceRef = (document.getElementById('ret-invoice-input')?.value || '').trim();
@@ -2784,7 +2951,7 @@
     }
 
     // =================================================
-    // المخزون ووحدات القياس وطباعة ملصقات الباركود (Barcode Labels)
+    // المخزون ووحدات القياس والفئات الشجرية وطباعة ملصقات الباركود
     // =================================================
     function renderInventory() {
       const q = (document.getElementById('inv-search-input').value || '').trim().toLowerCase();
@@ -2796,7 +2963,12 @@
       document.getElementById('inv-stat-low').textContent = products.filter(p => p.stock <= p.minStock).length;
 
       const list = products.filter(p => {
-        const okQ = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
+        const okQ = !q ||
+          p.name.toLowerCase().includes(q) ||
+          (p.brand || '').toLowerCase().includes(q) ||
+          (p.category || '').toLowerCase().includes(q) ||
+          (p.subcategory || '').toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q);
         if (!okQ) return false;
         if (filter === 'available') return p.stock > p.minStock;
         if (filter === 'low') return p.stock > 0 && p.stock <= p.minStock;
@@ -2815,8 +2987,14 @@
         return `
           <tr>
             <td class="py-3 px-4 font-mono text-xs">${esc(p.sku)}</td>
-            <td class="py-3 px-4 font-bold">${esc(p.name)}</td>
-            <td class="py-3 px-4 text-xs">${esc(p.category)}</td>
+            <td class="py-3 px-4 font-bold">
+              <div>${esc(p.name)}</div>
+              ${p.brand ? `<span class="inline-block mt-0.5 px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[10px] font-extrabold">الماركة: ${esc(p.brand)}</span>` : ''}
+            </td>
+            <td class="py-3 px-4 text-xs">
+              <div class="font-bold text-slate-800">${esc(p.category)}</div>
+              ${p.subcategory ? `<div class="text-[11px] text-cyan-800 font-bold">↳ ${esc(p.subcategory)}</div>` : ''}
+            </td>
             <td class="py-3 px-4 text-xs">
               <span class="px-2 py-0.5 rounded-full font-extrabold bg-cyan-50 text-cyan-900 border border-cyan-200">${esc(unit)}</span>
             </td>
@@ -2874,11 +3052,12 @@
       const copies = Math.min(30, Math.max(1, parseInt(document.getElementById('barcode-label-copies')?.value, 10) || 1));
       const svgBars = buildBarcodeBarsSvg(prod.sku);
       const unitLbl = getUnitDisplayLabel(prod.unit);
+      const displayTitle = prod.brand ? `${prod.name} (${prod.brand})` : prod.name;
 
       const singleLabel = `
         <div class="w-56 border border-dashed border-slate-400 rounded-xl p-2.5 text-center bg-white">
           <div class="text-[11px] font-extrabold text-marine-950">${esc(settings.storeName)}</div>
-          <div class="text-xs font-bold text-slate-800 truncate mt-0.5">${esc(prod.name)}</div>
+          <div class="text-xs font-bold text-slate-800 truncate mt-0.5">${esc(displayTitle)}</div>
           <div class="my-1">${svgBars}</div>
           <div class="font-mono text-[11px] text-slate-600">${esc(prod.sku)}</div>
           <div class="font-mono text-sm font-extrabold text-slate-950 mt-0.5">${fmt(prod.price)} <span class="text-[10px] font-sans font-bold text-slate-600">/ ${esc(unitLbl)}</span></div>
@@ -2901,11 +3080,36 @@
       const priceLbl = document.getElementById('prod-price-label');
       const stockLbl = document.getElementById('prod-stock-label');
       const stockInp = document.getElementById('prod-stock-input');
+      const guideBox = document.getElementById('prod-unit-guide-box');
 
       if (costLbl) costLbl.textContent = `سعر الشراء (${unitLbl})`;
       if (priceLbl) priceLbl.textContent = `سعر البيع (${unitLbl})`;
       if (stockLbl) stockLbl.textContent = `الرصيد بالمخزون (${unitLbl})`;
       if (stockInp) stockInp.step = isFractionalUnit(unit) ? 'any' : '1';
+
+      if (guideBox) {
+        if (unit === 'الكيلو' || unit === 'وزن') {
+          guideBox.textContent = 'الطريقة الحسابية للكيلو: اكتب سعر شراء الكيلو الواحد وسعر بيع الكيلو الواحد والرصيد بالكيلو (مثال: 10 كيلو). في نقطة البيع يمكن للكاشير البيع بالكيلو (0.500) أو كتابة الجرامات (200 جرام) وسيحسب النظام السعر ويخصم من المخزون تلقائياً.';
+        } else if (unit === 'الجرام') {
+          guideBox.textContent = 'الطريقة الحسابية للجرام: اكتب سعر شراء الجرام الواحد وسعر بيع الجرام الواحد والرصيد بالجرام (مثال: 1000 جرام). في نقطة البيع اكتب عدد الجرامات المباعة (مثال: 5 جرام أو 200 جرام) ليضربها في سعر الجرام.';
+        } else if (unit === 'مللي') {
+          guideBox.textContent = 'الطريقة الحسابية للمللي: اكتب سعر شراء المللي الواحد وسعر بيع المللي الواحد والرصيد بالمللي، وعند البيع أدخل عدد المللي المباعة.';
+        } else {
+          guideBox.textContent = 'الطريقة الحسابية للكمية: اكتب سعر شراء القطعة/العلبة وسعر بيع القطعة والعدد المتاح بالمخزون.';
+        }
+      }
+    }
+
+    function populateProductSubcategorySelect(selectedSub = '') {
+      const cat = document.getElementById('prod-cat-input')?.value;
+      const subSel = document.getElementById('prod-subcat-input');
+      if (!subSel) return;
+      const subs = (cat && settings.subcategories && Array.isArray(settings.subcategories[cat]))
+        ? settings.subcategories[cat]
+        : [];
+      subSel.innerHTML = '<option value="">— بدون فئة فرعية —</option>' +
+        subs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+      subSel.value = subs.includes(selectedSub) ? selectedSub : '';
     }
 
     function openProductForm(id = null) {
@@ -2919,8 +3123,10 @@
         document.getElementById('modal-product-title').textContent = 'تعديل منتج';
         document.getElementById('prod-edit-id').value = p.id;
         document.getElementById('prod-name-input').value = p.name;
+        document.getElementById('prod-brand-input').value = p.brand || '';
         document.getElementById('prod-sku-input').value = p.sku;
         sel.value = cats.includes(p.category) ? p.category : (cats[0] || '');
+        populateProductSubcategorySelect(p.subcategory || '');
         if (unitSel) unitSel.value = normalizeUnit(p.unit);
         document.getElementById('prod-cost-input').value = p.cost;
         document.getElementById('prod-price-input').value = p.price;
@@ -2929,7 +3135,9 @@
         document.getElementById('modal-product-title').textContent = 'إضافة منتج جديد';
         document.getElementById('prod-edit-id').value = '';
         document.getElementById('prod-name-input').value = '';
+        document.getElementById('prod-brand-input').value = '';
         document.getElementById('prod-sku-input').value = String(Date.now()).slice(-7);
+        populateProductSubcategorySelect('');
         if (unitSel) unitSel.value = 'الكمية';
         document.getElementById('prod-cost-input').value = '';
         document.getElementById('prod-price-input').value = '';
@@ -2959,8 +3167,10 @@
       const obj = {
         id: id || String(Date.now()),
         name: document.getElementById('prod-name-input').value.trim(),
+        brand: (document.getElementById('prod-brand-input')?.value || '').trim(),
         sku: document.getElementById('prod-sku-input').value.trim(),
         category: document.getElementById('prod-cat-input').value,
+        subcategory: (document.getElementById('prod-subcat-input')?.value || '').trim(),
         unit,
         cost: parseFloat(document.getElementById('prod-cost-input').value) || 0,
         price: parseFloat(document.getElementById('prod-price-input').value) || 0,
@@ -3123,7 +3333,7 @@
         : unitCost;
 
       prod.stock = newStock;
-      prod.cost = Number(weightedAvgCost.toFixed(2));
+      prod.cost = Number(weightedAvgCost.toFixed(3));
 
       const rec = {
         id: 'PUR-' + Date.now().toString().slice(-6),
@@ -3687,7 +3897,7 @@
     }
 
     // =================================================
-    // الإعدادات وتعديل PIN الكاشير والإدارة والتحكم الكامل بالفئات
+    // الإعدادات وتعديل PIN الكاشير والإدارة والتحكم الشجري في الفئات الرئيسية والفرعية
     // =================================================
     function fillSettings() {
       document.getElementById('set-store-name').value = settings.storeName;
@@ -3714,19 +3924,53 @@
       `).join('');
 
       const cats = Array.isArray(settings.categories) ? settings.categories : [];
-      document.getElementById('settings-categories-list').innerHTML = cats.length
-        ? cats.map((c, idx) => `
-            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-marine-200 text-xs font-bold shadow-2xs">
-              <span>${esc(c)}</span>
-              <button type="button" onclick="editCategoryItem(${idx})" class="px-2 py-0.5 rounded-lg bg-marine-700 hover:bg-marine-800 text-white text-[11px] font-bold">
-                تعديل
-              </button>
-              <button type="button" onclick="removeCategoryItem(${idx})" class="px-2 py-0.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold">
-                إزالة
-              </button>
-            </div>
-          `).join('')
-        : '<span class="text-xs text-slate-400 font-bold">لا توجد فئات حالياً، أضف فئة جديدة بالأعلى.</span>';
+      settings.subcategories = ensureSubcategoriesMap(settings.subcategories, cats);
+
+      const parentSel = document.getElementById('new-subcat-parent-select');
+      if (parentSel) {
+        const prevParent = parentSel.value;
+        parentSel.innerHTML = cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+        if (cats.includes(prevParent)) parentSel.value = prevParent;
+      }
+
+      const treeBox = document.getElementById('settings-categories-tree');
+      if (treeBox) {
+        treeBox.innerHTML = cats.length
+          ? cats.map((c, idx) => {
+              const subs = Array.isArray(settings.subcategories[c]) ? settings.subcategories[c] : [];
+              const subsHtml = subs.length
+                ? subs.map((sc, sIdx) => `
+                    <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-xs">
+                      <span class="font-bold text-cyan-950">↳ ${esc(sc)}</span>
+                      <div class="flex items-center gap-1">
+                        <button type="button" onclick="editSubcategoryItem('${esc(c)}', ${sIdx})" class="px-2 py-0.5 rounded bg-cyan-700 hover:bg-cyan-800 text-white text-[10px] font-bold">تعديل</button>
+                        <button type="button" onclick="removeSubcategoryItem('${esc(c)}', ${sIdx})" class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold">حذف</button>
+                      </div>
+                    </div>
+                  `).join('')
+                : '<div class="text-[11px] text-slate-400 font-bold pr-2">لا توجد فئات فرعية تحت هذه الفئة بعد</div>';
+
+              return `
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                  <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-200">
+                    <span class="font-extrabold text-sm text-marine-950">📁 ${esc(c)}</span>
+                    <div class="flex items-center gap-1">
+                      <button type="button" onclick="editCategoryItem(${idx})" class="px-2.5 py-1 rounded-lg bg-marine-700 hover:bg-marine-800 text-white text-[11px] font-bold">
+                        تعديل الفئة
+                      </button>
+                      <button type="button" onclick="removeCategoryItem(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold">
+                        إزالة
+                      </button>
+                    </div>
+                  </div>
+                  <div class="space-y-1.5">
+                    ${subsHtml}
+                  </div>
+                </div>
+              `;
+            }).join('')
+          : '<div class="text-xs text-slate-400 font-bold">لا توجد فئات حالياً، أضف فئة رئيسية بالأعلى.</div>';
+      }
     }
 
     function saveStoreInfo() {
@@ -3825,7 +4069,7 @@
     function addCategoryItem() {
       const name = (document.getElementById('new-category-name')?.value || '').trim();
       if (!name) {
-        showToast('أدخل اسم الفئة أولاً', 'error');
+        showToast('أدخل اسم الفئة الرئيسية أولاً', 'error');
         return;
       }
       if (!Array.isArray(settings.categories)) settings.categories = [];
@@ -3834,18 +4078,88 @@
         return;
       }
       settings.categories.push(name);
+      settings.subcategories = ensureSubcategoriesMap(settings.subcategories, settings.categories);
       document.getElementById('new-category-name').value = '';
       saveState(true);
       renderPosCategories();
       fillSettings();
-      showToast('تمت إضافة الفئة الجديدة: ' + name, 'success');
+      showToast('تمت إضافة الفئة الرئيسية: ' + name, 'success');
+    }
+
+    function addSubcategoryItem() {
+      const parentCat = document.getElementById('new-subcat-parent-select')?.value;
+      const subName = (document.getElementById('new-subcategory-name')?.value || '').trim();
+      if (!parentCat) {
+        showToast('أضف فئة رئيسية أولاً', 'error');
+        return;
+      }
+      if (!subName) {
+        showToast('اكتب اسم الفئة الفرعية أولاً', 'error');
+        return;
+      }
+      settings.subcategories = ensureSubcategoriesMap(settings.subcategories, settings.categories);
+      if (settings.subcategories[parentCat].includes(subName)) {
+        showToast('هذه الفئة الفرعية موجودة بالفعل تحت ' + parentCat, 'error');
+        return;
+      }
+      settings.subcategories[parentCat].push(subName);
+      document.getElementById('new-subcategory-name').value = '';
+      saveState(true);
+      renderPosCategories();
+      fillSettings();
+      showToast(`تمت إضافة (${subName}) تحت (${parentCat})`, 'success');
+    }
+
+    function editSubcategoryItem(parentCat, subIndex) {
+      if (!settings.subcategories || !Array.isArray(settings.subcategories[parentCat])) return;
+      const oldSub = settings.subcategories[parentCat][subIndex];
+      if (!oldSub) return;
+      const updatedRaw = window.prompt(`تعديل اسم الفئة الفرعية تحت (${parentCat}):`, oldSub);
+      if (updatedRaw === null) return;
+      const updatedSub = updatedRaw.trim();
+      if (!updatedSub) {
+        showToast('اسم الفئة الفرعية لا يمكن أن يكون فارغاً', 'error');
+        return;
+      }
+      if (updatedSub !== oldSub && settings.subcategories[parentCat].includes(updatedSub)) {
+        showToast('هذا الاسم مستخدم بالفعل في نفس الفئة', 'error');
+        return;
+      }
+      settings.subcategories[parentCat][subIndex] = updatedSub;
+      products.forEach(p => {
+        if (p.category === parentCat && p.subcategory === oldSub) p.subcategory = updatedSub;
+      });
+      if (selectedCategory === parentCat && selectedSubcategory === oldSub) selectedSubcategory = updatedSub;
+      saveState(true);
+      renderPosCategories();
+      renderPosGrid();
+      renderInventory();
+      fillSettings();
+      showToast(`تم تعديل الفئة الفرعية إلى (${updatedSub})`, 'success');
+    }
+
+    function removeSubcategoryItem(parentCat, subIndex) {
+      if (!settings.subcategories || !Array.isArray(settings.subcategories[parentCat])) return;
+      const targetSub = settings.subcategories[parentCat][subIndex];
+      if (!targetSub) return;
+      settings.subcategories[parentCat].splice(subIndex, 1);
+      products.forEach(p => {
+        if (p.category === parentCat && p.subcategory === targetSub) p.subcategory = '';
+      });
+      if (selectedCategory === parentCat && selectedSubcategory === targetSub) selectedSubcategory = 'الكل';
+      saveState(true);
+      renderPosCategories();
+      renderPosGrid();
+      renderInventory();
+      fillSettings();
+      showToast(`تم حذف الفئة الفرعية (${targetSub})`, 'success');
     }
 
     function editCategoryItem(index) {
       if (!Array.isArray(settings.categories)) return;
       const oldCat = settings.categories[index];
       if (!oldCat) return;
-      const updatedRaw = window.prompt('تعديل اسم الفئة:', oldCat);
+      const updatedRaw = window.prompt('تعديل اسم الفئة الرئيسية:', oldCat);
       if (updatedRaw === null) return;
       const updatedCat = updatedRaw.trim();
       if (!updatedCat) {
@@ -3858,6 +4172,10 @@
       }
 
       settings.categories[index] = updatedCat;
+      if (settings.subcategories && Array.isArray(settings.subcategories[oldCat])) {
+        settings.subcategories[updatedCat] = [...settings.subcategories[oldCat]];
+        delete settings.subcategories[oldCat];
+      }
       products.forEach(p => {
         if (p.category === oldCat) p.category = updatedCat;
       });
@@ -3877,11 +4195,20 @@
       if (!targetCat) return;
 
       settings.categories.splice(index, 1);
+      if (settings.subcategories && settings.subcategories[targetCat]) {
+        delete settings.subcategories[targetCat];
+      }
       const fallbackCat = settings.categories[0] || 'عام';
       products.forEach(p => {
-        if (p.category === targetCat) p.category = fallbackCat;
+        if (p.category === targetCat) {
+          p.category = fallbackCat;
+          p.subcategory = '';
+        }
       });
-      if (selectedCategory === targetCat) selectedCategory = 'الكل';
+      if (selectedCategory === targetCat) {
+        selectedCategory = 'الكل';
+        selectedSubcategory = 'الكل';
+      }
 
       saveState(true);
       renderPosCategories();
@@ -3906,7 +4233,7 @@
       r.onload = () => {
         try {
           const d = JSON.parse(r.result);
-          if (Array.isArray(d.products)) products = d.products.map(p => ({ ...p, unit: normalizeUnit(p.unit) }));
+          if (Array.isArray(d.products)) products = d.products.map(p => ({ ...p, unit: normalizeUnit(p.unit), subcategory: p.subcategory || '', brand: p.brand || '' }));
           if (Array.isArray(d.sales)) sales = d.sales;
           if (Array.isArray(d.returnsLog)) returnsLog = d.returnsLog;
           if (Array.isArray(d.customers)) customers = d.customers;
@@ -3914,7 +4241,15 @@
           if (Array.isArray(d.purchases)) purchases = d.purchases;
           if (Array.isArray(d.expensesLog)) expensesLog = d.expensesLog;
           if (Array.isArray(d.zReportsLog)) zReportsLog = d.zReportsLog;
-          if (d.settings) settings = { ...DEFAULT_SETTINGS, ...d.settings };
+          if (d.settings) {
+            const impCats = Array.isArray(d.settings.categories) ? [...d.settings.categories] : [...CATEGORIES];
+            settings = {
+              ...DEFAULT_SETTINGS,
+              ...d.settings,
+              categories: impCats,
+              subcategories: ensureSubcategoriesMap(d.settings.subcategories, impCats)
+            };
+          }
           saveState(true);
           applyBranding();
           fillGateSelectors();
