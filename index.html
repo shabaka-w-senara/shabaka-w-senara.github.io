@@ -656,6 +656,7 @@
         <table class="w-full text-right border-collapse">
           <thead>
             <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
+              <th class="py-3 px-4">تاريخ اليوم</th>
               <th class="py-3 px-4">رقم الفاتورة</th>
               <th class="py-3 px-4">الكاشير / الشيفت</th>
               <th class="py-3 px-4">العميل</th>
@@ -677,7 +678,9 @@
           <table class="w-full text-right border-collapse">
             <thead>
               <tr class="bg-slate-50 text-slate-600 text-xs font-bold border-b border-slate-200">
+                <th class="py-2.5 px-4">تاريخ اليوم</th>
                 <th class="py-2.5 px-4">رقم المرتجع</th>
+                <th class="py-2.5 px-4">فاتورة المبيعات المرجع</th>
                 <th class="py-2.5 px-4">المنتج</th>
                 <th class="py-2.5 px-4">الكمية المرتجعة</th>
                 <th class="py-2.5 px-4">الشيفت / الكاشير</th>
@@ -1095,7 +1098,7 @@
         } else if (remoteUpdated > localUpdated) {
           map.set(String(item.id), { ...item, ...prev });
         } else {
-          map.set(String(item.id), { ...prev, ...item });
+          map.set(String(item.id), { ...item, ...prev });
         }
       });
 
@@ -1115,6 +1118,12 @@
 
     function fmt(n) {
       return (Number(n) || 0).toFixed(2) + ' ج.م';
+    }
+
+    function formatDayOnly(dateInput) {
+      const d = dateInput ? new Date(dateInput) : new Date();
+      if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString('ar-EG');
+      return d.toLocaleDateString('ar-EG');
     }
 
     function esc(str) {
@@ -2000,14 +2009,17 @@
         }
       }
 
+      const verifiedInvoiceId = inv ? inv.id : '';
       const retRecord = {
         id: 'RET-' + Date.now().toString().slice(-6),
         date: new Date().toLocaleString('ar-EG'),
+        dayDate: formatDayOnly(new Date()),
         dateISO: new Date().toISOString(),
         productId: prod.id,
         productName: prod.name,
         qty,
-        invoiceRef: inv ? inv.id : (invoiceRef || 'مرتجع مباشر'),
+        invoiceRef: verifiedInvoiceId || (invoiceRef || 'مرتجع مباشر'),
+        verifiedInvoice: Boolean(verifiedInvoiceId),
         cashier: session.cashier,
         shift: session.shift,
         amount: refundAmount,
@@ -2567,8 +2579,10 @@
 
       document.getElementById('reports-tbody').innerHTML = filteredSales.map(inv => {
         const displayTotal = getSaleRelevantAmount(inv);
+        const dayLabel = inv.dayDate || formatDayOnly(inv.dateISO || inv.date);
         return `
         <tr>
+          <td class="py-3 px-4 font-mono text-xs text-slate-700">${esc(dayLabel)}</td>
           <td class="py-3 px-4 font-mono text-xs font-bold">${esc(inv.id)}</td>
           <td class="py-3 px-4 text-xs">${esc(inv.cashier)} - ${esc(inv.shift)}</td>
           <td class="py-3 px-4 text-xs font-bold">${esc(inv.customer)}</td>
@@ -2581,23 +2595,41 @@
           </td>
         </tr>
       `;
-      }).join('') || '<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400 font-bold">لا توجد فواتير مطابقة للفلتر الحالي</td></tr>';
+      }).join('') || '<tr><td colspan="7" class="py-6 text-center text-xs text-slate-400 font-bold">لا توجد فواتير مطابقة للفلتر الحالي</td></tr>';
 
-      document.getElementById('returns-tbody').innerHTML = filteredReturns.map(r => `
+      document.getElementById('returns-tbody').innerHTML = filteredReturns.map(r => {
+        const retDayLabel = r.dayDate || formatDayOnly(r.dateISO || r.date);
+        const refText = String(r.invoiceRef || '').trim();
+        const isRealInvoice = typeof r.verifiedInvoice === 'boolean'
+          ? r.verifiedInvoice
+          : (Boolean(refText) && refText !== 'مرتجع مباشر');
+
+        const invoiceBadge = isRealInvoice
+          ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-mono font-extrabold">
+               <span>✓ فاتورة مبيعات: ${esc(refText)}</span>
+             </span>`
+          : `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-bold">
+               <span>${esc(refText || 'مرتجع مباشر')}</span>
+             </span>`;
+
+        return `
         <tr>
+          <td class="py-2.5 px-4 font-mono text-slate-700">${esc(retDayLabel)}</td>
           <td class="py-2.5 px-4 font-mono font-bold">${esc(r.id)}</td>
+          <td class="py-2.5 px-4">${invoiceBadge}</td>
           <td class="py-2.5 px-4 font-bold">${esc(r.productName)}</td>
           <td class="py-2.5 px-4 font-mono font-bold">${r.qty}</td>
           <td class="py-2.5 px-4">${esc(r.shift)} (${esc(r.cashier)})</td>
           <td class="py-2.5 px-4 font-mono font-bold text-rose-700">-${fmt(r.amount)}</td>
         </tr>
-      `).join('') || '<tr><td colspan="5" class="py-4 text-center text-slate-400 font-bold">لا توجد مرتجعات مطابقة للفلتر</td></tr>';
+      `;
+      }).join('') || '<tr><td colspan="7" class="py-4 text-center text-slate-400 font-bold">لا توجد مرتجعات مطابقة للفلتر</td></tr>';
     }
 
     // تصدير ملف Excel منظم (.xls بصيغة جدول HTML UTF-8 RTL) يفتح في جميع إصدارات Excel بحروف عربية سليمة وأعمدة مرتبة
     function exportArabicExcelCSV() {
       const { filteredSales, filteredReturns, selectedProduct } = getFilteredReportsData();
-      const headers = ['النوع', 'الرقم', 'التاريخ', 'الشيفت', 'الكاشير', 'العميل / المنتج', 'طريقة الدفع', 'الكمية', 'القيمة (ج.م)'];
+      const headers = ['النوع', 'تاريخ اليوم', 'الرقم', 'فاتورة المبيعات المرجع', 'الشيفت', 'الكاشير', 'العميل / المنتج', 'طريقة الدفع', 'الكمية', 'القيمة (ج.م)'];
       const dataRows = [];
       let totalNetAmount = 0;
 
@@ -2612,12 +2644,14 @@
         const itemSub = matchingItems.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 0), 0);
         const ratio = Number(inv.subtotal || 0) > 0 ? itemSub / Number(inv.subtotal || 0) : 1;
         const val = selectedProduct === 'all' ? Number(inv.total || 0) : Number(inv.total || 0) * ratio;
+        const dayLabel = inv.dayDate || formatDayOnly(inv.dateISO || inv.date);
 
         totalNetAmount += Number(val || 0);
         dataRows.push([
           'فاتورة بيع',
+          dayLabel,
           inv.id,
-          inv.date,
+          inv.id,
           inv.shift,
           inv.cashier,
           `${inv.customer} - ${itemsSummary}`,
@@ -2629,11 +2663,19 @@
 
       filteredReturns.forEach(r => {
         const retVal = -Number(r.amount || 0);
+        const retDayLabel = r.dayDate || formatDayOnly(r.dateISO || r.date);
+        const refText = String(r.invoiceRef || '').trim();
+        const isRealInvoice = typeof r.verifiedInvoice === 'boolean'
+          ? r.verifiedInvoice
+          : (Boolean(refText) && refText !== 'مرتجع مباشر');
+        const refLabel = isRealInvoice ? `فاتورة مبيعات: ${refText}` : (refText || 'مرتجع مباشر');
+
         totalNetAmount += retVal;
         dataRows.push([
           'مرتجع',
+          retDayLabel,
           r.id,
-          r.date,
+          refLabel,
           r.shift,
           r.cashier,
           r.productName,
@@ -2648,9 +2690,9 @@
         const rowBg = isReturn ? '#fff1f2' : (rIdx % 2 === 0 ? '#ffffff' : '#f8fafc');
         return `<tr style="background-color:${rowBg};">
           ${row.map((cell, cIdx) => {
-            const align = cIdx === 5 ? 'right' : 'center';
+            const align = cIdx === 6 ? 'right' : 'center';
             const color = isReturn ? '#be123c' : '#0f172a';
-            const weight = (cIdx === 1 || cIdx === 8) ? 'bold' : 'normal';
+            const weight = (cIdx === 2 || cIdx === 3 || cIdx === 9) ? 'bold' : 'normal';
             return `<td style="border:1px solid #cbd5e1;padding:7px 10px;text-align:${align};color:${color};font-weight:${weight};mso-number-format:'\\@';">${esc(cell)}</td>`;
           }).join('')}
         </tr>`;
@@ -2670,7 +2712,7 @@
         <body>
           <table>
             <tr>
-              <th colspan="9" style="background-color:#082f49;color:#ffffff;font-size:15pt;padding:10px;text-align:center;border:1px solid #082f49;">
+              <th colspan="10" style="background-color:#082f49;color:#ffffff;font-size:15pt;padding:10px;text-align:center;border:1px solid #082f49;">
                 تقرير مبيعات ومرتجعات ${esc(settings.storeName)} — بتاريخ ${esc(new Date().toLocaleDateString('ar-EG'))}
               </th>
             </tr>
@@ -2679,7 +2721,7 @@
             </tr>
             ${tableRowsHtml}
             <tr>
-              <td colspan="8" style="background-color:#e0f2fe;color:#0c4a6e;font-weight:bold;padding:8px 10px;border:1px solid #7dd3fc;text-align:left;">
+              <td colspan="9" style="background-color:#e0f2fe;color:#0c4a6e;font-weight:bold;padding:8px 10px;border:1px solid #7dd3fc;text-align:left;">
                 صافي الإجمالي (ج.م):
               </td>
               <td style="background-color:#e0f2fe;color:#0c4a6e;font-weight:bold;padding:8px 10px;border:1px solid #7dd3fc;text-align:center;">
