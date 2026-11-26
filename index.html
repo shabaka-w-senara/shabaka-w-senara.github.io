@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#082f49" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="شبكة وصنارة" />
   <title>شبكة وصنارة - نظام كاشير وإدارة مخزون</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -42,6 +47,52 @@
         }
       }).catch(function () {});
     }
+
+    // حقن Web App Manifest ديناميكياً لتسهيل تحويل الموقع إلى تطبيق APK عبر PWABuilder أو TWA
+    (function injectDynamicManifest() {
+      try {
+        const manifestObj = {
+          id: 'shabaka-w-senara-pos-apk',
+          name: 'شبكة وصنارة - نظام كاشير وإدارة مخزون',
+          short_name: 'شبكة وصنارة',
+          description: 'نظام نقاط البيع والمخزون والمرتجعات والمصروفات والذمم والموردين وإقفال الشيفت لمتجر شبكة وصنارة',
+          start_url: './',
+          scope: './',
+          display: 'standalone',
+          display_override: ['standalone', 'window-controls-overlay'],
+          orientation: 'any',
+          background_color: '#082f49',
+          theme_color: '#082f49',
+          categories: ['business', 'finance', 'productivity'],
+          lang: 'ar',
+          dir: 'rtl',
+          prefer_related_applications: false,
+          icons: [
+            {
+              src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23082f49'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-size='96'%3E%E2%9A%93%3C/text%3E%3C/svg%3E",
+              sizes: '192x192',
+              type: 'image/svg+xml',
+              purpose: 'any'
+            },
+            {
+              src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23082f49'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-size='256'%3E%E2%9A%93%3C/text%3E%3C/svg%3E",
+              sizes: '512x512',
+              type: 'image/svg+xml',
+              purpose: 'any'
+            }
+          ]
+        };
+        const blob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+        const manifestUrl = URL.createObjectURL(blob);
+        let link = document.querySelector('link[rel="manifest"]');
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'manifest';
+          document.head.appendChild(link);
+        }
+        link.href = manifestUrl;
+      } catch (e) {}
+    })();
 
     // تحميل مكتبة المسح الضوئي للباركود بالكاميرا مع مصدر احتياطي
     function loadCameraBarcodeLibrary() {
@@ -161,20 +212,20 @@
             </div>
             <div>
               <span class="inline-block text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-300/30 mb-1">
-                كاشير ومخزون وذمم وموردين وZ-Report
+                كاشير ومخزون ومصروفات وذمم وZ-Report
               </span>
               <h2 id="gate-store-title" class="text-2xl font-extrabold text-white">شبكة وصنارة</h2>
             </div>
           </div>
 
           <p id="gate-store-desc" class="text-xs sm:text-sm text-cyan-100/80 leading-relaxed">
-            إدارة مبيعات ومخزون ومرتجعات والذمم والعملاء والموردين وإقفال الشيفت (Z-Report) وملصقات الباركود وإرسال الفواتير عبر واتساب.
+            إدارة مبيعات ومخزون ومرتجعات ومصروفات والذمم والعملاء والموردين وإقفال الشيفت (Z-Report) وملصقات الباركود وإرسال الفواتير عبر واتساب.
           </p>
 
           <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2 text-xs font-bold">
-            <div class="text-cyan-200">• دخول الكاشير برمز PIN الخاص بالشيفت والمرتجعات والذمم</div>
-            <div class="text-amber-200">• المخزون والتقارير والموردين وتعديل الفواتير برمز PIN للإدارة</div>
-            <div class="text-emerald-200">• إقفال وردية Z-Report وملصقات باركود وواتساب وتصدير Excel</div>
+            <div class="text-cyan-200">• دخول الكاشير برمز PIN الخاص بالشيفت والمرتجعات والمصروفات والذمم</div>
+            <div class="text-amber-200">• المخزون والتقارير والمصروفات والموردين وتعديل الفواتير برمز PIN للإدارة</div>
+            <div class="text-emerald-200">• إقفال وردية Z-Report مطابقة للدرج وملصقات باركود وواتساب وتصدير Excel</div>
           </div>
         </div>
 
@@ -233,7 +284,7 @@
         <!-- دخول الإدارة -->
         <form id="form-gate-admin" onsubmit="loginAsAdmin(event)" class="hidden space-y-4">
           <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-400/30 text-xs text-amber-200">
-            دخول الإدارة يتيح إضافة/تعديل المخزون والموردين والعملاء، عرض التقارير والأرباح، إقفال الشيفت، وتعديل الفواتير ورموز PIN.
+            دخول الإدارة يتيح إضافة/تعديل المخزون والمصروفات والموردين والعملاء، عرض التقارير والأرباح، إقفال الشيفت، وتعديل الفواتير ورموز PIN.
           </div>
 
           <div>
@@ -274,6 +325,7 @@
       <nav class="flex items-center gap-1.5 bg-marine-950/60 p-1 rounded-2xl border border-white/10 overflow-x-auto max-w-full">
         <button onclick="openTab('pos')" id="tab-btn-pos" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold bg-cyan-500 text-slate-950 whitespace-nowrap">نقطة البيع</button>
         <button onclick="openTab('inventory')" id="tab-btn-inventory" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap">المخزون</button>
+        <button onclick="openTab('expenses')" id="tab-btn-expenses" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap">المصروفات</button>
         <button onclick="openTab('customers')" id="tab-btn-customers" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap">العملاء والذمم</button>
         <button onclick="openTab('suppliers')" id="tab-btn-suppliers" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap">الموردون والمشتريات</button>
         <button onclick="openTab('reports')" id="tab-btn-reports" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap">التقارير والفواتير</button>
@@ -297,21 +349,24 @@
   <!-- ================================================= -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 space-y-5 no-print">
 
-    <!-- 1. نقطة البيع + نظام المرتجعات + البيع الآجل والذمم -->
+    <!-- 1. نقطة البيع + نظام المرتجعات + إخراج مصروف من الدرج + البيع الآجل والذمم -->
     <section id="section-pos" class="space-y-4">
       <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-2 text-xs">
         <div class="flex flex-wrap items-center gap-4">
           <div><span class="text-slate-400">الكاشير:</span> <strong id="pos-cashier-name" class="text-slate-800">--</strong></div>
           <div><span class="text-slate-400">الشيفت:</span> <strong id="pos-shift-name" class="text-slate-800">--</strong></div>
+          <div><span class="text-slate-400">رصيد الدرج المتوقع للشيفت:</span> <strong id="pos-drawer-cash-view" class="font-mono text-emerald-700">0.00 ج.م</strong></div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <button type="button" onclick="openZReportModal()" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-500 hover:text-slate-950 text-amber-900 border border-amber-200 font-extrabold transition">
+          <button type="button" onclick="openDrawerExpenseModal()" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-500 hover:text-slate-950 text-amber-950 border border-amber-300 font-extrabold transition">
+            💸 إخراج مصروف من الدرج
+          </button>
+          <button type="button" onclick="openZReportModal()" class="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-600 hover:text-white text-sky-900 border border-sky-200 font-extrabold transition">
             📊 إقفال الشيفت (Z-Report)
           </button>
           <button type="button" onclick="openReturnModal()" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 border border-rose-200 font-extrabold transition">
             ↩ مرتجع منتج / كمية
           </button>
-          <span class="text-emerald-700 font-bold hidden md:inline">يُسجل الكاشير والشيفت والعميل والذمم تلقائياً</span>
         </div>
       </div>
 
@@ -483,7 +538,140 @@
       </div>
     </section>
 
-    <!-- 3. العملاء والبيع الآجل (الذمم / الكشكول) -->
+    <!-- 3. المصروفات (الايجار - فاتورة الكهرباء - فاتورة الغاز - فاتورة المياه - الاكراميات - مصاريف تشغيلية - سلف - مرتبات) -->
+    <section id="section-expenses" class="hidden space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">مصروفات مخصومة من الدرج (الشيفت الحالي)</div>
+          <div id="exp-stat-shift-drawer" class="text-2xl font-extrabold font-mono text-rose-700 mt-1">0.00 ج.م</div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">إجمالي المصروفات (اليوم)</div>
+          <div id="exp-stat-today" class="text-2xl font-extrabold font-mono text-marine-900 mt-1">0.00 ج.م</div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div class="text-xs text-slate-500 font-bold">إجمالي المصروفات (الكلي)</div>
+          <div id="exp-stat-total" class="text-2xl font-extrabold font-mono text-slate-800 mt-1">0.00 ج.م</div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-emerald-200 bg-emerald-50/40 shadow-sm">
+          <div class="text-xs text-emerald-800 font-bold">صافي الكاش المتوقع بالدرج (الشيفت)</div>
+          <div id="exp-stat-drawer-net" class="text-2xl font-extrabold font-mono text-emerald-700 mt-1">0.00 ج.م</div>
+        </div>
+      </div>
+
+      <!-- نموذج إضافة / تعديل مصروف مع تحديد الموظف، ومن أبلغ بالإخراج (في الغالب الإدارة)، والخصم من الدرج -->
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 id="exp-form-title" class="font-extrabold text-sm text-marine-950">تسجيل مصروف جديد (إضافة / خصم من الدرج)</h3>
+          <button type="button" id="exp-cancel-edit-btn" onclick="resetExpenseForm()" class="hidden px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700">
+            إلغاء التعديل
+          </button>
+        </div>
+
+        <form id="expense-form" onsubmit="saveExpenseForm(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2.5 text-xs items-end">
+          <input type="hidden" id="exp-edit-id" />
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">بند المصروف</label>
+            <select id="exp-category-select" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+              <option value="الايجار">الايجار</option>
+              <option value="فاتورة الكهرباء">فاتورة الكهرباء</option>
+              <option value="فاتورة الغاز">فاتورة الغاز</option>
+              <option value="فاتورة المياه">فاتورة المياه</option>
+              <option value="الاكراميات">الاكراميات</option>
+              <option value="مصاريف تشغيلية">مصاريف تشغيلية</option>
+              <option value="سلف">سلف</option>
+              <option value="مرتبات">مرتبات</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">الموظف (إدارة / كاشير)</label>
+            <select id="exp-employee-select" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">أبلغ بالإخراج (الاسم / الإدارة)</label>
+            <input type="text" id="exp-authorized-by-input" required placeholder="مثال: الإدارة / أ. محمود..."
+              class="w-full px-3 py-2 bg-amber-50/60 border border-amber-200 rounded-xl font-bold text-slate-900" />
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">المبلغ (ج.م)</label>
+            <input type="number" id="exp-amount-input" min="0.5" step="0.5" required placeholder="0.00"
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold" />
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">الشيفت</label>
+            <select id="exp-shift-select" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">بيان / ملاحظات</label>
+            <input type="text" id="exp-note-input" placeholder="تفاصيل المصروف..."
+              class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="flex items-center gap-1.5 text-[11px] font-extrabold text-rose-800 cursor-pointer select-none">
+              <input type="checkbox" id="exp-from-drawer-chk" checked class="rounded border-rose-400 text-rose-600" />
+              <span>خصم من درج الكاشير</span>
+            </label>
+            <button type="submit" id="exp-submit-btn" class="w-full py-2 px-3 rounded-xl bg-marine-700 hover:bg-marine-800 text-white font-extrabold">
+              + حفظ المصروف
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- فلاتر المصروفات وجدول الإضافة والتعديل والحذف -->
+      <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="exp-filter-category" onchange="renderExpenses()" class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+            <option value="all">كل البنود</option>
+            <option value="الايجار">الايجار</option>
+            <option value="فاتورة الكهرباء">فاتورة الكهرباء</option>
+            <option value="فاتورة الغاز">فاتورة الغاز</option>
+            <option value="فاتورة المياه">فاتورة المياه</option>
+            <option value="الاكراميات">الاكراميات</option>
+            <option value="مصاريف تشغيلية">مصاريف تشغيلية</option>
+            <option value="سلف">سلف</option>
+            <option value="مرتبات">مرتبات</option>
+          </select>
+          <select id="exp-filter-employee" onchange="renderExpenses()" class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+            <option value="all">كل الموظفين (إدارة / كاشير)</option>
+          </select>
+          <select id="exp-filter-shift" onchange="renderExpenses()" class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+            <option value="all">كل الشيفتات</option>
+          </select>
+        </div>
+        <button type="button" onclick="openZReportModal()" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold">
+          📊 عرض Z-Report وجرد الدرج
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+        <table class="w-full text-right border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 text-xs font-extrabold border-b border-slate-200">
+              <th class="py-3 px-4">التاريخ</th>
+              <th class="py-3 px-4">البند</th>
+              <th class="py-3 px-4">الموظف (إدارة / كاشير)</th>
+              <th class="py-3 px-4">أبلغ بالإخراج</th>
+              <th class="py-3 px-4">الشيفت</th>
+              <th class="py-3 px-4">البيان</th>
+              <th class="py-3 px-4">الدرج</th>
+              <th class="py-3 px-4">المبلغ</th>
+              <th class="py-3 px-4 text-center">إدارة (تعديل / حذف)</th>
+            </tr>
+          </thead>
+          <tbody id="expenses-tbody" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. العملاء والبيع الآجل (الذمم / الكشكول) -->
     <section id="section-customers" class="hidden space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
@@ -531,7 +719,7 @@
       </div>
     </section>
 
-    <!-- 4. الموردون وفواتير المشتريات وتحديث متوسط التكلفة -->
+    <!-- 5. الموردون وفواتير المشتريات وتحديث متوسط التكلفة -->
     <section id="section-suppliers" class="hidden space-y-4">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div class="lg:col-span-5 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
@@ -601,7 +789,7 @@
       </div>
     </section>
 
-    <!-- 5. التقارير والفواتير -->
+    <!-- 6. التقارير والفواتير -->
     <section id="section-reports" class="hidden space-y-4">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
@@ -609,12 +797,12 @@
           <div id="rep-total-sales" class="text-2xl font-extrabold font-mono text-marine-900 mt-1">0.00 ج.م</div>
         </div>
         <div id="rep-profit-box" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-          <div class="text-xs text-slate-500 font-bold">صافي الربح التقديري</div>
+          <div class="text-xs text-slate-500 font-bold">صافي الربح (بعد المرتجعات والمصروفات)</div>
           <div id="rep-total-profit" class="text-2xl font-extrabold font-mono text-emerald-700 mt-1">0.00 ج.م</div>
         </div>
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-          <div class="text-xs text-slate-500 font-bold">إجمالي المرتجعات</div>
-          <div id="rep-total-returns" class="text-2xl font-extrabold font-mono text-rose-600 mt-1">0.00 ج.م</div>
+          <div class="text-xs text-slate-500 font-bold">إجمالي المرتجعات / المصروفات</div>
+          <div id="rep-total-returns" class="text-xl font-extrabold font-mono text-rose-600 mt-1">0.00 ج.م</div>
         </div>
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
           <div class="text-xs text-slate-500 font-bold">عدد الفواتير</div>
@@ -693,7 +881,7 @@
       </div>
     </section>
 
-    <!-- 6. الإعدادات والنسخ الاحتياطي وتعديل PIN الكاشير والإدارة والتحكم الكامل بالفئات والمزامنة السحابية -->
+    <!-- 7. الإعدادات والنسخ الاحتياطي وتعديل PIN الكاشير والإدارة والتحكم الكامل بالفئات والمزامنة السحابية -->
     <section id="section-settings" class="hidden space-y-4">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
@@ -750,7 +938,7 @@
         </div>
 
         <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
-          <h3 class="font-extrabold text-base text-marine-900">المزامنة السحابية والنسخ الاحتياطي JSON</h3>
+          <h3 class="font-extrabold text-base text-marine-900">المزامنة السحابية والنسخ الاحتياطي JSON وجاهزية التطبيق APK</h3>
           <div class="flex flex-col sm:flex-row gap-2">
             <input type="text" id="set-cloud-room" placeholder="كود مزامنة المتجر" class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold" />
             <button type="button" onclick="activateCloudRoom()" class="px-4 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold">
@@ -770,7 +958,7 @@
   </main>
 
   <!-- ================================================= -->
-  <!-- النوافذ المنبثقة (PIN / مرتجع / منتج / فاتورة / طباعة / Z-Report / باركود) -->
+  <!-- النوافذ المنبثقة (PIN / مرتجع / مصروف درج / منتج / فاتورة / طباعة / Z-Report / باركود) -->
   <!-- ================================================= -->
   <div id="modal-admin-pin" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
@@ -785,6 +973,54 @@
         <div class="flex justify-end gap-2">
           <button type="button" onclick="closeAdminModal()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 text-xs font-bold">إلغاء</button>
           <button type="submit" class="px-4 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-bold">تأكيد</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- نافذة سريعة للكاشير لإخراج مصروف من الدرج وتضمينه في Z-Report مع توثيق من أبلغ بالإخراج -->
+  <div id="modal-drawer-expense" class="fixed inset-0 bg-slate-950/70 z-[70] hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="px-4 py-3 bg-amber-950 text-white font-extrabold text-xs flex justify-between items-center">
+        <span>إخراج مصروف من درج الكاشير</span>
+        <button type="button" onclick="closeDrawerExpenseModal()">✕</button>
+      </div>
+      <form onsubmit="submitDrawerQuickExpense(event)" class="p-4 space-y-3 text-xs">
+        <div>
+          <label class="block font-bold mb-1">بند المصروف</label>
+          <select id="quick-exp-category" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold">
+            <option value="الايجار">الايجار</option>
+            <option value="فاتورة الكهرباء">فاتورة الكهرباء</option>
+            <option value="فاتورة الغاز">فاتورة الغاز</option>
+            <option value="فاتورة المياه">فاتورة المياه</option>
+            <option value="الاكراميات">الاكراميات</option>
+            <option value="مصاريف تشغيلية">مصاريف تشغيلية</option>
+            <option value="سلف">سلف</option>
+            <option value="مرتبات">مرتبات</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">الموظف (إدارة / كاشير)</label>
+          <select id="quick-exp-employee" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"></select>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">من الذي أبلغ بإخراج المبلغ (الاسم / الإدارة)؟</label>
+          <input type="text" id="quick-exp-authorized-by" required placeholder="مثال: الإدارة / مدير المحل..."
+            class="w-full px-3 py-2 bg-amber-50/60 border border-amber-200 rounded-xl font-bold text-slate-900" />
+        </div>
+        <div>
+          <label class="block font-bold mb-1">المبلغ المخصوم من الدرج (ج.م)</label>
+          <input type="number" id="quick-exp-amount" min="0.5" step="0.5" required placeholder="0.00"
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-sm" />
+        </div>
+        <div>
+          <label class="block font-bold mb-1">ملاحظات / سبب الصرف</label>
+          <input type="text" id="quick-exp-note" placeholder="مثال: سلفة كاشير / مصاريف تشغيلية / فاتورة كهرباء..."
+            class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeDrawerExpenseModal()" class="px-4 py-2 rounded-xl bg-slate-100 font-bold">إلغاء</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold">اعتماد الصرف من الدرج</button>
         </div>
       </form>
     </div>
@@ -926,14 +1162,14 @@
     </div>
   </div>
 
-  <!-- نافذة إقفال الشيفت (جرد الدرج Z-Report) -->
+  <!-- نافذة إقفال الشيفت (جرد الدرج Z-Report) شاملاً المصروفات المخصومة من الدرج -->
   <div id="modal-z-report" class="fixed inset-0 bg-slate-950/75 z-[75] hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl border border-slate-200">
       <div class="px-4 py-3 bg-amber-950 text-white font-extrabold text-xs flex justify-between items-center no-print">
         <span>تقرير إقفال الشيفت وجرد الدرج (Z-Report)</span>
         <button type="button" onclick="closeZReportModal()">✕</button>
       </div>
-      <div id="z-report-body" class="print-content-area p-5 text-xs sm:text-sm space-y-3 bg-white"></div>
+      <div id="z-report-body" class="print-content-area p-5 text-xs sm:text-sm space-y-3 bg-white max-h-[75vh] overflow-y-auto"></div>
       <div class="px-4 py-3 bg-slate-50 border-t flex flex-wrap gap-2 no-print">
         <button type="button" onclick="printModalArea('modal-z-report')" class="flex-1 py-2.5 rounded-xl bg-marine-700 hover:bg-marine-800 text-white text-xs font-extrabold">
           🖨 طباعة Z-Report
@@ -1007,12 +1243,24 @@
       PRODUCTS: 'shabaka_pos_products_v3',
       SALES: 'shabaka_pos_sales_v3',
       RETURNS: 'shabaka_pos_returns_v3',
-      SETTINGS: 'shabaka_pos_settings_v3',
       CUSTOMERS: 'shabaka_pos_customers_v3',
       SUPPLIERS: 'shabaka_pos_suppliers_v3',
       PURCHASES: 'shabaka_pos_purchases_v3',
+      EXPENSES: 'shabaka_pos_expenses_v3',
       Z_REPORTS: 'shabaka_pos_zreports_v3',
+      SETTINGS: 'shabaka_pos_settings_v3',
     };
+
+    const EXPENSE_CATEGORIES = [
+      'الايجار',
+      'فاتورة الكهرباء',
+      'فاتورة الغاز',
+      'فاتورة المياه',
+      'الاكراميات',
+      'مصاريف تشغيلية',
+      'سلف',
+      'مرتبات'
+    ];
 
     // كود الغرفة/الفريق المشترك افتراضياً حتى يشترك جميع أعضاء الفريق تلقائياً في نفس البيانات السحابية
     const SHARED_TEAM_ROOM = 'shabaka-w-senara-team-shared';
@@ -1055,6 +1303,7 @@
     let customers = [];
     let suppliers = [];
     let purchases = [];
+    let expensesLog = [];
     let zReportsLog = [];
     let settings = { ...DEFAULT_SETTINGS };
     let cart = [];
@@ -1069,7 +1318,7 @@
     let currentReceiptInvoiceId = null;
     let currentBarcodeProductId = null;
 
-    // دمج القوائم حسب المعرف الفريد (id) مع احترام التحديثات الأحدث ومنع عودة الفواتير الفارغة
+    // دمج القوائم حسب المعرف الفريد (id) مع احترام الحذف والتحديثات الأحدث ومنع عودة الفواتير الفارغة
     function mergeById(localList, remoteList, options = {}) {
       const { dropEmptyInvoices = false } = options;
       const map = new Map();
@@ -1082,6 +1331,10 @@
 
       (Array.isArray(localList) ? localList : []).forEach(item => {
         if (!item || !item.id) return;
+        if (item._deleted) {
+          map.delete(String(item.id));
+          return;
+        }
         if (dropEmptyInvoices && Array.isArray(item.items) && item.items.length === 0) {
           map.delete(String(item.id));
           return;
@@ -1095,14 +1348,12 @@
         const remoteUpdated = Number(prev.updatedAt || 0);
         if (localUpdated > remoteUpdated) {
           map.set(String(item.id), { ...prev, ...item });
-        } else if (remoteUpdated > localUpdated) {
-          map.set(String(item.id), { ...item, ...prev });
         } else {
           map.set(String(item.id), { ...item, ...prev });
         }
       });
 
-      return Array.from(map.values());
+      return Array.from(map.values()).filter(x => !x._deleted);
     }
 
     function showToast(msg, type = 'info') {
@@ -1134,12 +1385,13 @@
       try {
         products = JSON.parse(localStorage.getItem(KEYS.PRODUCTS) || 'null') || [...DEFAULT_PRODUCTS];
         const rawSales = JSON.parse(localStorage.getItem(KEYS.SALES) || 'null') || [];
-        sales = Array.isArray(rawSales) ? rawSales.filter(s => s && Array.isArray(s.items) && s.items.length > 0) : [];
-        returnsLog = JSON.parse(localStorage.getItem(KEYS.RETURNS) || 'null') || [];
-        customers = JSON.parse(localStorage.getItem(KEYS.CUSTOMERS) || 'null') || [];
-        suppliers = JSON.parse(localStorage.getItem(KEYS.SUPPLIERS) || 'null') || [...DEFAULT_SUPPLIERS];
-        purchases = JSON.parse(localStorage.getItem(KEYS.PURCHASES) || 'null') || [];
-        zReportsLog = JSON.parse(localStorage.getItem(KEYS.Z_REPORTS) || 'null') || [];
+        sales = Array.isArray(rawSales) ? rawSales.filter(s => s && Array.isArray(s.items) && s.items.length > 0 && !s._deleted) : [];
+        returnsLog = (JSON.parse(localStorage.getItem(KEYS.RETURNS) || 'null') || []).filter(r => r && !r._deleted);
+        customers = (JSON.parse(localStorage.getItem(KEYS.CUSTOMERS) || 'null') || []).filter(c => c && !c._deleted);
+        suppliers = (JSON.parse(localStorage.getItem(KEYS.SUPPLIERS) || 'null') || [...DEFAULT_SUPPLIERS]).filter(s => s && !s._deleted);
+        purchases = (JSON.parse(localStorage.getItem(KEYS.PURCHASES) || 'null') || []).filter(p => p && !p._deleted);
+        expensesLog = (JSON.parse(localStorage.getItem(KEYS.EXPENSES) || 'null') || []).filter(e => e && !e._deleted);
+        zReportsLog = (JSON.parse(localStorage.getItem(KEYS.Z_REPORTS) || 'null') || []).filter(z => z && !z._deleted);
         const savedSet = JSON.parse(localStorage.getItem(KEYS.SETTINGS) || 'null') || {};
         settings = {
           ...DEFAULT_SETTINGS,
@@ -1162,6 +1414,7 @@
         customers = [];
         suppliers = [...DEFAULT_SUPPLIERS];
         purchases = [];
+        expensesLog = [];
         zReportsLog = [];
         settings = {
           ...DEFAULT_SETTINGS,
@@ -1180,9 +1433,11 @@
         localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(customers));
         localStorage.setItem(KEYS.SUPPLIERS, JSON.stringify(suppliers));
         localStorage.setItem(KEYS.PURCHASES, JSON.stringify(purchases));
+        localStorage.setItem(KEYS.EXPENSES, JSON.stringify(expensesLog));
         localStorage.setItem(KEYS.Z_REPORTS, JSON.stringify(zReportsLog));
         localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
       } catch (e) {}
+      updatePosDrawerIndicator();
       if (pushCloud && !isApplyingRemote) {
         pushToCloud();
       }
@@ -1203,25 +1458,28 @@
 
         const mergedProducts = latestRemote && Array.isArray(latestRemote.products)
           ? mergeById(products, latestRemote.products)
-          : products;
+          : products.filter(x => !x._deleted);
         const mergedSales = latestRemote && Array.isArray(latestRemote.sales)
           ? mergeById(sales, latestRemote.sales, { dropEmptyInvoices: true })
-          : sales.filter(s => Array.isArray(s.items) && s.items.length > 0);
+          : sales.filter(s => Array.isArray(s.items) && s.items.length > 0 && !s._deleted);
         const mergedReturns = latestRemote && Array.isArray(latestRemote.returnsLog)
           ? mergeById(returnsLog, latestRemote.returnsLog)
-          : returnsLog;
+          : returnsLog.filter(x => !x._deleted);
         const mergedCustomers = latestRemote && Array.isArray(latestRemote.customers)
           ? mergeById(customers, latestRemote.customers)
-          : customers;
+          : customers.filter(x => !x._deleted);
         const mergedSuppliers = latestRemote && Array.isArray(latestRemote.suppliers)
           ? mergeById(suppliers, latestRemote.suppliers)
-          : suppliers;
+          : suppliers.filter(x => !x._deleted);
         const mergedPurchases = latestRemote && Array.isArray(latestRemote.purchases)
           ? mergeById(purchases, latestRemote.purchases)
-          : purchases;
+          : purchases.filter(x => !x._deleted);
+        const mergedExpenses = latestRemote && Array.isArray(latestRemote.expensesLog)
+          ? mergeById(expensesLog, latestRemote.expensesLog)
+          : expensesLog.filter(x => !x._deleted);
         const mergedZReports = latestRemote && Array.isArray(latestRemote.zReportsLog)
           ? mergeById(zReportsLog, latestRemote.zReportsLog)
-          : zReportsLog;
+          : zReportsLog.filter(x => !x._deleted);
 
         const mergedSettings = {
           ...DEFAULT_SETTINGS,
@@ -1243,6 +1501,7 @@
             customers: mergedCustomers,
             suppliers: mergedSuppliers,
             purchases: mergedPurchases,
+            expensesLog: mergedExpenses,
             zReportsLog: mergedZReports,
             settings: mergedSettings
           }),
@@ -1257,6 +1516,7 @@
           customers = mergedCustomers;
           suppliers = mergedSuppliers;
           purchases = mergedPurchases;
+          expensesLog = mergedExpenses;
           zReportsLog = mergedZReports;
           settings = mergedSettings;
           saveState(false);
@@ -1281,6 +1541,7 @@
         if (Array.isArray(data.customers)) customers = mergeById(customers, data.customers);
         if (Array.isArray(data.suppliers)) suppliers = mergeById(suppliers, data.suppliers);
         if (Array.isArray(data.purchases)) purchases = mergeById(purchases, data.purchases);
+        if (Array.isArray(data.expensesLog)) expensesLog = mergeById(expensesLog, data.expensesLog);
         if (Array.isArray(data.zReportsLog)) zReportsLog = mergeById(zReportsLog, data.zReportsLog);
         if (data.settings) {
           settings = {
@@ -1298,6 +1559,7 @@
         renderPosGrid();
         renderCart();
         renderInventory();
+        renderExpenses();
         renderCustomers();
         renderSuppliers();
         renderReports();
@@ -1484,10 +1746,11 @@
       document.getElementById('inv-role-note').textContent = isAdmin()
         ? 'وضع الإدارة: يمكنك إضافة وتعديل المنتجات وطباعة ملصقات الباركود والاطلاع على التكاليف والأرباح.'
         : 'وضع الكاشير: متاح لك البحث وطباعة ملصقات الباركود ومشاهدة الاستوك المتاح والمنخفض والنافذ. التعديل يتطلب PIN الإدارة.';
+      updatePosDrawerIndicator();
     }
 
     function showSection(tab) {
-      ['pos', 'inventory', 'customers', 'suppliers', 'reports', 'settings'].forEach(t => {
+      ['pos', 'inventory', 'expenses', 'customers', 'suppliers', 'reports', 'settings'].forEach(t => {
         const sec = document.getElementById('section-' + t);
         const btn = document.getElementById('tab-btn-' + t);
         if (sec) sec.classList.toggle('hidden', t !== tab);
@@ -1503,8 +1766,11 @@
         renderPosCategories();
         renderPosGrid();
         renderCart();
+        updatePosDrawerIndicator();
       } else if (tab === 'inventory') {
         renderInventory();
+      } else if (tab === 'expenses') {
+        renderExpenses();
       } else if (tab === 'customers') {
         renderCustomers();
       } else if (tab === 'suppliers') {
@@ -1798,10 +2064,12 @@
         if (p) p.stock = Math.max(0, p.stock - item.qty);
       });
 
+      const nowDate = new Date();
       const inv = {
         id: 'INV-' + Date.now().toString().slice(-6),
-        date: new Date().toLocaleString('ar-EG'),
-        dateISO: new Date().toISOString(),
+        date: nowDate.toLocaleString('ar-EG'),
+        dayDate: formatDayOnly(nowDate),
+        dateISO: nowDate.toISOString(),
         updatedAt: Date.now(),
         cashier: session.cashier,
         shift: session.shift,
@@ -1859,6 +2127,344 @@
       renderCart();
       openReceipt(inv.id);
       showToast('تم إصدار الفاتورة ' + inv.id, 'success');
+    }
+
+    // =================================================
+    // نظام المصروفات وجرد الدرج المطابق للشيفت (Z-Report)
+    // =================================================
+    function getAllStaffOptions() {
+      const names = new Set([
+        'الإدارة',
+        'مدير النظام',
+        ...(settings.cashierProfiles || []).map(p => p.name).filter(Boolean),
+        ...(expensesLog || []).map(e => e.employeeName).filter(Boolean),
+        session.cashier
+      ].filter(Boolean));
+      return Array.from(names);
+    }
+
+    function getShiftDrawerMetrics(shiftName = null) {
+      const targetShift = shiftName || session.shift || settings.activeShift || 'الشيفت الصباحي';
+      const lastZ = zReportsLog.find(z => z.shift === targetShift);
+      const sinceTime = lastZ ? new Date(lastZ.closedAtISO).getTime() : 0;
+
+      const shiftSales = sales.filter(inv => {
+        if (!inv || inv._deleted) return false;
+        const t = new Date(inv.dateISO || Date.now()).getTime();
+        return (inv.shift || '') === targetShift && t > sinceTime;
+      });
+
+      const shiftReturns = returnsLog.filter(ret => {
+        if (!ret || ret._deleted) return false;
+        const t = new Date(ret.dateISO || Date.now()).getTime();
+        return (ret.shift || '') === targetShift && t > sinceTime;
+      });
+
+      const shiftExpenses = expensesLog.filter(exp => {
+        if (!exp || exp._deleted) return false;
+        const t = new Date(exp.dateISO || Date.now()).getTime();
+        return (exp.shift || '') === targetShift && t > sinceTime;
+      });
+
+      const sumByMethod = (kw) => shiftSales
+        .filter(inv => String(inv.method || '').includes(kw))
+        .reduce((s, inv) => s + Number(inv.paidAmount ?? inv.total ?? 0), 0);
+
+      const cashSales = sumByMethod('كاش');
+      const walletSales = sumByMethod('محفظة');
+      const instapaySales = sumByMethod('إنستاباي');
+      const creditSales = shiftSales.reduce((s, inv) => s + Number(inv.remainingDebt || 0), 0);
+      const returnsTotal = shiftReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
+
+      const drawerExpensesList = shiftExpenses.filter(e => e.fromDrawer !== false);
+      const drawerExpensesTotal = drawerExpensesList.reduce((s, e) => s + Number(e.amount || 0), 0);
+      const allShiftExpensesTotal = shiftExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+
+      // الرصيد النقدي المتوقع في الدرج بعد خصم المرتجعات والمصروفات المخرجة من الدرج
+      const netDrawerCash = Math.max(0, cashSales - returnsTotal - drawerExpensesTotal);
+      const netAllChannels = Math.max(0, (cashSales + walletSales + instapaySales) - returnsTotal - drawerExpensesTotal);
+
+      return {
+        targetShift,
+        shiftSales,
+        shiftReturns,
+        shiftExpenses,
+        drawerExpensesList,
+        cashSales,
+        walletSales,
+        instapaySales,
+        creditSales,
+        returnsTotal,
+        drawerExpensesTotal,
+        allShiftExpensesTotal,
+        netDrawerCash,
+        netAllChannels
+      };
+    }
+
+    function updatePosDrawerIndicator() {
+      const el = document.getElementById('pos-drawer-cash-view');
+      if (!el) return;
+      const m = getShiftDrawerMetrics();
+      el.textContent = fmt(m.netDrawerCash) + (m.drawerExpensesTotal > 0 ? ` (مصروفات درج: -${fmt(m.drawerExpensesTotal)})` : '');
+    }
+
+    function populateExpenseSelectors() {
+      const staffList = getAllStaffOptions();
+      const shiftList = settings.shifts && settings.shifts.length ? settings.shifts : ['الشيفت الصباحي', 'الشيفت المسائي'];
+
+      const empSel = document.getElementById('exp-employee-select');
+      if (empSel) {
+        const cur = empSel.value;
+        empSel.innerHTML = staffList.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+        empSel.value = staffList.includes(cur) ? cur : (session.cashier || staffList[0]);
+      }
+
+      const shSel = document.getElementById('exp-shift-select');
+      if (shSel) {
+        const cur = shSel.value;
+        shSel.innerHTML = shiftList.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+        shSel.value = shiftList.includes(cur) ? cur : (session.shift || shiftList[0]);
+      }
+
+      const authInp = document.getElementById('exp-authorized-by-input');
+      if (authInp && !authInp.value.trim()) {
+        authInp.value = 'الإدارة';
+      }
+
+      const filterEmp = document.getElementById('exp-filter-employee');
+      if (filterEmp) {
+        const cur = filterEmp.value || 'all';
+        filterEmp.innerHTML = '<option value="all">كل الموظفين (إدارة / كاشير)</option>' +
+          staffList.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+        filterEmp.value = Array.from(filterEmp.options).some(o => o.value === cur) ? cur : 'all';
+      }
+
+      const filterShift = document.getElementById('exp-filter-shift');
+      if (filterShift) {
+        const cur = filterShift.value || 'all';
+        filterShift.innerHTML = '<option value="all">كل الشيفتات</option>' +
+          shiftList.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+        filterShift.value = Array.from(filterShift.options).some(o => o.value === cur) ? cur : 'all';
+      }
+    }
+
+    function resetExpenseForm() {
+      document.getElementById('exp-edit-id').value = '';
+      document.getElementById('exp-form-title').textContent = 'تسجيل مصروف جديد (إضافة / خصم من الدرج)';
+      document.getElementById('exp-submit-btn').textContent = '+ حفظ المصروف';
+      document.getElementById('exp-cancel-edit-btn').classList.add('hidden');
+      document.getElementById('exp-amount-input').value = '';
+      document.getElementById('exp-note-input').value = '';
+      document.getElementById('exp-authorized-by-input').value = 'الإدارة';
+      document.getElementById('exp-from-drawer-chk').checked = true;
+      populateExpenseSelectors();
+    }
+
+    function saveExpenseForm(e) {
+      e.preventDefault();
+      const editId = document.getElementById('exp-edit-id').value.trim();
+      const category = document.getElementById('exp-category-select').value;
+      const employeeName = document.getElementById('exp-employee-select').value;
+      const authorizedBy = (document.getElementById('exp-authorized-by-input')?.value || '').trim() || 'الإدارة';
+      const amount = Math.max(0, parseFloat(document.getElementById('exp-amount-input').value) || 0);
+      const shift = document.getElementById('exp-shift-select').value;
+      const note = document.getElementById('exp-note-input').value.trim();
+      const fromDrawer = Boolean(document.getElementById('exp-from-drawer-chk').checked);
+
+      if (!category || amount <= 0) {
+        showToast('أدخل بند المصروف ومبلغاً صحيحاً', 'error');
+        return;
+      }
+
+      if (editId) {
+        const idx = expensesLog.findIndex(x => String(x.id) === editId);
+        if (idx !== -1) {
+          expensesLog[idx] = {
+            ...expensesLog[idx],
+            category,
+            employeeName,
+            authorizedBy,
+            amount,
+            shift,
+            note,
+            fromDrawer,
+            updatedAt: Date.now()
+          };
+          showToast('تم تعديل المصروف وتحديث رصيد الدرج وZ-Report', 'success');
+        }
+      } else {
+        const now = new Date();
+        expensesLog.unshift({
+          id: 'EXP-' + Date.now().toString().slice(-6),
+          date: now.toLocaleString('ar-EG'),
+          dayDate: formatDayOnly(now),
+          dateISO: now.toISOString(),
+          category,
+          employeeName,
+          authorizedBy,
+          recordedBy: session.cashier,
+          shift,
+          note,
+          fromDrawer,
+          amount,
+          updatedAt: Date.now()
+        });
+        showToast(`تم تسجيل مصروف (${category}) بمبلغ ${fmt(amount)} بإبلاغ (${authorizedBy})`, 'success');
+      }
+
+      saveState(true);
+      resetExpenseForm();
+      renderExpenses();
+      renderReports();
+    }
+
+    function editExpenseRow(id) {
+      const exp = expensesLog.find(x => String(x.id) === String(id));
+      if (!exp) return;
+      populateExpenseSelectors();
+      document.getElementById('exp-edit-id').value = exp.id;
+      document.getElementById('exp-form-title').textContent = `تعديل المصروف (${exp.id})`;
+      document.getElementById('exp-submit-btn').textContent = 'حفظ تعديل المصروف';
+      document.getElementById('exp-cancel-edit-btn').classList.remove('hidden');
+      document.getElementById('exp-category-select').value = EXPENSE_CATEGORIES.includes(exp.category) ? exp.category : EXPENSE_CATEGORIES[0];
+      document.getElementById('exp-employee-select').value = exp.employeeName || session.cashier;
+      document.getElementById('exp-authorized-by-input').value = exp.authorizedBy || 'الإدارة';
+      document.getElementById('exp-amount-input').value = String(exp.amount || 0);
+      document.getElementById('exp-shift-select').value = exp.shift || session.shift;
+      document.getElementById('exp-note-input').value = exp.note || '';
+      document.getElementById('exp-from-drawer-chk').checked = exp.fromDrawer !== false;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function deleteExpenseRow(id) {
+      const idx = expensesLog.findIndex(x => String(x.id) === String(id));
+      if (idx === -1) return;
+      expensesLog[idx] = {
+        ...expensesLog[idx],
+        _deleted: true,
+        updatedAt: Date.now()
+      };
+      expensesLog = expensesLog.filter(x => !x._deleted);
+      saveState(true);
+      renderExpenses();
+      renderReports();
+      showToast('تم حذف المصروف وتحديث رصيد الدرج وZ-Report', 'success');
+    }
+
+    function renderExpenses() {
+      populateExpenseSelectors();
+      const metrics = getShiftDrawerMetrics();
+      const todayStr = new Date().toLocaleDateString('ar-EG');
+      const activeList = expensesLog.filter(e => e && !e._deleted);
+
+      const todayTotal = activeList
+        .filter(e => new Date(e.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr)
+        .reduce((s, e) => s + Number(e.amount || 0), 0);
+
+      const allTotal = activeList.reduce((s, e) => s + Number(e.amount || 0), 0);
+
+      document.getElementById('exp-stat-shift-drawer').textContent = fmt(metrics.drawerExpensesTotal);
+      document.getElementById('exp-stat-today').textContent = fmt(todayTotal);
+      document.getElementById('exp-stat-total').textContent = fmt(allTotal);
+      document.getElementById('exp-stat-drawer-net').textContent = fmt(metrics.netDrawerCash);
+
+      const fCat = document.getElementById('exp-filter-category')?.value || 'all';
+      const fEmp = document.getElementById('exp-filter-employee')?.value || 'all';
+      const fShift = document.getElementById('exp-filter-shift')?.value || 'all';
+
+      const filtered = activeList.filter(e => {
+        const okCat = fCat === 'all' || e.category === fCat;
+        const okEmp = fEmp === 'all' || e.employeeName === fEmp;
+        const okSh = fShift === 'all' || e.shift === fShift;
+        return okCat && okEmp && okSh;
+      });
+
+      document.getElementById('expenses-tbody').innerHTML = filtered.map(e => {
+        const dayLabel = e.dayDate || formatDayOnly(e.dateISO || e.date);
+        const drawerBadge = e.fromDrawer !== false
+          ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">خصم من الدرج</span>'
+          : '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">خارج الدرج</span>';
+
+        return `
+          <tr>
+            <td class="py-3 px-4 font-mono text-xs">${esc(dayLabel)}</td>
+            <td class="py-3 px-4 font-extrabold text-marine-950">${esc(e.category)}</td>
+            <td class="py-3 px-4 font-bold text-xs">${esc(e.employeeName || '—')}</td>
+            <td class="py-3 px-4 text-xs font-extrabold text-amber-900">${esc(e.authorizedBy || 'الإدارة')}</td>
+            <td class="py-3 px-4 text-xs">${esc(e.shift || '—')}</td>
+            <td class="py-3 px-4 text-xs text-slate-600">${esc(e.note || '—')}</td>
+            <td class="py-3 px-4">${drawerBadge}</td>
+            <td class="py-3 px-4 font-mono font-extrabold text-rose-700">-${fmt(e.amount)}</td>
+            <td class="py-3 px-4 text-center space-x-1 space-x-reverse whitespace-nowrap">
+              <button type="button" onclick="editExpenseRow('${e.id}')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-500 hover:text-slate-950 text-amber-900 text-xs font-bold">
+                تعديل
+              </button>
+              <button type="button" onclick="deleteExpenseRow('${e.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-bold">
+                حذف
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('') || '<tr><td colspan="9" class="py-6 text-center text-xs text-slate-400 font-bold">لا توجد مصروفات مسجلة مطابقة للفلاتر</td></tr>';
+    }
+
+    function openDrawerExpenseModal() {
+      const staffList = getAllStaffOptions();
+      const empSel = document.getElementById('quick-exp-employee');
+      if (empSel) {
+        empSel.innerHTML = staffList.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+        empSel.value = staffList.includes(session.cashier) ? session.cashier : staffList[0];
+      }
+      document.getElementById('quick-exp-authorized-by').value = 'الإدارة';
+      document.getElementById('quick-exp-amount').value = '';
+      document.getElementById('quick-exp-note').value = '';
+      const m = document.getElementById('modal-drawer-expense');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function closeDrawerExpenseModal() {
+      const m = document.getElementById('modal-drawer-expense');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function submitDrawerQuickExpense(e) {
+      e.preventDefault();
+      const category = document.getElementById('quick-exp-category').value;
+      const employeeName = document.getElementById('quick-exp-employee').value;
+      const authorizedBy = (document.getElementById('quick-exp-authorized-by')?.value || '').trim() || 'الإدارة';
+      const amount = Math.max(0, parseFloat(document.getElementById('quick-exp-amount').value) || 0);
+      const note = document.getElementById('quick-exp-note').value.trim();
+
+      if (amount <= 0) {
+        showToast('أدخل مبلغاً صحيحاً للمصروف', 'error');
+        return;
+      }
+
+      const now = new Date();
+      expensesLog.unshift({
+        id: 'EXP-' + Date.now().toString().slice(-6),
+        date: now.toLocaleString('ar-EG'),
+        dayDate: formatDayOnly(now),
+        dateISO: now.toISOString(),
+        category,
+        employeeName,
+        authorizedBy,
+        recordedBy: session.cashier,
+        shift: session.shift,
+        note,
+        fromDrawer: true,
+        amount,
+        updatedAt: Date.now()
+      });
+
+      saveState(true);
+      closeDrawerExpenseModal();
+      renderExpenses();
+      renderReports();
+      showToast(`تم خصم (${category}) بمبلغ ${fmt(amount)} بإبلاغ (${authorizedBy}) وتضمينه في Z-Report`, 'success');
     }
 
     // =================================================
@@ -2009,12 +2615,13 @@
         }
       }
 
+      const nowRetDate = new Date();
       const verifiedInvoiceId = inv ? inv.id : '';
       const retRecord = {
         id: 'RET-' + Date.now().toString().slice(-6),
-        date: new Date().toLocaleString('ar-EG'),
-        dayDate: formatDayOnly(new Date()),
-        dateISO: new Date().toISOString(),
+        date: nowRetDate.toLocaleString('ar-EG'),
+        dayDate: formatDayOnly(nowRetDate),
+        dateISO: nowRetDate.toISOString(),
         productId: prod.id,
         productName: prod.name,
         qty,
@@ -2392,52 +2999,58 @@
     }
 
     // =================================================
-    // إقفال الشيفت (جرد الدرج Z-Report)
+    // إقفال الشيفت (جرد الدرج Z-Report) شاملاً المصروفات المخصومة من الدرج
     // =================================================
     function openZReportModal() {
-      const activeShift = session.shift || settings.activeShift || 'الشيفت الصباحي';
-      const lastZ = zReportsLog.find(z => z.shift === activeShift);
-      const sinceTime = lastZ ? new Date(lastZ.closedAtISO).getTime() : 0;
+      const m = getShiftDrawerMetrics();
 
-      const shiftSales = sales.filter(inv => {
-        const t = new Date(inv.dateISO || Date.now()).getTime();
-        return (inv.shift || '') === activeShift && t > sinceTime;
-      });
-      const shiftReturns = returnsLog.filter(ret => {
-        const t = new Date(ret.dateISO || Date.now()).getTime();
-        return (ret.shift || '') === activeShift && t > sinceTime;
-      });
-
-      const sumByMethod = (kw) => shiftSales
-        .filter(inv => String(inv.method || '').includes(kw))
-        .reduce((s, inv) => s + Number(inv.paidAmount ?? inv.total ?? 0), 0);
-
-      const cashTotal = sumByMethod('كاش');
-      const walletTotal = sumByMethod('محفظة');
-      const instapayTotal = sumByMethod('إنستاباي');
-      const creditTotal = shiftSales.reduce((s, inv) => s + Number(inv.remainingDebt || 0), 0);
-      const returnsTotal = shiftReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
-      const netCollected = Math.max(0, (cashTotal + walletTotal + instapayTotal) - returnsTotal);
+      const drawerExpensesRows = m.drawerExpensesList.length
+        ? m.drawerExpensesList.map(exp => `
+            <div class="flex justify-between items-center py-1 px-2.5 rounded-lg bg-rose-50/70 border border-rose-100 text-xs">
+              <span>
+                <strong>${esc(exp.category)}</strong>
+                <span class="text-slate-600"> — الموظف: ${esc(exp.employeeName || '—')}</span>
+                <span class="text-amber-900 font-bold"> — أبلغ بالإخراج: ${esc(exp.authorizedBy || 'الإدارة')}</span>
+                ${exp.note ? `<span class="text-slate-500"> (${esc(exp.note)})</span>` : ''}
+              </span>
+              <strong class="font-mono text-rose-700">-${fmt(exp.amount)}</strong>
+            </div>
+          `).join('')
+        : '<div class="text-xs text-slate-400 font-bold py-1">لا توجد مصروفات مخصومة من الدرج خلال هذا الشيفت</div>';
 
       document.getElementById('z-report-body').innerHTML = `
         <div class="text-center border-b border-slate-300 pb-3">
-          <div class="font-extrabold text-lg text-marine-950">${esc(settings.storeName)} — تقرير إقفال الشيفت (Z-Report)</div>
-          <div class="text-xs text-slate-600 mt-1">الشيفت: <strong>${esc(activeShift)}</strong> — الكاشير: <strong>${esc(session.cashier)}</strong> — التاريخ: <span class="font-mono">${esc(new Date().toLocaleString('ar-EG'))}</span></div>
+          <div class="font-extrabold text-lg text-marine-950">${esc(settings.storeName)} — تقرير إقفال الشيفت وجرد الدرج (Z-Report)</div>
+          <div class="text-xs text-slate-600 mt-1">الشيفت: <strong>${esc(m.targetShift)}</strong> — الكاشير: <strong>${esc(session.cashier)}</strong> — التاريخ: <span class="font-mono">${esc(new Date().toLocaleString('ar-EG'))}</span></div>
         </div>
         <div class="space-y-2 text-xs sm:text-sm">
-          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>عدد الفواتير في الفترة:</span><strong class="font-mono">${shiftSales.length}</strong></div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي الكاش:</span><strong class="font-mono text-emerald-700">${fmt(cashTotal)}</strong></div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي المحافظ الإلكترونية:</span><strong class="font-mono text-marine-800">${fmt(walletTotal)}</strong></div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي إنستاباي:</span><strong class="font-mono text-purple-800">${fmt(instapayTotal)}</strong></div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>مبيعات آجلة / ذمم متبقية:</span><strong class="font-mono text-amber-700">${fmt(creditTotal)}</strong></div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي المرتجعات خلال الشيفت:</span><strong class="font-mono text-rose-700">-${fmt(returnsTotal)}</strong></div>
-          <div class="flex justify-between pt-2 text-base font-extrabold text-marine-950"><span>صافي المتحصل بالدرج والقنوات:</span><span class="font-mono">${fmt(netCollected)}</span></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>عدد الفواتير في الفترة:</span><strong class="font-mono">${m.shiftSales.length}</strong></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي الكاش:</span><strong class="font-mono text-emerald-700">${fmt(m.cashSales)}</strong></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي المحافظ الإلكترونية:</span><strong class="font-mono text-marine-800">${fmt(m.walletSales)}</strong></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي إنستاباي:</span><strong class="font-mono text-purple-800">${fmt(m.instapaySales)}</strong></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>مبيعات آجلة / ذمم متبقية:</span><strong class="font-mono text-amber-700">${fmt(m.creditSales)}</strong></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي المرتجعات خلال الشيفت:</span><strong class="font-mono text-rose-700">-${fmt(m.returnsTotal)}</strong></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي المصروفات المخصومة من الدرج:</span><strong class="font-mono text-rose-700">-${fmt(m.drawerExpensesTotal)}</strong></div>
+
+          <div class="pt-1 space-y-1">
+            <div class="text-xs font-extrabold text-slate-700">تفاصيل البنود المصروفة من الدرج ومن أبلغ بإخراجها:</div>
+            <div class="space-y-1">${drawerExpensesRows}</div>
+          </div>
+
+          <div class="flex justify-between pt-2 text-sm sm:text-base font-extrabold text-emerald-900 border-t border-slate-200">
+            <span>رصيد الكاش المطابق بالدرج (بعد المرتجعات والمصروفات):</span>
+            <span class="font-mono">${fmt(m.netDrawerCash)}</span>
+          </div>
+          <div class="flex justify-between text-xs sm:text-sm font-extrabold text-marine-950">
+            <span>إجمالي المتحصل عبر كافة القنوات بعد الخصومات:</span>
+            <span class="font-mono">${fmt(m.netAllChannels)}</span>
+          </div>
         </div>
       `;
 
-      const m = document.getElementById('modal-z-report');
-      m.classList.remove('hidden');
-      m.classList.add('flex');
+      const modalEl = document.getElementById('modal-z-report');
+      modalEl.classList.remove('hidden');
+      modalEl.classList.add('flex');
     }
 
     function closeZReportModal() {
@@ -2448,17 +3061,20 @@
 
     function confirmCloseShiftZReport() {
       const activeShift = session.shift || settings.activeShift || 'الشيفت الصباحي';
+      const metrics = getShiftDrawerMetrics(activeShift);
       zReportsLog.unshift({
         id: 'ZR-' + Date.now().toString().slice(-6),
         shift: activeShift,
         cashier: session.cashier,
+        netDrawerCash: metrics.netDrawerCash,
+        drawerExpensesTotal: metrics.drawerExpensesTotal,
         closedAtISO: new Date().toISOString(),
         closedAt: new Date().toLocaleString('ar-EG'),
         updatedAt: Date.now()
       });
       saveState(true);
       closeZReportModal();
-      showToast(`تم اعتماد إقفال (${activeShift}) وتسجيل نقطة التسليم`, 'success');
+      showToast(`تم اعتماد إقفال (${activeShift}) وتسجيل جرد الدرج (${fmt(metrics.netDrawerCash)})`, 'success');
     }
 
     // =================================================
@@ -2483,6 +3099,7 @@
         ...(settings.shifts || []),
         ...sales.map(s => s.shift).filter(Boolean),
         ...returnsLog.map(r => r.shift).filter(Boolean),
+        ...expensesLog.map(e => e.shift).filter(Boolean),
       ]);
       sel.innerHTML = '<option value="all">كل الشيفتات</option>' +
         Array.from(shiftSet).map(sh => `<option value="${esc(sh)}">${esc(sh)}</option>`).join('');
@@ -2521,7 +3138,7 @@
       const todayStr = new Date().toLocaleDateString('ar-EG');
 
       const filteredSales = sales.filter(inv => {
-        if (!Array.isArray(inv.items) || inv.items.length === 0) return false;
+        if (!Array.isArray(inv.items) || inv.items.length === 0 || inv._deleted) return false;
         const okPeriod = reportPeriod !== 'today' || new Date(inv.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr;
         const okShift = selectedShift === 'all' || (inv.shift || '') === selectedShift;
         const okProd = selectedProduct === 'all' || inv.items.some(it => String(it.id) === String(selectedProduct));
@@ -2529,19 +3146,27 @@
       });
 
       const filteredReturns = returnsLog.filter(ret => {
+        if (!ret || ret._deleted) return false;
         const okPeriod = reportPeriod !== 'today' || new Date(ret.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr;
         const okShift = selectedShift === 'all' || (ret.shift || '') === selectedShift;
         const okProd = selectedProduct === 'all' || String(ret.productId) === String(selectedProduct);
         return okPeriod && okShift && okProd;
       });
 
-      return { filteredSales, filteredReturns, selectedProduct };
+      const filteredExpenses = expensesLog.filter(exp => {
+        if (!exp || exp._deleted) return false;
+        const okPeriod = reportPeriod !== 'today' || new Date(exp.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr;
+        const okShift = selectedShift === 'all' || (exp.shift || '') === selectedShift;
+        return okPeriod && okShift && selectedProduct === 'all';
+      });
+
+      return { filteredSales, filteredReturns, filteredExpenses, selectedProduct };
     }
 
     function renderReports() {
       populateReportShiftFilter();
       populateReportProductFilter();
-      const { filteredSales, filteredReturns, selectedProduct } = getFilteredReportsData();
+      const { filteredSales, filteredReturns, filteredExpenses, selectedProduct } = getFilteredReportsData();
 
       const getSaleRelevantAmount = (inv) => {
         if (selectedProduct === 'all') return Number(inv.total || 0);
@@ -2561,6 +3186,7 @@
 
       const grossSales = filteredSales.reduce((s, x) => s + getSaleRelevantAmount(x), 0);
       const totalReturns = filteredReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
+      const totalExpenses = filteredExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
       const unlinkedReturns = filteredReturns
         .filter(r => !sales.some(inv => String(inv.id || '').trim().toLowerCase() === String(r.invoiceRef || '').trim().toLowerCase()))
         .reduce((s, r) => s + Number(r.amount || 0), 0);
@@ -2570,11 +3196,11 @@
       const unlinkedReturnProfitLoss = filteredReturns
         .filter(r => !sales.some(inv => String(inv.id || '').trim().toLowerCase() === String(r.invoiceRef || '').trim().toLowerCase()))
         .reduce((s, r) => s + Number(r.profitDeduction || 0), 0);
-      const netProfit = grossProfit - unlinkedReturnProfitLoss;
+      const netProfit = grossProfit - unlinkedReturnProfitLoss - totalExpenses;
 
       document.getElementById('rep-total-sales').textContent = fmt(netSales);
       document.getElementById('rep-total-profit').textContent = fmt(netProfit);
-      document.getElementById('rep-total-returns').textContent = fmt(totalReturns);
+      document.getElementById('rep-total-returns').textContent = `${fmt(totalReturns)} / ${fmt(totalExpenses)}`;
       document.getElementById('rep-invoices-count').textContent = filteredSales.length;
 
       document.getElementById('reports-tbody').innerHTML = filteredSales.map(inv => {
@@ -2628,8 +3254,8 @@
 
     // تصدير ملف Excel منظم (.xls بصيغة جدول HTML UTF-8 RTL) يفتح في جميع إصدارات Excel بحروف عربية سليمة وأعمدة مرتبة
     function exportArabicExcelCSV() {
-      const { filteredSales, filteredReturns, selectedProduct } = getFilteredReportsData();
-      const headers = ['النوع', 'تاريخ اليوم', 'الرقم', 'فاتورة المبيعات المرجع', 'الشيفت', 'الكاشير', 'العميل / المنتج', 'طريقة الدفع', 'الكمية', 'القيمة (ج.م)'];
+      const { filteredSales, filteredReturns, filteredExpenses, selectedProduct } = getFilteredReportsData();
+      const headers = ['النوع', 'تاريخ اليوم', 'الرقم', 'فاتورة المبيعات المرجع', 'الشيفت', 'الكاشير / الموظف', 'العميل / المنتج / البند', 'طريقة الدفع / أبلغ بالإخراج / البيان', 'الكمية', 'القيمة (ج.م)'];
       const dataRows = [];
       let totalNetAmount = 0;
 
@@ -2685,13 +3311,31 @@
         ]);
       });
 
+      filteredExpenses.forEach(e => {
+        const expVal = -Number(e.amount || 0);
+        const expDayLabel = e.dayDate || formatDayOnly(e.dateISO || e.date);
+        totalNetAmount += expVal;
+        dataRows.push([
+          'مصروف',
+          expDayLabel,
+          e.id,
+          e.fromDrawer !== false ? 'مخصوم من الدرج' : 'خارج الدرج',
+          e.shift,
+          e.employeeName || '—',
+          e.category,
+          `أبلغ بالإخراج: ${e.authorizedBy || 'الإدارة'}${e.note ? ' - ' + e.note : ''}`,
+          1,
+          expVal.toFixed(2)
+        ]);
+      });
+
       const tableRowsHtml = dataRows.map((row, rIdx) => {
-        const isReturn = row[0] === 'مرتجع';
-        const rowBg = isReturn ? '#fff1f2' : (rIdx % 2 === 0 ? '#ffffff' : '#f8fafc');
+        const isDeduction = row[0] === 'مرتجع' || row[0] === 'مصروف';
+        const rowBg = isDeduction ? '#fff1f2' : (rIdx % 2 === 0 ? '#ffffff' : '#f8fafc');
         return `<tr style="background-color:${rowBg};">
           ${row.map((cell, cIdx) => {
             const align = cIdx === 6 ? 'right' : 'center';
-            const color = isReturn ? '#be123c' : '#0f172a';
+            const color = isDeduction ? '#be123c' : '#0f172a';
             const weight = (cIdx === 2 || cIdx === 3 || cIdx === 9) ? 'bold' : 'normal';
             return `<td style="border:1px solid #cbd5e1;padding:7px 10px;text-align:${align};color:${color};font-weight:${weight};mso-number-format:'\\@';">${esc(cell)}</td>`;
           }).join('')}
@@ -2713,7 +3357,7 @@
           <table>
             <tr>
               <th colspan="10" style="background-color:#082f49;color:#ffffff;font-size:15pt;padding:10px;text-align:center;border:1px solid #082f49;">
-                تقرير مبيعات ومرتجعات ${esc(settings.storeName)} — بتاريخ ${esc(new Date().toLocaleDateString('ar-EG'))}
+                تقرير مبيعات ومرتجعات ومصروفات ${esc(settings.storeName)} — بتاريخ ${esc(new Date().toLocaleDateString('ar-EG'))}
               </th>
             </tr>
             <tr>
@@ -2934,6 +3578,7 @@
       saveState(true);
       fillGateSelectors();
       fillSettings();
+      populateExpenseSelectors();
       showToast('تمت إضافة الكاشير ورمز PIN الخاص به', 'success');
     }
 
@@ -2964,6 +3609,7 @@
       saveState(true);
       fillGateSelectors();
       fillSettings();
+      populateExpenseSelectors();
       syncRoleUI();
       showToast(`تم تحديث الكاشير (${updatedName}) ورمز PIN الخاص به`, 'success');
     }
@@ -2988,6 +3634,7 @@
       saveState(true);
       fillGateSelectors();
       fillSettings();
+      populateExpenseSelectors();
       showToast('تمت إضافة الشيفت', 'success');
     }
 
@@ -3061,7 +3708,7 @@
     }
 
     function exportBackupJSON() {
-      const blob = new Blob([JSON.stringify({ products, sales, returnsLog, customers, suppliers, purchases, zReportsLog, settings }, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify({ products, sales, returnsLog, customers, suppliers, purchases, expensesLog, zReportsLog, settings }, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'shabaka-w-senara-backup.json';
@@ -3081,12 +3728,14 @@
           if (Array.isArray(d.customers)) customers = d.customers;
           if (Array.isArray(d.suppliers)) suppliers = d.suppliers;
           if (Array.isArray(d.purchases)) purchases = d.purchases;
+          if (Array.isArray(d.expensesLog)) expensesLog = d.expensesLog;
           if (Array.isArray(d.zReportsLog)) zReportsLog = d.zReportsLog;
           if (d.settings) settings = { ...DEFAULT_SETTINGS, ...d.settings };
           saveState(true);
           applyBranding();
           fillGateSelectors();
           populateCustomersDatalist();
+          populateExpenseSelectors();
           fillSettings();
           showToast('تمت استعادة النسخة الاحتياطية بنجاح', 'success');
         } catch (err) {
@@ -3102,6 +3751,8 @@
       applyBranding();
       fillGateSelectors();
       populateCustomersDatalist();
+      populateExpenseSelectors();
+      updatePosDrawerIndicator();
       pullFromCloud();
     } catch (e) {
       console.error('Initialization error:', e);
