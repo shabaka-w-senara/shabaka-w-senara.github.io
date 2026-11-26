@@ -2038,26 +2038,33 @@
       showToast(`تم تسجيل مرتجع (${qty} × ${prod.name}) بقيمة ${fmt(refundAmount)}`, 'success');
     }
 
+    function refreshCustomersDatalist() {
+      const dl = document.getElementById('pos-customers-datalist');
+      if (!dl) return;
+      dl.innerHTML = (customers || []).map(c => `<option value="${esc(c.name)}"></option>`).join('');
+    }
+
     function addOrUpdateCustomer(e) {
       e.preventDefault();
       const name = document.getElementById('cust-name-input').value.trim();
       const phone = document.getElementById('cust-phone-input').value.trim();
-      const initBal = Math.max(0, parseFloat(document.getElementById('cust-init-balance-input').value) || 0);
+      const initBalance = Math.max(0, parseFloat(document.getElementById('cust-init-balance-input').value) || 0);
       if (!name) return;
 
-      let existing = customers.find(c => c.name === name);
-      if (existing) {
-        if (phone) existing.phone = phone;
-        existing.balanceDue = Number(existing.balanceDue || 0) + initBal;
+      let cust = customers.find(c => c.name === name);
+      if (cust) {
+        if (phone) cust.phone = phone;
+        if (initBalance > 0) cust.balanceDue = Number(cust.balanceDue || 0) + initBalance;
       } else {
         customers.unshift({
           id: 'CUST-' + Date.now().toString().slice(-6),
           name,
           phone,
           totalPurchases: 0,
-          balanceDue: initBal,
+          balanceDue: initBalance,
         });
       }
+
       document.getElementById('cust-name-input').value = '';
       document.getElementById('cust-phone-input').value = '';
       document.getElementById('cust-init-balance-input').value = '0';
@@ -2204,11 +2211,6 @@
       `).join('') || '<tr><td colspan="5" class="py-5 text-center text-slate-400 font-bold">لا توجد فواتير مشتريات بعد</td></tr>';
     }
 
-    // =================================================
-    // نظام المرتجعات (إرجاع منتج أو عدد معين من القطع)
-    // =================================================
-    function openReturnModal() {
-      const sel = document.getElementById('ret-product-select');
     function clearPosSearch() {
       const searchInp = document.getElementById('pos-search-input');
       const barcodeInp = document.getElementById('pos-barcode-input');
