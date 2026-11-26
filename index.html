@@ -1835,8 +1835,10 @@
         customerPhone,
         items: cart.map(x => ({ ...x })),
         subtotal: sub,
+        originalSubtotal: sub,
         discount: disc,
         total,
+        originalTotal: total,
         paidNow,
         remainingDue,
         profit: total - cost,
@@ -2014,6 +2016,48 @@
       prod.stock = Number(prod.stock || 0) + qty;
       const refundAmount = Number(ctx.unitPrice || 0) * qty;
       const refundCost = Number(ctx.unitCost || 0) * qty;
+
+      // تحديث الفاتورة الأصلية لتعكس الأصناف والمبلغ المتبقي فعلياً بعد المرتجع
+      if (ctx.invoice) {
+        const targetInv = sales.find(s => String(s.id) === String(ctx.invoice.id));
+        if (targetInv && Array.isArray(targetInv.items)) {
+          if (typeof targetInv.originalSubtotal !== 'number') {
+            targetInv.originalSubtotal = Number(targetInv.subtotal || 0);
+          }
+          if (typeof targetInv.originalTotal !== 'number') {
+            targetInv.originalTotal = Number(targetInv.total || 0);
+          }
+
+          let leftToDeduct = qty;
+          for (let i = targetInv.items.length - 1; i >= 0 && leftToDeduct > 0; i--) {
+            const it = targetInv.items[i];
+            if (it && String(it.id) === String(pid)) {
+              const currentItemQty = Number(it.qty || 0);
+              const deductFromThis = Math.min(currentItemQty, leftToDeduct);
+              const newItemQty = currentItemQty - deductFromThis;
+              leftToDeduct -= deductFromThis;
+              if (newItemQty <= 0) {
+                targetInv.items.splice(i, 1);
+              } else {
+                it.qty = newItemQty;
+              }
+            }
+          }
+
+          const newSubtotal = targetInv.items.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0);
+          const newCost = targetInv.items.reduce((sum, it) => sum + Number(it.cost ?? prod.cost ?? 0) * Number(it.qty || 0), 0);
+          targetInv.subtotal = newSubtotal;
+          targetInv.discount = Math.min(Number(targetInv.discount || 0), newSubtotal);
+          targetInv.total = Math.max(0, newSubtotal - targetInv.discount);
+          targetInv.profit = targetInv.total - newCost;
+
+          if (targetInv.method === 'آجل (ذمم)') {
+            const paidSoFar = Number(targetInv.paidNow || 0);
+            targetInv.remainingDue = Math.max(0, targetInv.total - paidSoFar);
+            targetInv.proof = `آجل (متبقي: ${targetInv.remainingDue.toFixed(2)} ج.م)`;
+          }
+        }
+      }
 
       const retRecord = {
         id: 'RET-' + Date.now().toString().slice(-6),
@@ -2571,17 +2615,17 @@
 
       const grossSales = filteredSales.reduce((s, x) => s + getSaleRelevantAmount(x), 0);
       const totalReturns = filteredReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
-      const netSales = Math.max(0, grossSales - totalReturns);
+      // المبالغ في الفواتير أصبحت بالفعل صافية بعد المرتجع المرتبط بها؛ نخصم فقط المرتجعات غير المرتبطة بفاتورة محددة
+      const unlinkedReturns = filteredReturns
+        .filter(r => !sales.some(inv => String(inv.id || '').trim().toLowerCase() === String(r.invoiceRef || '').trim().toLowerCase()))
+        .reduce((s, r) => s + Number(r.amount || 0), 0);
+      const netSales = Math.max(0, grossSales - unlinkedReturns);
 
       const grossProfit = filteredSales.reduce((s, x) => s + getSaleRelevantProfit(x), 0);
-      const returnProfitLoss = filteredReturns.reduce((s, r) => s + Number(r.profitDeduction || 0), 0);
-      const netProfit = grossProfit - returnProfitLoss;
-
-      document.getElementById('rep-total-sales').textContent = fmt(netSales);
-      document.getElementById('rep-total-profit').textContent = fmt(netProfit);
-      document.getElementById('rep-total-returns').textContent = fmt(totalReturns);
-      document.getElementById('rep-invoices-count').textContent = filteredSales.length;
-
+      const unlinkedReturnProfitLoss = filteredReturns
+        .filter(r => !sales.some(inv => String(inv.id || '').trim().toLowerCase() === String(r.invoiceRef || '').trim().toLowerCase()))
+        .reduce((s, r) => s + Number(r.profitDeduction || 0), 0);
+      const netProfit = grossProfit - unlinkedReturnProfitLoss;
       document.getElementById('reports-tbody').innerHTML = filteredSales.map(inv => {
         const displayTotal = getSaleRelevantAmount(inv);
         return `
@@ -2644,16 +2688,19 @@
       });
 
       filteredReturns.forEach(r => {
+        const hasLinkedInvoice = sales.some(inv => String(inv.id || '').trim().toLowerCase() === String(r.invoiceRef || '').trim().toLowerCase());
         const retVal = -Number(r.amount || 0);
-        totalNetAmount += retVal;
+        if (!hasLinkedInvoice) {
+          totalNetAmount += retVal;
+        }
         dataRows.push([
           'مرتجع',
           r.id,
           r.date,
           r.shift,
           r.cashier,
-          r.productName,
-          'مرتجع مخصوم',
+          `${r.productName}${r.invoiceRef ? ' (فاتورة ' + r.invoiceRef + ')' : ''}`,
+          hasLinkedInvoice ? 'مخصوم من الفاتورة' : 'مرتجع مخصوم',
           r.qty,
           retVal.toFixed(2)
         ]);
@@ -2737,7 +2784,15 @@
           <div class="text-slate-700 mt-0.5">الكاشير: <strong>${esc(inv.cashier)}</strong> — الشيفت: <strong>${esc(inv.shift)}</strong> — العميل: <strong>${esc(inv.customer)}</strong></div>
         </div>
         <div class="divide-y divide-slate-200">
-          ${inv.items.map(i => `<div class="py-2 flex justify-between items-center"><span>${esc(i.name)} × <strong class="font-mono">${i.qty}</strong></span><span class="font-mono font-bold">${fmt(i.price * i.qty)}</span></div>`).join('')}
+          ${inv.items.length
+            ? inv.items.map(i => `<div class="py-2 flex justify-between items-center"><span>${esc(i.name)} × <strong class="font-mono">${i.qty}</strong></span><span class="font-mono font-bold">${fmt(i.price * i.qty)}</span></div>`).join('')
+            : `<div class="py-3 text-center text-slate-500 font-bold">تم إرجاع جميع أصناف الفاتورة</div>`}
+        </div>
+        <div class="border-t border-slate-300 pt-3 space-y-1.5">
+          <div class="flex justify-between"><span>المجموع الفرعي (المتبقي):</span><span class="font-mono">${fmt(inv.subtotal)}</span></div>
+          <div class="flex justify-between"><span>الخصم:</span><span class="font-mono">${fmt(inv.discount)}</span></div>
+          <div class="flex justify-between"><span>طريقة الدفع:</span><span>${esc(inv.proof || inv.method)}</span></div>
+          <div class="flex justify-between font-extrabold text-base text-marine-950 pt-2 border-t border-slate-200"><span>الإجمالي المتبقي للفاتورة:</span><span class="font-mono">${fmt(inv.total)}</span></div>
         </div>
         <div class="border-t border-slate-300 pt-3 space-y-1.5">
           <div class="flex justify-between"><span>المجموع الفرعي:</span><span class="font-mono">${fmt(inv.subtotal)}</span></div>
