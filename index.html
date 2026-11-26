@@ -883,6 +883,31 @@
           </table>
         </div>
       </div>
+
+      <!-- سجل إقفال الشيفتات وجرد الدرج (Z-Report) مع العجز والزيادة ونسبتها على الكاشير -->
+      <div class="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-3 bg-amber-50 border-b border-amber-200 font-extrabold text-xs text-amber-950 flex flex-wrap items-center justify-between gap-2">
+          <span>سجل إقفال الشيفتات وجرد الدرج (Z-Report) — العجز والزيادة ونسبتها على الكاشير</span>
+          <span id="zreports-summary-badge" class="font-mono text-[11px] px-2.5 py-0.5 rounded-full bg-white border border-amber-300 text-amber-900"></span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-right border-collapse">
+            <thead>
+              <tr class="bg-slate-50 text-slate-700 text-xs font-extrabold border-b border-slate-200">
+                <th class="py-2.5 px-4">التاريخ والوقت</th>
+                <th class="py-2.5 px-4">رقم التقرير</th>
+                <th class="py-2.5 px-4">الشيفت / الكاشير</th>
+                <th class="py-2.5 px-4">المتوقع بالدرج</th>
+                <th class="py-2.5 px-4">المبلغ الفعلي المقفل عليه</th>
+                <th class="py-2.5 px-4">العجز / الزيادة</th>
+                <th class="py-2.5 px-4">نسبة العجز / الزيادة</th>
+                <th class="py-2.5 px-4 text-center">التفاصيل / طباعة</th>
+              </tr>
+            </thead>
+            <tbody id="zreports-tbody" class="divide-y divide-slate-100 text-xs"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- 7. الإعدادات والفئات الشجرية المتطورة وتعديل PIN والنسخ الاحتياطي -->
@@ -1384,172 +1409,118 @@
     let currentBarcodeProductId = null;
 
     // =================================================
-    // المعالجة الحسابية الاحترافية للوحدات (الكمية - الكيلو - الجرام - مللي - وزن)
+    // الدوال الأساسية والتنسيق وإدارة الحالة والمزامنة
     // =================================================
-    function normalizeUnit(u) {
-      return UNIT_OPTIONS.includes(u) ? u : 'الكمية';
-    }
-
-    function isFractionalUnit(u) {
-      const unit = normalizeUnit(u);
-      return unit === 'الكيلو' || unit === 'الجرام' || unit === 'مللي' || unit === 'وزن';
-    }
-
-    function isKiloBasedUnit(u) {
-      const unit = normalizeUnit(u);
-      return unit === 'الكيلو' || unit === 'وزن';
-    }
-
-    function getUnitDisplayLabel(u) {
-      const unit = normalizeUnit(u);
-      if (unit === 'الكمية') return 'قطعة';
-      if (unit === 'الكيلو') return 'كيلو';
-      if (unit === 'الجرام') return 'جرام';
-      if (unit === 'مللي') return 'مللي';
-      return 'كجم';
-    }
-
-    // تنسيق عرض الكمية بذكاء: إذا كانت الوحدة "الكيلو" وكان المقدار أقل من 1 كيلو يعرض (مثال: 0.250 كيلو / 250 جرام)
-    function formatQtyWithUnit(qty, u) {
-      const unit = normalizeUnit(u);
-      const n = Number(qty || 0);
-      const cleanNum = Number.isInteger(n) ? String(n) : String(Number(n.toFixed(3)));
-      if (isKiloBasedUnit(unit) && n > 0 && n < 1) {
-        const grams = Math.round(n * 1000);
-        return `${cleanNum} كيلو (${grams} جم)`;
-      }
-      return `${cleanNum} ${getUnitDisplayLabel(unit)}`;
-    }
-
     function roundMoney(v) {
       return Math.round((Number(v) || 0) * 100) / 100;
     }
 
-    // دمج القوائم حسب المعرف الفريد (id) مع احترام الحذف والتحديثات الأحدث ومنع عودة الفواتير الفارغة
-    function mergeById(localList, remoteList, options = {}) {
-      const { dropEmptyInvoices = false } = options;
-      const map = new Map();
+    function fmt(v) {
+      return roundMoney(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ج.م';
+    }
 
-      (Array.isArray(remoteList) ? remoteList : []).forEach(item => {
-        if (!item || !item.id) return;
-        if (dropEmptyInvoices && Array.isArray(item.items) && item.items.length === 0) return;
-        map.set(String(item.id), { ...item });
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatDayOnly(dateInput) {
+      try {
+        const d = dateInput instanceof Date ? dateInput : new Date(dateInput || Date.now());
+        if (isNaN(d.getTime())) return String(dateInput || '').split(',')[0] || new Date().toLocaleDateString('ar-EG');
+        return d.toLocaleDateString('ar-EG');
+      } catch (e) {
+        return new Date().toLocaleDateString('ar-EG');
+      }
+    }
+
+    function normalizeUnit(u) {
+      return UNIT_OPTIONS.includes(u) ? u : 'الكمية';
+    }
+
+    function formatQtyWithUnit(qty, unit) {
+      const u = normalizeUnit(unit);
+      const n = Number(qty) || 0;
+      const numStr = Number.isInteger(n) ? String(n) : String(Math.round(n * 1000) / 1000);
+      return `${numStr} ${u}`;
+    }
+
+    function ensureSubcategoriesMap(subMap, cats) {
+      const res = (subMap && typeof subMap === 'object') ? { ...subMap } : {};
+      (cats || []).forEach(c => {
+        if (!Array.isArray(res[c])) res[c] = [];
       });
-
-      (Array.isArray(localList) ? localList : []).forEach(item => {
-        if (!item || !item.id) return;
-        if (item._deleted) {
-          map.delete(String(item.id));
-          return;
-        }
-        if (dropEmptyInvoices && Array.isArray(item.items) && item.items.length === 0) {
-          map.delete(String(item.id));
-          return;
-        }
-        const prev = map.get(String(item.id));
-        if (!prev) {
-          map.set(String(item.id), { ...item });
-          return;
-        }
-        const localUpdated = Number(item.updatedAt || 0);
-        const remoteUpdated = Number(prev.updatedAt || 0);
-        if (localUpdated > remoteUpdated) {
-          map.set(String(item.id), { ...prev, ...item });
-        } else {
-          map.set(String(item.id), { ...item, ...prev });
-        }
-      });
-
-      return Array.from(map.values()).filter(x => !x._deleted);
+      return res;
     }
 
     function showToast(msg, type = 'info') {
       const el = document.getElementById('toast-box');
       if (!el) return;
       el.textContent = msg;
-      el.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-2xl shadow-xl text-xs sm:text-sm font-extrabold text-white no-print ' +
-        (type === 'error' ? 'bg-rose-700' : type === 'success' ? 'bg-emerald-700' : 'bg-slate-900');
-      el.classList.remove('hidden');
-      clearTimeout(window.__toastTimer);
-      window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 2800);
+      el.classList.remove('hidden', 'bg-slate-900', 'bg-emerald-700', 'bg-rose-700', 'bg-amber-700');
+      if (type === 'success') el.classList.add('bg-emerald-700');
+      else if (type === 'error') el.classList.add('bg-rose-700');
+      else if (type === 'warn') el.classList.add('bg-amber-700');
+      else el.classList.add('bg-slate-900');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => el.classList.add('hidden'), 3200);
     }
 
-    function fmt(n) {
-      return (Number(n) || 0).toFixed(2) + ' ج.م';
-    }
-
-    function formatDayOnly(dateInput) {
-      const d = dateInput ? new Date(dateInput) : new Date();
-      if (Number.isNaN(d.getTime())) return new Date().toLocaleDateString('ar-EG');
-      return d.toLocaleDateString('ar-EG');
-    }
-
-    function esc(str) {
-      return String(str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-    }
-
-    function ensureSubcategoriesMap(rawMap, catsList) {
-      const map = (rawMap && typeof rawMap === 'object' && !Array.isArray(rawMap)) ? { ...rawMap } : {};
-      (catsList || []).forEach(c => {
-        if (!Array.isArray(map[c])) {
-          map[c] = Array.isArray(DEFAULT_SUBCATEGORIES[c]) ? [...DEFAULT_SUBCATEGORIES[c]] : [];
-        }
-      });
-      return map;
+    function isAdmin() {
+      return session.role === 'admin';
     }
 
     function loadState() {
       try {
-        const rawProducts = JSON.parse(localStorage.getItem(KEYS.PRODUCTS) || 'null') || [...DEFAULT_PRODUCTS];
-        products = rawProducts.map(p => ({
-          ...p,
-          unit: normalizeUnit(p.unit),
-          subcategory: p.subcategory || '',
-          brand: p.brand || ''
-        }));
-        const rawSales = JSON.parse(localStorage.getItem(KEYS.SALES) || 'null') || [];
-        sales = Array.isArray(rawSales) ? rawSales.filter(s => s && Array.isArray(s.items) && s.items.length > 0 && !s._deleted) : [];
-        returnsLog = (JSON.parse(localStorage.getItem(KEYS.RETURNS) || 'null') || []).filter(r => r && !r._deleted);
-        customers = (JSON.parse(localStorage.getItem(KEYS.CUSTOMERS) || 'null') || []).filter(c => c && !c._deleted);
-        suppliers = (JSON.parse(localStorage.getItem(KEYS.SUPPLIERS) || 'null') || [...DEFAULT_SUPPLIERS]).filter(s => s && !s._deleted);
-        purchases = (JSON.parse(localStorage.getItem(KEYS.PURCHASES) || 'null') || []).filter(p => p && !p._deleted);
-        expensesLog = (JSON.parse(localStorage.getItem(KEYS.EXPENSES) || 'null') || []).filter(e => e && !e._deleted);
-        zReportsLog = (JSON.parse(localStorage.getItem(KEYS.Z_REPORTS) || 'null') || []).filter(z => z && !z._deleted);
-        const savedSet = JSON.parse(localStorage.getItem(KEYS.SETTINGS) || 'null') || {};
-        const loadedCats = Array.isArray(savedSet.categories) ? [...savedSet.categories] : [...CATEGORIES];
+        const pRaw = localStorage.getItem(KEYS.PRODUCTS);
+        products = pRaw ? JSON.parse(pRaw) : JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+        products = products.map(p => ({ ...p, unit: normalizeUnit(p.unit), subcategory: p.subcategory || '', brand: p.brand || '' }));
+
+        sales = JSON.parse(localStorage.getItem(KEYS.SALES) || '[]');
+        returnsLog = JSON.parse(localStorage.getItem(KEYS.RETURNS) || '[]');
+        customers = JSON.parse(localStorage.getItem(KEYS.CUSTOMERS) || '[]');
+        const supRaw = localStorage.getItem(KEYS.SUPPLIERS);
+        suppliers = supRaw ? JSON.parse(supRaw) : JSON.parse(JSON.stringify(DEFAULT_SUPPLIERS));
+        purchases = JSON.parse(localStorage.getItem(KEYS.PURCHASES) || '[]');
+        expensesLog = JSON.parse(localStorage.getItem(KEYS.EXPENSES) || '[]');
+        zReportsLog = JSON.parse(localStorage.getItem(KEYS.Z_REPORTS) || '[]');
+
+        const sRaw = localStorage.getItem(KEYS.SETTINGS);
+        const loadedSettings = sRaw ? JSON.parse(sRaw) : {};
+        const cats = Array.isArray(loadedSettings.categories) && loadedSettings.categories.length
+          ? loadedSettings.categories
+          : [...CATEGORIES];
         settings = {
           ...DEFAULT_SETTINGS,
-          ...savedSet,
-          cashierProfiles: Array.isArray(savedSet.cashierProfiles) && savedSet.cashierProfiles.length
-            ? savedSet.cashierProfiles
-            : DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p })),
-          shifts: Array.isArray(savedSet.shifts) && savedSet.shifts.length
-            ? savedSet.shifts
+          ...loadedSettings,
+          categories: cats,
+          subcategories: ensureSubcategoriesMap(loadedSettings.subcategories || DEFAULT_SUBCATEGORIES, cats),
+          cashierProfiles: Array.isArray(loadedSettings.cashierProfiles) && loadedSettings.cashierProfiles.length
+            ? loadedSettings.cashierProfiles
+            : JSON.parse(JSON.stringify(DEFAULT_SETTINGS.cashierProfiles)),
+          shifts: Array.isArray(loadedSettings.shifts) && loadedSettings.shifts.length
+            ? loadedSettings.shifts
             : [...DEFAULT_SETTINGS.shifts],
-          categories: loadedCats,
-          subcategories: ensureSubcategoriesMap(savedSet.subcategories, loadedCats),
-          cloudRoom: savedSet.cloudRoom || SHARED_TEAM_ROOM,
+          cloudRoom: (loadedSettings.cloudRoom || SHARED_TEAM_ROOM).trim() || SHARED_TEAM_ROOM,
         };
       } catch (e) {
-        products = [...DEFAULT_PRODUCTS];
+        products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
         sales = [];
         returnsLog = [];
         customers = [];
-        suppliers = [...DEFAULT_SUPPLIERS];
+        suppliers = JSON.parse(JSON.stringify(DEFAULT_SUPPLIERS));
         purchases = [];
         expensesLog = [];
         zReportsLog = [];
-        settings = {
-          ...DEFAULT_SETTINGS,
-          cashierProfiles: DEFAULT_SETTINGS.cashierProfiles.map(p => ({ ...p })),
-          categories: [...CATEGORIES],
-          subcategories: ensureSubcategoriesMap(DEFAULT_SUBCATEGORIES, CATEGORIES),
-          cloudRoom: SHARED_TEAM_ROOM
-        };
+        settings = { ...DEFAULT_SETTINGS };
       }
     }
 
-    function saveState(pushCloud = true) {
+    function saveState(pushCloud = false) {
       try {
         localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(products));
         localStorage.setItem(KEYS.SALES, JSON.stringify(sales));
@@ -1560,113 +1531,51 @@
         localStorage.setItem(KEYS.EXPENSES, JSON.stringify(expensesLog));
         localStorage.setItem(KEYS.Z_REPORTS, JSON.stringify(zReportsLog));
         localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+        if (pushCloud && !isApplyingRemote) pushToCloud();
       } catch (e) {}
-      updatePosDrawerIndicator();
-      if (pushCloud && !isApplyingRemote) {
-        pushToCloud();
-      }
     }
 
-    function getCloudUrl() {
-      const room = String(settings.cloudRoom || SHARED_TEAM_ROOM).trim().replace(/[^a-zA-Z0-9_-]/g, '_') || SHARED_TEAM_ROOM;
-      return 'https://kvdb.io/ShabakaWSenaraLiveV3/' + encodeURIComponent(room);
+    function mergeById(localArr, remoteArr) {
+      const map = new Map();
+      (localArr || []).forEach(item => { if (item && item.id) map.set(String(item.id), item); });
+      (remoteArr || []).forEach(item => {
+        if (!item || !item.id) return;
+        const key = String(item.id);
+        const existing = map.get(key);
+        if (!existing || Number(item.updatedAt || 0) >= Number(existing.updatedAt || 0)) {
+          map.set(key, item);
+        }
+      });
+      return Array.from(map.values());
     }
 
     async function pushToCloud() {
+      const room = (settings.cloudRoom || SHARED_TEAM_ROOM).trim();
+      if (!room) return;
       try {
-        let latestRemote = null;
-        try {
-          const preRes = await fetch(getCloudUrl() + '?t=' + Date.now(), { cache: 'no-store' });
-          if (preRes.ok) latestRemote = await preRes.json();
-        } catch (e) {}
-
-        const mergedProducts = (latestRemote && Array.isArray(latestRemote.products)
-          ? mergeById(products, latestRemote.products)
-          : products.filter(x => !x._deleted)
-        ).map(p => ({ ...p, unit: normalizeUnit(p.unit), subcategory: p.subcategory || '', brand: p.brand || '' }));
-
-        const mergedSales = latestRemote && Array.isArray(latestRemote.sales)
-          ? mergeById(sales, latestRemote.sales, { dropEmptyInvoices: true })
-          : sales.filter(s => Array.isArray(s.items) && s.items.length > 0 && !s._deleted);
-        const mergedReturns = latestRemote && Array.isArray(latestRemote.returnsLog)
-          ? mergeById(returnsLog, latestRemote.returnsLog)
-          : returnsLog.filter(x => !x._deleted);
-        const mergedCustomers = latestRemote && Array.isArray(latestRemote.customers)
-          ? mergeById(customers, latestRemote.customers)
-          : customers.filter(x => !x._deleted);
-        const mergedSuppliers = latestRemote && Array.isArray(latestRemote.suppliers)
-          ? mergeById(suppliers, latestRemote.suppliers)
-          : suppliers.filter(x => !x._deleted);
-        const mergedPurchases = latestRemote && Array.isArray(latestRemote.purchases)
-          ? mergeById(purchases, latestRemote.purchases)
-          : purchases.filter(x => !x._deleted);
-        const mergedExpenses = latestRemote && Array.isArray(latestRemote.expensesLog)
-          ? mergeById(expensesLog, latestRemote.expensesLog)
-          : expensesLog.filter(x => !x._deleted);
-        const mergedZReports = latestRemote && Array.isArray(latestRemote.zReportsLog)
-          ? mergeById(zReportsLog, latestRemote.zReportsLog)
-          : zReportsLog.filter(x => !x._deleted);
-
-        const activeCats = Array.isArray(settings.categories) ? [...settings.categories] : [...CATEGORIES];
-        const mergedSettings = {
-          ...DEFAULT_SETTINGS,
-          ...(latestRemote && latestRemote.settings ? latestRemote.settings : {}),
-          ...settings,
-          categories: activeCats,
-          subcategories: ensureSubcategoriesMap(settings.subcategories, activeCats),
-          cloudRoom: settings.cloudRoom || SHARED_TEAM_ROOM,
-        };
-
         const stamp = String(Date.now());
-        const res = await fetch(getCloudUrl(), {
+        lastRemoteStamp = stamp;
+        const payload = { stamp, products, sales, returnsLog, customers, suppliers, purchases, expensesLog, zReportsLog, settings };
+        await fetch(`https://kvdb.io/A2x9kLmPqR7vTzNwBcDfGh/${encodeURIComponent(room)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            stamp,
-            products: mergedProducts,
-            sales: mergedSales,
-            returnsLog: mergedReturns,
-            customers: mergedCustomers,
-            suppliers: mergedSuppliers,
-            purchases: mergedPurchases,
-            expensesLog: mergedExpenses,
-            zReportsLog: mergedZReports,
-            settings: mergedSettings
-          }),
-          cache: 'no-store'
+          body: JSON.stringify(payload)
         });
-        if (res.ok) {
-          lastRemoteStamp = stamp;
-          isApplyingRemote = true;
-          products = mergedProducts;
-          sales = mergedSales;
-          returnsLog = mergedReturns;
-          customers = mergedCustomers;
-          suppliers = mergedSuppliers;
-          purchases = mergedPurchases;
-          expensesLog = mergedExpenses;
-          zReportsLog = mergedZReports;
-          settings = mergedSettings;
-          saveState(false);
-          isApplyingRemote = false;
-        }
-      } catch (e) {
-        isApplyingRemote = false;
-      }
+      } catch (e) {}
     }
 
     async function pullFromCloud() {
+      const room = (settings.cloudRoom || SHARED_TEAM_ROOM).trim();
+      if (!room) return;
       try {
-        const res = await fetch(getCloudUrl() + '?t=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch(`https://kvdb.io/A2x9kLmPqR7vTzNwBcDfGh/${encodeURIComponent(room)}`);
         if (!res.ok) return;
         const data = await res.json();
         if (!data || !data.stamp || data.stamp === lastRemoteStamp) return;
         lastRemoteStamp = data.stamp;
         isApplyingRemote = true;
-        if (Array.isArray(data.products)) {
-          products = mergeById(products, data.products).map(p => ({ ...p, unit: normalizeUnit(p.unit), subcategory: p.subcategory || '', brand: p.brand || '' }));
-        }
-        if (Array.isArray(data.sales)) sales = mergeById(sales, data.sales, { dropEmptyInvoices: true });
+        if (Array.isArray(data.products)) products = mergeById(products, data.products).map(p => ({ ...p, unit: normalizeUnit(p.unit) }));
+        if (Array.isArray(data.sales)) sales = mergeById(sales, data.sales);
         if (Array.isArray(data.returnsLog)) returnsLog = mergeById(returnsLog, data.returnsLog);
         if (Array.isArray(data.customers)) customers = mergeById(customers, data.customers);
         if (Array.isArray(data.suppliers)) suppliers = mergeById(suppliers, data.suppliers);
@@ -1674,183 +1583,203 @@
         if (Array.isArray(data.expensesLog)) expensesLog = mergeById(expensesLog, data.expensesLog);
         if (Array.isArray(data.zReportsLog)) zReportsLog = mergeById(zReportsLog, data.zReportsLog);
         if (data.settings) {
-          const remoteCats = Array.isArray(data.settings.categories) ? [...data.settings.categories] : (settings.categories || [...CATEGORIES]);
+          const cats = Array.isArray(data.settings.categories) && data.settings.categories.length ? data.settings.categories : settings.categories;
           settings = {
-            ...DEFAULT_SETTINGS,
             ...settings,
             ...data.settings,
-            categories: remoteCats,
-            subcategories: ensureSubcategoriesMap(data.settings.subcategories || settings.subcategories, remoteCats),
-            cloudRoom: settings.cloudRoom || SHARED_TEAM_ROOM
+            categories: cats,
+            subcategories: ensureSubcategoriesMap(data.settings.subcategories, cats)
           };
         }
         saveState(false);
+        isApplyingRemote = false;
         applyBranding();
         fillGateSelectors();
         renderPosCategories();
         renderPosGrid();
-        renderCart();
         renderInventory();
         renderExpenses();
         renderCustomers();
         renderSuppliers();
         renderReports();
-        if (!document.getElementById('section-settings').classList.contains('hidden')) fillSettings();
-      } catch (e) {} finally {
+        updatePosDrawerIndicator();
+      } catch (e) {
         isApplyingRemote = false;
       }
     }
 
     function activateCloudRoom() {
-      settings.cloudRoom = (document.getElementById('set-cloud-room').value || SHARED_TEAM_ROOM).trim();
+      const roomInp = document.getElementById('set-cloud-room');
+      settings.cloudRoom = (roomInp?.value || '').trim() || SHARED_TEAM_ROOM;
       saveState(true);
       pullFromCloud();
-      showToast('تم تفعيل ومزامنة الكود السحابي: ' + settings.cloudRoom, 'success');
+      showToast('تم تفعيل المزامنة السحابية للغرفة: ' + settings.cloudRoom, 'success');
     }
 
     function applyBranding() {
-      document.title = settings.storeName + ' - نظام كاشير ومخزون';
-      ['gate-store-title', 'header-store-title'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = settings.storeName;
-      });
-      ['gate-store-desc', 'header-store-desc'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = settings.storeDesc;
-      });
+      const titleEls = ['gate-store-title', 'header-store-title'];
+      titleEls.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = settings.storeName; });
+      const descEls = ['gate-store-desc', 'header-store-desc'];
+      descEls.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = settings.storeDesc; });
       const addrEl = document.getElementById('gate-store-addr');
       if (addrEl) addrEl.textContent = settings.storeAddr;
 
-      const hasLogo = Boolean(settings.storeLogo);
-      [['gate-logo-img', 'gate-logo-emoji'], ['header-logo-img', 'header-logo-emoji']].forEach(([imgId, emoId]) => {
-        const img = document.getElementById(imgId);
-        const emo = document.getElementById(emoId);
-        if (img && emo) {
-          if (hasLogo) {
-            img.src = settings.storeLogo;
-            img.classList.remove('hidden');
-            emo.classList.add('hidden');
-          } else {
-            img.src = '';
-            img.classList.add('hidden');
-            emo.classList.remove('hidden');
-          }
+      ['gate', 'header'].forEach(prefix => {
+        const img = document.getElementById(`${prefix}-logo-img`);
+        const emo = document.getElementById(`${prefix}-logo-emoji`);
+        if (settings.storeLogo && img && emo) {
+          img.src = settings.storeLogo;
+          img.classList.remove('hidden');
+          emo.classList.add('hidden');
+        } else if (img && emo) {
+          img.classList.add('hidden');
+          emo.classList.remove('hidden');
         }
       });
     }
 
+    // =================================================
+    // بوابة الدخول (PIN للكاشير والإدارة) والتبويبات
+    // =================================================
     function fillGateSelectors() {
       const cSel = document.getElementById('gate-cashier-select');
       const sSel = document.getElementById('gate-shift-select');
       if (cSel) {
         cSel.innerHTML = settings.cashierProfiles.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
-        cSel.value = settings.cashierProfiles.some(p => p.name === settings.activeCashier)
-          ? settings.activeCashier
-          : settings.cashierProfiles[0].name;
+        if (settings.cashierProfiles.some(p => p.name === settings.activeCashier)) cSel.value = settings.activeCashier;
       }
       if (sSel) {
         sSel.innerHTML = settings.shifts.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-        sSel.value = settings.shifts.includes(settings.activeShift) ? settings.activeShift : settings.shifts[0];
+        if (settings.shifts.includes(settings.activeShift)) sSel.value = settings.activeShift;
       }
       updateGatePinHint();
     }
 
     function updateGatePinHint() {
-      const name = document.getElementById('gate-cashier-select')?.value;
-      const prof = settings.cashierProfiles.find(p => p.name === name) || settings.cashierProfiles[0];
+      const cSel = document.getElementById('gate-cashier-select');
       const hint = document.getElementById('gate-cashier-hint');
-      if (hint && prof) {
-        hint.textContent = `أدخل رمز PIN الخاص بالكاشير (${prof.name}) لبدء الشيفت`;
-      }
+      if (!cSel || !hint) return;
+      const prof = settings.cashierProfiles.find(p => p.name === cSel.value);
+      hint.textContent = prof ? `الكاشير المختار: ${prof.name} (الافتراضي: ${prof.pin})` : '';
     }
 
     function switchGateMode(mode) {
-      const isAdm = mode === 'admin';
-      document.getElementById('form-gate-cashier').classList.toggle('hidden', isAdm);
-      document.getElementById('form-gate-admin').classList.toggle('hidden', !isAdm);
-      document.getElementById('btn-mode-cashier').className = isAdm
-        ? 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-slate-300 hover:bg-white/5 transition'
-        : 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold bg-cyan-500 text-slate-950 transition';
-      document.getElementById('btn-mode-admin').className = isAdm
-        ? 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold bg-amber-400 text-slate-950 transition'
-        : 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-slate-300 hover:bg-white/5 transition';
+      const isCashierMode = mode === 'cashier';
+      const btnCashier = document.getElementById('btn-mode-cashier');
+      const btnAdmin = document.getElementById('btn-mode-admin');
+      const formCashier = document.getElementById('form-gate-cashier');
+      const formAdmin = document.getElementById('form-gate-admin');
+
+      if (btnCashier) {
+        btnCashier.className = isCashierMode
+          ? 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold bg-cyan-500 text-slate-950 transition'
+          : 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-slate-300 hover:bg-white/5 transition';
+      }
+      if (btnAdmin) {
+        btnAdmin.className = !isCashierMode
+          ? 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold bg-amber-400 text-slate-950 transition'
+          : 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold text-slate-300 hover:bg-white/5 transition';
+      }
+      if (formCashier) formCashier.classList.toggle('hidden', !isCashierMode);
+      if (formAdmin) formAdmin.classList.toggle('hidden', isCashierMode);
     }
 
-    async function loginAsCashier(e) {
-      e.preventDefault();
-      const name = document.getElementById('gate-cashier-select').value;
-      const shift = document.getElementById('gate-shift-select').value;
-      const pin = document.getElementById('gate-cashier-pin').value.trim();
+    function loginAsCashier(e) {
+      if (e) e.preventDefault();
+      const cashierName = document.getElementById('gate-cashier-select')?.value || settings.cashierProfiles[0]?.name || 'كاشير 1';
+      const shiftName = document.getElementById('gate-shift-select')?.value || settings.shifts[0] || 'الشيفت الصباحي';
+      const enteredPin = (document.getElementById('gate-cashier-pin')?.value || '').trim();
+      const prof = settings.cashierProfiles.find(p => p.name === cashierName);
 
-      await pullFromCloud();
-
-      const prof = settings.cashierProfiles.find(p => p.name === name);
-      if (!prof || pin !== String(prof.pin)) {
+      if (!prof || String(prof.pin) !== enteredPin) {
         showToast('رمز PIN الخاص بالكاشير غير صحيح', 'error');
         return;
       }
-      settings.activeCashier = name;
-      settings.activeShift = shift;
-      saveState(true);
-      session = { authenticated: true, role: 'cashier', cashier: name, shift };
+
+      session = { authenticated: true, role: 'cashier', cashier: cashierName, shift: shiftName };
+      settings.activeCashier = cashierName;
+      settings.activeShift = shiftName;
       document.getElementById('gate-cashier-pin').value = '';
-      document.getElementById('gate-screen').classList.add('hidden');
+      document.getElementById('gate-screen')?.classList.add('hidden');
+      saveState(false);
       syncRoleUI();
       openTab('pos');
-      showToast(`مرحباً ${name} (${shift}) — بيانات الفريق السحابية محدثة`, 'success');
+      showToast(`أهلاً ${cashierName} — تم بدء ${shiftName}`, 'success');
     }
 
-    async function loginAsAdmin(e) {
-      e.preventDefault();
-      const pin = document.getElementById('gate-admin-pin').value.trim();
-
-      await pullFromCloud();
-
-      if (pin !== String(settings.adminPin || '9999')) {
+    function loginAsAdmin(e) {
+      if (e) e.preventDefault();
+      const enteredPin = (document.getElementById('gate-admin-pin')?.value || '').trim();
+      if (enteredPin !== String(settings.adminPin)) {
         showToast('رمز PIN الخاص بالإدارة غير صحيح', 'error');
         return;
       }
-      session = { authenticated: true, role: 'admin', cashier: settings.activeCashier, shift: settings.activeShift };
+
+      const activeShift = document.getElementById('gate-shift-select')?.value || settings.activeShift || settings.shifts[0] || 'الشيفت الصباحي';
+      session = { authenticated: true, role: 'admin', cashier: 'الإدارة', shift: activeShift };
       document.getElementById('gate-admin-pin').value = '';
-      document.getElementById('gate-screen').classList.add('hidden');
+      document.getElementById('gate-screen')?.classList.add('hidden');
       syncRoleUI();
       openTab('pos');
-      showToast('تم الدخول بصلاحية الإدارة ومزامنة بيانات الفريق', 'success');
+      showToast('تم تسجيل الدخول بصلاحيات الإدارة الكاملة', 'success');
     }
 
     function lockToGate() {
       stopCameraBarcodeScanner();
       session.authenticated = false;
       fillGateSelectors();
-      switchGateMode('cashier');
-      document.getElementById('gate-screen').classList.remove('hidden');
+      document.getElementById('gate-screen')?.classList.remove('hidden');
     }
 
-    function isAdmin() {
-      return session.authenticated && session.role === 'admin';
+    function syncRoleUI() {
+      const badge = document.getElementById('header-role-badge');
+      if (badge) {
+        badge.textContent = isAdmin() ? 'الإدارة الكاملة' : `كاشير: ${session.cashier}`;
+        badge.className = isAdmin()
+          ? 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/40'
+          : 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-cyan-400/15 text-cyan-200 border border-cyan-400/30';
+      }
+      const posCashier = document.getElementById('pos-cashier-name');
+      const posShift = document.getElementById('pos-shift-name');
+      if (posCashier) posCashier.textContent = session.cashier;
+      if (posShift) posShift.textContent = session.shift;
+
+      const invCostBox = document.getElementById('inv-cost-box');
+      const invThCost = document.getElementById('inv-th-cost');
+      const repProfitBox = document.getElementById('rep-profit-box');
+      if (invCostBox) invCostBox.classList.toggle('hidden', !isAdmin());
+      if (invThCost) invThCost.classList.toggle('hidden', !isAdmin());
+      if (repProfitBox) repProfitBox.classList.toggle('hidden', !isAdmin());
+      updatePosDrawerIndicator();
     }
 
-    function requireAdminPin(fn, reason = 'هذا الإجراء مخصص للإدارة فقط. أدخل رمز PIN للإدارة:') {
-      if (isAdmin()) return fn();
-      pendingAdminFn = fn;
-      document.getElementById('modal-admin-reason').textContent = reason;
-      document.getElementById('modal-admin-pin-input').value = '';
-      const m = document.getElementById('modal-admin-pin');
-      m.classList.remove('hidden');
-      m.classList.add('flex');
+    function requireAdminPin(callback, reasonText = 'هذا الإجراء يتطلب رمز PIN الخاص بالإدارة:') {
+      if (isAdmin()) {
+        callback();
+        return;
+      }
+      pendingAdminFn = callback;
+      const reasonEl = document.getElementById('modal-admin-reason');
+      const pinInp = document.getElementById('modal-admin-pin-input');
+      if (reasonEl) reasonEl.textContent = reasonText;
+      if (pinInp) pinInp.value = '';
+      const modal = document.getElementById('modal-admin-pin');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => pinInp?.focus(), 50);
     }
 
     function closeAdminModal() {
       pendingAdminFn = null;
-      const m = document.getElementById('modal-admin-pin');
-      m.classList.add('hidden');
-      m.classList.remove('flex');
+      const modal = document.getElementById('modal-admin-pin');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
     }
 
     function submitAdminModal(e) {
       e.preventDefault();
-      const pin = document.getElementById('modal-admin-pin-input').value.trim();
-      if (pin !== String(settings.adminPin || '9999')) {
+      const pin = (document.getElementById('modal-admin-pin-input')?.value || '').trim();
+      if (pin !== String(settings.adminPin)) {
         showToast('رمز PIN للإدارة غير صحيح', 'error');
         return;
       }
@@ -1859,861 +1788,170 @@
       if (typeof fn === 'function') fn();
     }
 
-    function syncRoleUI() {
-      document.getElementById('pos-cashier-name').textContent = session.cashier;
-      document.getElementById('pos-shift-name').textContent = session.shift;
-      const badge = document.getElementById('header-role-badge');
-      if (isAdmin()) {
-        badge.textContent = 'إدارة';
-        badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-400 text-slate-950';
-      } else {
-        badge.textContent = `كاشير: ${session.cashier}`;
-        badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-400/15 text-cyan-200 border border-cyan-400/30';
+    function openTab(tabName) {
+      const restrictedTabs = ['suppliers', 'reports', 'settings'];
+      if (!isAdmin() && restrictedTabs.includes(tabName)) {
+        requireAdminPin(() => switchTabDirectly(tabName), 'الدخول إلى هذا القسم يتطلب رمز PIN الخاص بالإدارة:');
+        return;
       }
-
-      document.getElementById('inv-add-btn').classList.toggle('hidden', !isAdmin());
-      document.getElementById('inv-cost-box').classList.toggle('hidden', !isAdmin());
-      document.getElementById('inv-th-cost').classList.toggle('hidden', !isAdmin());
-      document.getElementById('rep-profit-box').classList.toggle('hidden', !isAdmin());
-      document.getElementById('inv-role-note').textContent = isAdmin()
-        ? 'وضع الإدارة: يمكنك إضافة وتعديل المنتجات ووحدات القياس (الكمية، الكيلو، الجرام، مللي، وزن) والفئات الرئيسية والفرعية والماركة.'
-        : 'وضع الكاشير: متاح لك البحث وطباعة ملصقات الباركود ومشاهدة الاستوك المتاح ووحدة كل صنف. التعديل يتطلب PIN الإدارة.';
-      updatePosDrawerIndicator();
+      switchTabDirectly(tabName);
     }
 
-    function showSection(tab) {
-      ['pos', 'inventory', 'expenses', 'customers', 'suppliers', 'reports', 'settings'].forEach(t => {
-        const sec = document.getElementById('section-' + t);
-        const btn = document.getElementById('tab-btn-' + t);
-        if (sec) sec.classList.toggle('hidden', t !== tab);
+    function switchTabDirectly(tabName) {
+      const tabs = ['pos', 'inventory', 'expenses', 'customers', 'suppliers', 'reports', 'settings'];
+      tabs.forEach(t => {
+        const sec = document.getElementById(`section-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (sec) sec.classList.toggle('hidden', t !== tabName);
         if (btn) {
-          btn.className = t === tab
+          btn.className = t === tabName
             ? 'px-3 py-2 rounded-xl text-xs sm:text-sm font-bold bg-cyan-500 text-slate-950 whitespace-nowrap'
             : 'px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-200 hover:bg-white/10 whitespace-nowrap';
         }
       });
 
-      if (tab === 'pos') {
-        populateCustomersDatalist();
+      if (tabName === 'pos') {
         renderPosCategories();
         renderPosGrid();
         renderCart();
         updatePosDrawerIndicator();
-      } else if (tab === 'inventory') {
+      } else if (tabName === 'inventory') {
         renderInventory();
-      } else if (tab === 'expenses') {
+      } else if (tabName === 'expenses') {
+        populateExpenseSelectors();
         renderExpenses();
-      } else if (tab === 'customers') {
+      } else if (tabName === 'customers') {
         renderCustomers();
-      } else if (tab === 'suppliers') {
+      } else if (tabName === 'suppliers') {
         renderSuppliers();
-      } else if (tab === 'reports') {
+      } else if (tabName === 'reports') {
         renderReports();
-      } else if (tab === 'settings') {
+      } else if (tabName === 'settings') {
         fillSettings();
       }
     }
 
-    function openTab(tab) {
-      if (!session.authenticated) {
-        document.getElementById('gate-screen').classList.remove('hidden');
-        return;
-      }
-      if (tab !== 'pos') stopCameraBarcodeScanner();
-      if ((tab === 'suppliers' || tab === 'reports' || tab === 'settings') && !isAdmin()) {
-        requireAdminPin(() => {
-          session.role = 'admin';
-          syncRoleUI();
-          showSection(tab);
-        }, 'الدخول إلى الموردين أو التقارير أو الإعدادات والفئات يتطلب رمز PIN الخاص بالإدارة:');
-        return;
-      }
-      showSection(tab);
-    }
-
     // =================================================
-    // الفئات الرئيسية والفرعية في نقطة البيع
+    // حساب رصيد الدرج والمصروفات المخصومة من الدرج
     // =================================================
-    function selectMainCategory(cat) {
-      selectedCategory = cat;
-      selectedSubcategory = 'الكل';
-      renderPosCategories();
-      renderPosGrid();
-    }
+    function getShiftDrawerMetrics(targetShiftParam = null) {
+      const targetShift = targetShiftParam || session.shift || settings.activeShift || 'الشيفت الصباحي';
+      const todayStr = new Date().toLocaleDateString('ar-EG');
 
-    function selectSubCategory(sub) {
-      selectedSubcategory = sub;
-      renderPosCategories();
-      renderPosGrid();
-    }
+      const shiftSales = sales.filter(inv =>
+        !inv._deleted &&
+        (inv.shift || '') === targetShift &&
+        new Date(inv.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr
+      );
 
-    function renderPosCategories() {
-      const bar = document.getElementById('pos-categories-bar');
-      const subBar = document.getElementById('pos-subcategories-bar');
-      const cats = Array.isArray(settings.categories) ? settings.categories : CATEGORIES;
-      if (selectedCategory !== 'الكل' && !cats.includes(selectedCategory)) {
-        selectedCategory = 'الكل';
-        selectedSubcategory = 'الكل';
-      }
-      const allCats = ['الكل', ...cats];
-      bar.innerHTML = allCats.map(c => `
-        <button type="button" onclick="selectMainCategory('${esc(c)}')"
-          class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap ${selectedCategory === c ? 'bg-marine-700 text-white' : 'bg-slate-100 text-slate-700'}">
-          ${esc(c)}
-        </button>
-      `).join('');
+      let cashSales = 0;
+      let walletSales = 0;
+      let instapaySales = 0;
+      let creditSales = 0;
 
-      if (subBar) {
-        const subs = selectedCategory !== 'الكل' && settings.subcategories && Array.isArray(settings.subcategories[selectedCategory])
-          ? settings.subcategories[selectedCategory]
-          : [];
-        if (subs.length) {
-          subBar.classList.remove('hidden');
-          const allSubs = ['الكل', ...subs];
-          subBar.innerHTML = `<span class="text-[11px] font-extrabold text-cyan-800 whitespace-nowrap pl-1">التصنيف الفرعي:</span>` +
-            allSubs.map(sc => `
-              <button type="button" onclick="selectSubCategory('${esc(sc)}')"
-                class="px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap ${selectedSubcategory === sc ? 'bg-cyan-600 text-white' : 'bg-cyan-50 text-cyan-950 border border-cyan-200'}">
-                ${esc(sc)}
-              </button>
-            `).join('');
-        } else {
-          subBar.classList.add('hidden');
-          subBar.innerHTML = '';
-        }
-      }
-    }
+      shiftSales.forEach(inv => {
+        const total = Number(inv.total || 0);
+        const paid = inv.paidAmount !== undefined ? Number(inv.paidAmount) : (inv.method === 'آجل / ذمم' ? 0 : total);
+        const rem = Math.max(0, roundMoney(total - paid));
+        creditSales += rem;
 
-    function renderPosGrid() {
-      const q = (document.getElementById('pos-search-input').value || '').trim().toLowerCase();
-      const grid = document.getElementById('pos-products-grid');
-      const list = products.filter(p => {
-        const okCat = selectedCategory === 'الكل' || p.category === selectedCategory;
-        const okSub = selectedSubcategory === 'الكل' || (p.subcategory || '') === selectedSubcategory;
-        const okQ = !q ||
-          p.name.toLowerCase().includes(q) ||
-          (p.brand || '').toLowerCase().includes(q) ||
-          (p.category || '').toLowerCase().includes(q) ||
-          (p.subcategory || '').toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q);
-        return okCat && okSub && okQ;
-      });
-      grid.innerHTML = list.map(p => {
-        const unit = normalizeUnit(p.unit);
-        const unitLabel = getUnitDisplayLabel(unit);
-        const stockText = p.stock <= 0 ? 'نافذ' : `متاح: ${formatQtyWithUnit(p.stock, unit)}`;
-        const catHierarchy = p.subcategory ? `${p.category} ← ${p.subcategory}` : p.category;
-        return `
-        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex flex-col justify-between gap-2">
-          <div>
-            <div class="flex justify-between items-center text-[11px] text-slate-400 font-mono gap-1">
-              <span>${esc(p.sku)}</span>
-              <span class="px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-900 border border-cyan-200 font-sans font-extrabold">
-                ${esc(unit)}
-              </span>
-            </div>
-            <div class="font-bold text-sm text-slate-800 mt-1.5">
-              ${esc(p.name)}
-              ${p.brand ? `<span class="inline-block mr-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-[10px] font-extrabold">${esc(p.brand)}</span>` : ''}
-            </div>
-            <div class="text-[10px] text-slate-500 font-bold mt-0.5">${esc(catHierarchy)}</div>
-            <div class="text-[11px] mt-1 ${p.stock <= 0 ? 'text-rose-600 font-bold' : p.stock <= p.minStock ? 'text-amber-600 font-bold' : 'text-emerald-700 font-bold'}">
-              ${esc(stockText)}
-            </div>
-          </div>
-          <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-            <div>
-              <span class="font-mono font-extrabold text-marine-900 text-sm">${fmt(p.price)}</span>
-              <span class="text-[10px] text-slate-500 font-bold">/ ${esc(unitLabel)}</span>
-            </div>
-            <button type="button" ${p.stock <= 0 ? 'disabled' : ''} onclick="addToCart('${p.id}')"
-              class="px-3 py-1.5 rounded-xl text-xs font-extrabold ${p.stock <= 0 ? 'bg-slate-100 text-slate-400' : 'bg-marine-700 hover:bg-marine-800 text-white'}">
-              + إضافة
-            </button>
-          </div>
-        </div>
-      `;
-      }).join('');
-    }
-
-    function handleBarcodeEnter(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        scanBarcodeValue();
-      }
-    }
-
-    function scanBarcodeValue() {
-      const inp = document.getElementById('pos-barcode-input');
-      const code = inp.value.trim();
-      if (!code) return;
-      const prod = products.find(p => p.sku === code);
-      if (!prod) {
-        showToast('لم يتم العثور على منتج بالباركود: ' + code, 'error');
-        return;
-      }
-      addToCart(prod.id);
-      inp.value = '';
-    }
-
-    // تشغيل أو إيقاف المسح الضوئي بالباركود عبر كاميرا الهاتف أو الجهاز
-    async function toggleCameraBarcodeScanner() {
-      if (isCameraScanning) {
-        await stopCameraBarcodeScanner();
-        return;
-      }
-
-      if (!window.Html5Qrcode) {
-        loadCameraBarcodeLibrary();
-        showToast('جارٍ تجهيز مكتبة الكاميرا، حاول بعد ثوانٍ أو استخدم قارئ الباركود', 'info');
-        return;
-      }
-
-      const box = document.getElementById('pos-camera-scanner-box');
-      box.classList.remove('hidden');
-
-      try {
-        html5QrScannerInstance = new window.Html5Qrcode('pos-camera-reader');
-        isCameraScanning = true;
-        document.getElementById('btn-toggle-camera-scan').textContent = '⏹ إيقاف الكاميرا';
-
-        await html5QrScannerInstance.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 240, height: 140 } },
-          (decodedText) => {
-            const code = String(decodedText || '').trim();
-            if (!code) return;
-            document.getElementById('pos-barcode-input').value = code;
-            const prod = products.find(p => p.sku === code);
-            if (prod) {
-              addToCart(prod.id);
-              showToast('تم مسح وإضافة المنتج: ' + prod.name, 'success');
-            } else {
-              showToast('تم مسح الباركود: ' + code + ' (غير مسجل في المخزون)', 'error');
-            }
-          },
-          () => {}
-        );
-      } catch (err) {
-        isCameraScanning = false;
-        document.getElementById('btn-toggle-camera-scan').textContent = '📷 سكان بالكاميرا';
-        box.classList.add('hidden');
-        showToast('تعذر فتح الكاميرا (تأكد من فتح الموقع عبر HTTPS ومنح صلاحية الكاميرا)', 'error');
-      }
-    }
-
-    async function stopCameraBarcodeScanner() {
-      const box = document.getElementById('pos-camera-scanner-box');
-      const btn = document.getElementById('btn-toggle-camera-scan');
-      if (html5QrScannerInstance && isCameraScanning) {
-        try {
-          await html5QrScannerInstance.stop();
-          await html5QrScannerInstance.clear();
-        } catch (e) {}
-      }
-      html5QrScannerInstance = null;
-      isCameraScanning = false;
-      if (btn) btn.textContent = '📷 سكان بالكاميرا';
-      if (box) box.classList.add('hidden');
-    }
-
-    function addToCart(id) {
-      const prod = products.find(p => p.id === id);
-      if (!prod || prod.stock <= 0) {
-        showToast('المنتج غير متوفر بالمخزون', 'error');
-        return;
-      }
-      const unit = normalizeUnit(prod.unit);
-      const existing = cart.find(i => i.id === id);
-      if (existing) {
-        const nextQty = Math.round((existing.qty + 1) * 1000) / 1000;
-        if (nextQty > prod.stock) {
-          showToast('الكمية / الوزن المطلوب يتجاوز الرصيد المتاح بالمخزون', 'error');
-          return;
-        }
-        existing.qty = nextQty;
-      } else {
-        const initialQty = Math.min(1, Number(prod.stock));
-        cart.push({
-          id: prod.id,
-          sku: prod.sku,
-          name: prod.brand ? `${prod.name} (${prod.brand})` : prod.name,
-          unit,
-          price: prod.price,
-          cost: prod.cost,
-          qty: initialQty
-        });
-      }
-      renderCart();
-    }
-
-    // تحديث الكمية بالكيلو أو الجرام أو القطعة بدقة
-    function updateCartItemQty(index, rawVal) {
-      const item = cart[index];
-      if (!item) return;
-      const prod = products.find(p => p.id === item.id);
-      const maxStock = prod ? Number(prod.stock || 0) : Infinity;
-      const unit = normalizeUnit(item.unit || prod?.unit);
-      const parsed = parseFloat(rawVal);
-
-      if (Number.isNaN(parsed) || parsed <= 0) {
-        return;
-      }
-
-      const cleanQty = isFractionalUnit(unit)
-        ? Math.round(parsed * 1000) / 1000
-        : Math.max(1, Math.round(parsed));
-
-      if (cleanQty > maxStock) {
-        showToast(`الحد الأقصى المتاح بالمخزون هو (${formatQtyWithUnit(maxStock, unit)})`, 'error');
-        item.qty = maxStock;
-      } else {
-        item.qty = cleanQty;
-      }
-      renderCart();
-    }
-
-    // إدخال الوزن بالجرام لمنتج مسجل بالكيلو (مثال: 200 جرام -> 0.200 كيلو تلقائياً)
-    function updateCartItemFromGrams(index, gramsRaw) {
-      const grams = parseFloat(gramsRaw);
-      if (Number.isNaN(grams) || grams <= 0) return;
-      const kilos = Math.round((grams / 1000) * 1000) / 1000;
-      updateCartItemQty(index, kilos);
-    }
-
-    function stepCartItemQty(index, delta) {
-      const item = cart[index];
-      if (!item) return;
-      const unit = normalizeUnit(item.unit);
-      const step = isKiloBasedUnit(unit) ? 0.25 : (isFractionalUnit(unit) ? 50 : 1);
-      const next = Math.round((Number(item.qty || 0) + (delta * step)) * 1000) / 1000;
-      if (next <= 0) {
-        cart.splice(index, 1);
-        renderCart();
-        return;
-      }
-      updateCartItemQty(index, next);
-    }
-
-    function clearCart() {
-      cart = [];
-      const paidInp = document.getElementById('pos-paid-amount');
-      if (paidInp) paidInp.value = '';
-      renderCart();
-    }
-
-    function togglePaymentProof() {
-      const m = document.getElementById('pos-payment-select').value;
-      document.getElementById('pos-wallet-box').classList.toggle('hidden', m !== 'محفظة إلكترونية');
-      document.getElementById('pos-instapay-box').classList.toggle('hidden', m !== 'إنستاباي');
-      const paidInp = document.getElementById('pos-paid-amount');
-      if (m === 'آجل / ذمم' && paidInp && paidInp.value === '') {
-        paidInp.value = '0';
-      } else if (m !== 'آجل / ذمم' && paidInp && paidInp.value === '0') {
-        paidInp.value = '';
-      }
-      renderCart();
-    }
-
-    function populateCustomersDatalist() {
-      const dl = document.getElementById('pos-customers-datalist');
-      if (!dl) return;
-      dl.innerHTML = customers.map(c => `<option value="${esc(c.name)}">${esc(c.phone || '')}</option>`).join('');
-    }
-
-    function onCustomerInputChange() {
-      const nameVal = (document.getElementById('pos-customer-input')?.value || '').trim().toLowerCase();
-      const alertBox = document.getElementById('pos-customer-debt-alert');
-      const phoneInp = document.getElementById('pos-customer-phone');
-      if (!alertBox) return;
-
-      const found = customers.find(c => String(c.name || '').trim().toLowerCase() === nameVal);
-      if (found) {
-        if (phoneInp && !phoneInp.value.trim() && found.phone) {
-          phoneInp.value = found.phone;
-        }
-        const debt = Number(found.debt || 0);
-        if (debt > 0) {
-          alertBox.classList.remove('hidden');
-          alertBox.textContent = `تنبيه: العميل (${found.name}) عليه ذمم / مبلغ متبقي قدره (${fmt(debt)}).`;
-        } else {
-          alertBox.classList.add('hidden');
-        }
-      } else {
-        alertBox.classList.add('hidden');
-      }
-    }
-
-    function renderCart() {
-      const box = document.getElementById('pos-cart-items');
-      if (!cart.length) {
-        box.innerHTML = '<div class="py-8 text-center text-slate-400 font-bold">السلة فارغة</div>';
-      } else {
-        box.innerHTML = cart.map((item, i) => {
-          const unit = normalizeUnit(item.unit);
-          const unitLbl = getUnitDisplayLabel(unit);
-          const stepAttr = isFractionalUnit(unit) ? 'any' : '1';
-          const lineTotal = roundMoney(item.price * item.qty);
-          const isKilo = isKiloBasedUnit(unit);
-          const gramsEquivalent = isKilo ? Math.round(Number(item.qty || 0) * 1000) : 0;
-
-          const kiloHelperMarkup = isKilo ? `
-            <div class="flex flex-wrap items-center justify-between gap-1.5 pt-1.5 border-t border-slate-100 text-[11px]">
-              <div class="flex items-center gap-1">
-                <span class="text-slate-500 font-bold">أو بالجرام:</span>
-                <input type="number" value="${gramsEquivalent}" min="1" step="1"
-                  onchange="updateCartItemFromGrams(${i}, this.value)"
-                  class="w-20 px-1.5 py-0.5 text-center bg-amber-50 border border-amber-200 rounded-lg font-mono font-bold text-amber-950" />
-                <span class="text-amber-900 font-bold">جم</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <button type="button" onclick="updateCartItemFromGrams(${i}, 100)" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-cyan-100 font-mono font-bold">100جم</button>
-                <button type="button" onclick="updateCartItemFromGrams(${i}, 250)" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-cyan-100 font-mono font-bold">250جم</button>
-                <button type="button" onclick="updateCartItemFromGrams(${i}, 500)" class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-cyan-100 font-mono font-bold">500جم</button>
-              </div>
-            </div>
-          ` : '';
-
-          return `
-          <div class="py-2.5 space-y-1.5">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <div class="font-bold text-slate-800">${esc(item.name)}</div>
-                <div class="text-[11px] text-cyan-800 font-bold">
-                  الوحدة: ${esc(unit)} (${esc(unitLbl)}) — السعر: <span class="font-mono">${fmt(item.price)}</span>
-                </div>
-              </div>
-              <button type="button" onclick="cart.splice(${i},1);renderCart();" class="text-rose-600 font-bold px-2">✕</button>
-            </div>
-            <div class="space-y-1.5 bg-white p-2 rounded-xl border border-slate-200">
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-1">
-                  <button type="button" onclick="stepCartItemQty(${i}, -1)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 font-extrabold text-slate-700">-</button>
-                  <input type="number" value="${item.qty}" min="0.001" step="${stepAttr}"
-                    onchange="updateCartItemQty(${i}, this.value)"
-                    class="w-20 px-1.5 py-0.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-mono font-extrabold text-marine-950" />
-                  <button type="button" onclick="stepCartItemQty(${i}, 1)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 font-extrabold text-slate-700">+</button>
-                  <span class="text-[11px] font-bold text-slate-600 pr-1">${esc(unitLbl)}</span>
-                </div>
-                <div class="font-mono font-extrabold text-emerald-700">${fmt(lineTotal)}</div>
-              </div>
-              ${kiloHelperMarkup}
-            </div>
-          </div>
-        `;
-        }).join('');
-      }
-      const sub = roundMoney(cart.reduce((s, i) => s + i.price * i.qty, 0));
-      const disc = Math.min(Math.max(0, parseFloat(document.getElementById('pos-discount-input').value) || 0), sub);
-      const tot = roundMoney(Math.max(0, sub - disc));
-      const paidRaw = document.getElementById('pos-paid-amount')?.value;
-      const paidNow = paidRaw === '' || paidRaw === undefined
-        ? tot
-        : Math.min(Math.max(0, parseFloat(paidRaw) || 0), tot);
-      const remainingDebt = roundMoney(Math.max(0, tot - paidNow));
-
-      document.getElementById('cart-subtotal').textContent = fmt(sub);
-      document.getElementById('cart-discount-view').textContent = fmt(disc);
-      document.getElementById('cart-total').textContent = fmt(tot);
-      const remEl = document.getElementById('cart-remaining-debt');
-      if (remEl) remEl.textContent = fmt(remainingDebt);
-    }
-
-    function completeSale() {
-      if (!cart.length) {
-        showToast('أضف منتجات إلى الفاتورة أولاً', 'error');
-        return;
-      }
-      const method = document.getElementById('pos-payment-select').value;
-      const phone = document.getElementById('pos-wallet-phone').value.trim();
-      const ref = document.getElementById('pos-instapay-ref').value.trim();
-      const customerName = document.getElementById('pos-customer-input').value.trim() || 'عميل نقدي';
-      const customerPhone = (document.getElementById('pos-customer-phone')?.value || '').trim();
-
-      if (method === 'محفظة إلكترونية' && !phone) {
-        showToast('أدخل رقم المحفظة المحول منها', 'error');
-        return;
-      }
-      if (method === 'إنستاباي' && !ref) {
-        showToast('أدخل الرقم المرجعي لإنستاباي', 'error');
-        return;
-      }
-
-      const sub = roundMoney(cart.reduce((s, i) => s + i.price * i.qty, 0));
-      const cost = roundMoney(cart.reduce((s, i) => s + i.cost * i.qty, 0));
-      const disc = Math.min(Math.max(0, parseFloat(document.getElementById('pos-discount-input').value) || 0), sub);
-      const total = roundMoney(Math.max(0, sub - disc));
-      const paidRaw = document.getElementById('pos-paid-amount')?.value;
-      const paidNow = paidRaw === '' || paidRaw === undefined
-        ? (method === 'آجل / ذمم' ? 0 : total)
-        : Math.min(Math.max(0, parseFloat(paidRaw) || 0), total);
-      const debtAdded = roundMoney(Math.max(0, total - paidNow));
-
-      if (debtAdded > 0 && customerName === 'عميل نقدي') {
-        showToast('يرجى كتابة اسم العميل عند وجود مبلغ آجل / ذمم', 'error');
-        return;
-      }
-
-      cart.forEach(item => {
-        const p = products.find(x => x.id === item.id);
-        if (p) {
-          p.stock = Math.max(0, Math.round((Number(p.stock || 0) - Number(item.qty || 0)) * 1000) / 1000);
-        }
+        if (inv.method === 'كاش') cashSales += paid;
+        else if (inv.method === 'محفظة إلكترونية') walletSales += paid;
+        else if (inv.method === 'إنستاباي') instapaySales += paid;
+        else if (paid > 0) cashSales += paid;
       });
 
-      const nowDate = new Date();
-      const inv = {
-        id: 'INV-' + Date.now().toString().slice(-6),
-        date: nowDate.toLocaleString('ar-EG'),
-        dayDate: formatDayOnly(nowDate),
-        dateISO: nowDate.toISOString(),
-        updatedAt: Date.now(),
-        cashier: session.cashier,
-        shift: session.shift,
-        customer: customerName,
-        customerPhone,
-        items: cart.map(x => ({ ...x, unit: normalizeUnit(x.unit) })),
-        subtotal: sub,
-        discount: disc,
-        total,
-        paidAmount: paidNow,
-        remainingDebt: debtAdded,
-        profit: roundMoney(total - cost),
-        method,
-        proof: method === 'محفظة إلكترونية'
-          ? `${document.getElementById('pos-wallet-provider').value} (${phone})`
-          : method === 'إنستاباي'
-          ? `مرجع: ${ref}`
-          : debtAdded > 0
-          ? `${method} (مدفوع: ${fmt(paidNow)} / متبقي: ${fmt(debtAdded)})`
-          : 'كاش'
-      };
+      const shiftReturns = returnsLog.filter(r =>
+        !r._deleted &&
+        (r.shift || '') === targetShift &&
+        new Date(r.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr
+      );
+      const returnsTotal = roundMoney(shiftReturns.reduce((s, r) => s + Number(r.amount || 0), 0));
 
-      sales.unshift(inv);
+      const drawerExpensesList = expensesLog.filter(e =>
+        !e._deleted &&
+        e.fromDrawer !== false &&
+        (e.shift || '') === targetShift &&
+        new Date(e.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr
+      );
+      const drawerExpensesTotal = roundMoney(drawerExpensesList.reduce((s, e) => s + Number(e.amount || 0), 0));
 
-      if (customerName !== 'عميل نقدي' || debtAdded > 0 || customerPhone) {
-        let cust = customers.find(c => String(c.name || '').trim().toLowerCase() === customerName.toLowerCase());
-        if (!cust) {
-          cust = {
-            id: 'CUST-' + Date.now().toString().slice(-6),
-            name: customerName,
-            phone: customerPhone,
-            totalPurchases: 0,
-            debt: 0,
-            updatedAt: Date.now()
-          };
-          customers.unshift(cust);
-        }
-        if (customerPhone) cust.phone = customerPhone;
-        cust.totalPurchases = roundMoney(Number(cust.totalPurchases || 0) + total);
-        cust.debt = roundMoney(Number(cust.debt || 0) + debtAdded);
-        cust.updatedAt = Date.now();
-      }
-
-      saveState(true);
-      cart = [];
-      document.getElementById('pos-discount-input').value = 0;
-      document.getElementById('pos-customer-input').value = '';
-      if (document.getElementById('pos-customer-phone')) document.getElementById('pos-customer-phone').value = '';
-      if (document.getElementById('pos-paid-amount')) document.getElementById('pos-paid-amount').value = '';
-      document.getElementById('pos-wallet-phone').value = '';
-      document.getElementById('pos-instapay-ref').value = '';
-      onCustomerInputChange();
-      populateCustomersDatalist();
-      renderPosGrid();
-      renderCart();
-      openReceipt(inv.id);
-      showToast('تم إصدار الفاتورة ' + inv.id, 'success');
-    }
-
-    // =================================================
-    // نظام المصروفات وجرد الدرج المطابق للشيفت (Z-Report)
-    // =================================================
-    function getAllStaffOptions() {
-      const names = new Set([
-        'الإدارة',
-        'مدير النظام',
-        ...(settings.cashierProfiles || []).map(p => p.name).filter(Boolean),
-        ...(expensesLog || []).map(e => e.employeeName).filter(Boolean),
-        session.cashier
-      ].filter(Boolean));
-      return Array.from(names);
-    }
-
-    function getShiftDrawerMetrics(shiftName = null) {
-      const targetShift = shiftName || session.shift || settings.activeShift || 'الشيفت الصباحي';
-      const lastZ = zReportsLog.find(z => z.shift === targetShift);
-      const sinceTime = lastZ ? new Date(lastZ.closedAtISO).getTime() : 0;
-
-      const shiftSales = sales.filter(inv => {
-        if (!inv || inv._deleted) return false;
-        const t = new Date(inv.dateISO || Date.now()).getTime();
-        return (inv.shift || '') === targetShift && t > sinceTime;
-      });
-
-      const shiftReturns = returnsLog.filter(ret => {
-        if (!ret || ret._deleted) return false;
-        const t = new Date(ret.dateISO || Date.now()).getTime();
-        return (ret.shift || '') === targetShift && t > sinceTime;
-      });
-
-      const shiftExpenses = expensesLog.filter(exp => {
-        if (!exp || exp._deleted) return false;
-        const t = new Date(exp.dateISO || Date.now()).getTime();
-        return (exp.shift || '') === targetShift && t > sinceTime;
-      });
-
-      const sumByMethod = (kw) => shiftSales
-        .filter(inv => String(inv.method || '').includes(kw))
-        .reduce((s, inv) => s + Number(inv.paidAmount ?? inv.total ?? 0), 0);
-
-      const cashSales = sumByMethod('كاش');
-      const walletSales = sumByMethod('محفظة');
-      const instapaySales = sumByMethod('إنستاباي');
-      const creditSales = shiftSales.reduce((s, inv) => s + Number(inv.remainingDebt || 0), 0);
-      const returnsTotal = shiftReturns.reduce((s, r) => s + Number(r.amount || 0), 0);
-
-      const drawerExpensesList = shiftExpenses.filter(e => e.fromDrawer !== false);
-      const drawerExpensesTotal = drawerExpensesList.reduce((s, e) => s + Number(e.amount || 0), 0);
-      const allShiftExpensesTotal = shiftExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-
-      const netDrawerCash = Math.max(0, cashSales - returnsTotal - drawerExpensesTotal);
-      const netAllChannels = Math.max(0, (cashSales + walletSales + instapaySales) - returnsTotal - drawerExpensesTotal);
+      const netDrawerCash = roundMoney(cashSales - returnsTotal - drawerExpensesTotal);
+      const netAllChannels = roundMoney((cashSales + walletSales + instapaySales) - returnsTotal - drawerExpensesTotal);
 
       return {
         targetShift,
         shiftSales,
-        shiftReturns,
-        shiftExpenses,
-        drawerExpensesList,
-        cashSales,
-        walletSales,
-        instapaySales,
-        creditSales,
+        cashSales: roundMoney(cashSales),
+        walletSales: roundMoney(walletSales),
+        instapaySales: roundMoney(instapaySales),
+        creditSales: roundMoney(creditSales),
         returnsTotal,
+        drawerExpensesList,
         drawerExpensesTotal,
-        allShiftExpensesTotal,
         netDrawerCash,
         netAllChannels
       };
     }
 
     function updatePosDrawerIndicator() {
-      const el = document.getElementById('pos-drawer-cash-view');
-      if (!el) return;
       const m = getShiftDrawerMetrics();
-      el.textContent = fmt(m.netDrawerCash) + (m.drawerExpensesTotal > 0 ? ` (مصروفات درج: -${fmt(m.drawerExpensesTotal)})` : '');
+      const el = document.getElementById('pos-drawer-cash-view');
+      if (el) el.textContent = fmt(m.netDrawerCash);
+    }
+
+    // =================================================
+    // تبويب المصروفات ونافذة إخراج مصروف من الدرج للكاشير
+    // =================================================
+    function getAllStaffNames() {
+      const names = new Set(['الإدارة', ...(settings.cashierProfiles || []).map(p => p.name)]);
+      if (session.cashier) names.add(session.cashier);
+      return Array.from(names);
     }
 
     function populateExpenseSelectors() {
-      const staffList = getAllStaffOptions();
-      const shiftList = settings.shifts && settings.shifts.length ? settings.shifts : ['الشيفت الصباحي', 'الشيفت المسائي'];
+      const staff = getAllStaffNames();
+      const shifts = settings.shifts || ['الشيفت الصباحي', 'الشيفت المسائي'];
 
       const empSel = document.getElementById('exp-employee-select');
       if (empSel) {
-        const cur = empSel.value;
-        empSel.innerHTML = staffList.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-        empSel.value = staffList.includes(cur) ? cur : (session.cashier || staffList[0]);
+        empSel.innerHTML = staff.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+        if (staff.includes(session.cashier)) empSel.value = session.cashier;
       }
 
-      const shSel = document.getElementById('exp-shift-select');
-      if (shSel) {
-        const cur = shSel.value;
-        shSel.innerHTML = shiftList.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-        shSel.value = shiftList.includes(cur) ? cur : (session.shift || shiftList[0]);
+      const quickEmpSel = document.getElementById('quick-exp-employee');
+      if (quickEmpSel) {
+        quickEmpSel.innerHTML = staff.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+        if (staff.includes(session.cashier)) quickEmpSel.value = session.cashier;
       }
 
-      const authInp = document.getElementById('exp-authorized-by-input');
-      if (authInp && !authInp.value.trim()) {
-        authInp.value = 'الإدارة';
+      const shiftSel = document.getElementById('exp-shift-select');
+      if (shiftSel) {
+        shiftSel.innerHTML = shifts.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+        if (shifts.includes(session.shift)) shiftSel.value = session.shift;
       }
 
-      const filterEmp = document.getElementById('exp-filter-employee');
-      if (filterEmp) {
-        const cur = filterEmp.value || 'all';
-        filterEmp.innerHTML = '<option value="all">كل الموظفين (إدارة / كاشير)</option>' +
-          staffList.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-        filterEmp.value = Array.from(filterEmp.options).some(o => o.value === cur) ? cur : 'all';
+      const fEmp = document.getElementById('exp-filter-employee');
+      if (fEmp) {
+        const prev = fEmp.value || 'all';
+        fEmp.innerHTML = '<option value="all">كل الموظفين (إدارة / كاشير)</option>' +
+          staff.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+        fEmp.value = prev;
       }
 
-      const filterShift = document.getElementById('exp-filter-shift');
-      if (filterShift) {
-        const cur = filterShift.value || 'all';
-        filterShift.innerHTML = '<option value="all">كل الشيفتات</option>' +
-          shiftList.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-        filterShift.value = Array.from(filterShift.options).some(o => o.value === cur) ? cur : 'all';
+      const fShift = document.getElementById('exp-filter-shift');
+      if (fShift) {
+        const prevS = fShift.value || 'all';
+        fShift.innerHTML = '<option value="all">كل الشيفتات</option>' +
+          shifts.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+        fShift.value = prevS;
       }
-    }
-
-    function resetExpenseForm() {
-      document.getElementById('exp-edit-id').value = '';
-      document.getElementById('exp-form-title').textContent = 'تسجيل مصروف جديد (إضافة / خصم من الدرج)';
-      document.getElementById('exp-submit-btn').textContent = '+ حفظ المصروف';
-      document.getElementById('exp-cancel-edit-btn').classList.add('hidden');
-      document.getElementById('exp-amount-input').value = '';
-      document.getElementById('exp-note-input').value = '';
-      document.getElementById('exp-authorized-by-input').value = 'الإدارة';
-      document.getElementById('exp-from-drawer-chk').checked = true;
-      populateExpenseSelectors();
-    }
-
-    function saveExpenseForm(e) {
-      e.preventDefault();
-      const editId = document.getElementById('exp-edit-id').value.trim();
-      const category = document.getElementById('exp-category-select').value;
-      const employeeName = document.getElementById('exp-employee-select').value;
-      const authorizedBy = (document.getElementById('exp-authorized-by-input')?.value || '').trim() || 'الإدارة';
-      const amount = Math.max(0, parseFloat(document.getElementById('exp-amount-input').value) || 0);
-      const shift = document.getElementById('exp-shift-select').value;
-      const note = document.getElementById('exp-note-input').value.trim();
-      const fromDrawer = Boolean(document.getElementById('exp-from-drawer-chk').checked);
-
-      if (!category || amount <= 0) {
-        showToast('أدخل بند المصروف ومبلغاً صحيحاً', 'error');
-        return;
-      }
-
-      if (editId) {
-        const idx = expensesLog.findIndex(x => String(x.id) === editId);
-        if (idx !== -1) {
-          expensesLog[idx] = {
-            ...expensesLog[idx],
-            category,
-            employeeName,
-            authorizedBy,
-            amount,
-            shift,
-            note,
-            fromDrawer,
-            updatedAt: Date.now()
-          };
-          showToast('تم تعديل المصروف وتحديث رصيد الدرج وZ-Report', 'success');
-        }
-      } else {
-        const now = new Date();
-        expensesLog.unshift({
-          id: 'EXP-' + Date.now().toString().slice(-6),
-          date: now.toLocaleString('ar-EG'),
-          dayDate: formatDayOnly(now),
-          dateISO: now.toISOString(),
-          category,
-          employeeName,
-          authorizedBy,
-          recordedBy: session.cashier,
-          shift,
-          note,
-          fromDrawer,
-          amount,
-          updatedAt: Date.now()
-        });
-        showToast(`تم تسجيل مصروف (${category}) بمبلغ ${fmt(amount)} بإبلاغ (${authorizedBy})`, 'success');
-      }
-
-      saveState(true);
-      resetExpenseForm();
-      renderExpenses();
-      renderReports();
-    }
-
-    function editExpenseRow(id) {
-      const exp = expensesLog.find(x => String(x.id) === String(id));
-      if (!exp) return;
-      populateExpenseSelectors();
-      document.getElementById('exp-edit-id').value = exp.id;
-      document.getElementById('exp-form-title').textContent = `تعديل المصروف (${exp.id})`;
-      document.getElementById('exp-submit-btn').textContent = 'حفظ تعديل المصروف';
-      document.getElementById('exp-cancel-edit-btn').classList.remove('hidden');
-      document.getElementById('exp-category-select').value = EXPENSE_CATEGORIES.includes(exp.category) ? exp.category : EXPENSE_CATEGORIES[0];
-      document.getElementById('exp-employee-select').value = exp.employeeName || session.cashier;
-      document.getElementById('exp-authorized-by-input').value = exp.authorizedBy || 'الإدارة';
-      document.getElementById('exp-amount-input').value = String(exp.amount || 0);
-      document.getElementById('exp-shift-select').value = exp.shift || session.shift;
-      document.getElementById('exp-note-input').value = exp.note || '';
-      document.getElementById('exp-from-drawer-chk').checked = exp.fromDrawer !== false;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function deleteExpenseRow(id) {
-      const idx = expensesLog.findIndex(x => String(x.id) === String(id));
-      if (idx === -1) return;
-      expensesLog[idx] = {
-        ...expensesLog[idx],
-        _deleted: true,
-        updatedAt: Date.now()
-      };
-      expensesLog = expensesLog.filter(x => !x._deleted);
-      saveState(true);
-      renderExpenses();
-      renderReports();
-      showToast('تم حذف المصروف وتحديث رصيد الدرج وZ-Report', 'success');
-    }
-
-    function renderExpenses() {
-      populateExpenseSelectors();
-      const metrics = getShiftDrawerMetrics();
-      const todayStr = new Date().toLocaleDateString('ar-EG');
-      const activeList = expensesLog.filter(e => e && !e._deleted);
-
-      const todayTotal = activeList
-        .filter(e => new Date(e.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr)
-        .reduce((s, e) => s + Number(e.amount || 0), 0);
-
-      const allTotal = activeList.reduce((s, e) => s + Number(e.amount || 0), 0);
-
-      document.getElementById('exp-stat-shift-drawer').textContent = fmt(metrics.drawerExpensesTotal);
-      document.getElementById('exp-stat-today').textContent = fmt(todayTotal);
-      document.getElementById('exp-stat-total').textContent = fmt(allTotal);
-      document.getElementById('exp-stat-drawer-net').textContent = fmt(metrics.netDrawerCash);
-
-      const fCat = document.getElementById('exp-filter-category')?.value || 'all';
-      const fEmp = document.getElementById('exp-filter-employee')?.value || 'all';
-      const fShift = document.getElementById('exp-filter-shift')?.value || 'all';
-
-      const filtered = activeList.filter(e => {
-        const okCat = fCat === 'all' || e.category === fCat;
-        const okEmp = fEmp === 'all' || e.employeeName === fEmp;
-        const okSh = fShift === 'all' || e.shift === fShift;
-        return okCat && okEmp && okSh;
-      });
-
-      document.getElementById('expenses-tbody').innerHTML = filtered.map(e => {
-        const dayLabel = e.dayDate || formatDayOnly(e.dateISO || e.date);
-        const drawerBadge = e.fromDrawer !== false
-          ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">خصم من الدرج</span>'
-          : '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">خارج الدرج</span>';
-
-        return `
-          <tr>
-            <td class="py-3 px-4 font-mono text-xs">${esc(dayLabel)}</td>
-            <td class="py-3 px-4 font-extrabold text-marine-950">${esc(e.category)}</td>
-            <td class="py-3 px-4 font-bold text-xs">${esc(e.employeeName || '—')}</td>
-            <td class="py-3 px-4 text-xs font-extrabold text-amber-900">${esc(e.authorizedBy || 'الإدارة')}</td>
-            <td class="py-3 px-4 text-xs">${esc(e.shift || '—')}</td>
-            <td class="py-3 px-4 text-xs text-slate-600">${esc(e.note || '—')}</td>
-            <td class="py-3 px-4">${drawerBadge}</td>
-            <td class="py-3 px-4 font-mono font-extrabold text-rose-700">-${fmt(e.amount)}</td>
-            <td class="py-3 px-4 text-center space-x-1 space-x-reverse whitespace-nowrap">
-              <button type="button" onclick="editExpenseRow('${e.id}')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-500 hover:text-slate-950 text-amber-900 text-xs font-bold">
-                تعديل
-              </button>
-              <button type="button" onclick="deleteExpenseRow('${e.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-bold">
-                حذف
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('') || '<tr><td colspan="9" class="py-6 text-center text-xs text-slate-400 font-bold">لا توجد مصروفات مسجلة مطابقة للفلاتر</td></tr>';
     }
 
     function openDrawerExpenseModal() {
-      const staffList = getAllStaffOptions();
-      const empSel = document.getElementById('quick-exp-employee');
-      if (empSel) {
-        empSel.innerHTML = staffList.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-        empSel.value = staffList.includes(session.cashier) ? session.cashier : staffList[0];
-      }
-      document.getElementById('quick-exp-authorized-by').value = 'الإدارة';
+      populateExpenseSelectors();
       document.getElementById('quick-exp-amount').value = '';
+      document.getElementById('quick-exp-authorized-by').value = '';
       document.getElementById('quick-exp-note').value = '';
       const m = document.getElementById('modal-drawer-expense');
       m.classList.remove('hidden');
@@ -2728,84 +1966,842 @@
 
     function submitDrawerQuickExpense(e) {
       e.preventDefault();
-      const category = document.getElementById('quick-exp-category').value;
-      const employeeName = document.getElementById('quick-exp-employee').value;
-      const authorizedBy = (document.getElementById('quick-exp-authorized-by')?.value || '').trim() || 'الإدارة';
-      const amount = Math.max(0, parseFloat(document.getElementById('quick-exp-amount').value) || 0);
-      const note = document.getElementById('quick-exp-note').value.trim();
+      const category = document.getElementById('quick-exp-category')?.value || 'مصاريف تشغيلية';
+      const employeeName = document.getElementById('quick-exp-employee')?.value || session.cashier;
+      const authorizedBy = (document.getElementById('quick-exp-authorized-by')?.value || '').trim();
+      const amount = roundMoney(parseFloat(document.getElementById('quick-exp-amount')?.value) || 0);
+      const note = (document.getElementById('quick-exp-note')?.value || '').trim();
 
+      if (!authorizedBy) {
+        showToast('يرجى كتابة اسم من أبلغ بإخراج المبلغ (الإدارة / المسؤول)', 'error');
+        return;
+      }
       if (amount <= 0) {
-        showToast('أدخل مبلغاً صحيحاً للمصروف', 'error');
+        showToast('أدخل مبلغاً صحيحاً أكبر من الصفر', 'error');
         return;
       }
 
       const now = new Date();
       expensesLog.unshift({
         id: 'EXP-' + Date.now().toString().slice(-6),
-        date: now.toLocaleString('ar-EG'),
-        dayDate: formatDayOnly(now),
-        dateISO: now.toISOString(),
         category,
         employeeName,
         authorizedBy,
-        recordedBy: session.cashier,
-        shift: session.shift,
+        amount,
+        shift: session.shift || settings.activeShift || 'الشيفت الصباحي',
         note,
         fromDrawer: true,
-        amount,
+        recordedBy: session.cashier,
+        dayDate: formatDayOnly(now),
+        date: now.toLocaleString('ar-EG'),
+        dateISO: now.toISOString(),
         updatedAt: Date.now()
       });
 
       saveState(true);
       closeDrawerExpenseModal();
+      updatePosDrawerIndicator();
       renderExpenses();
-      renderReports();
-      showToast(`تم خصم (${category}) بمبلغ ${fmt(amount)} بإبلاغ (${authorizedBy}) وتضمينه في Z-Report`, 'success');
+      showToast(`تم صرف ${fmt(amount)} (${category}) بعلم ${authorizedBy} وخصمه من الدرج`, 'success');
     }
 
-    // =================================================
-    // نظام المرتجعات (إرجاع منتج أو عدد معين / كيلو / جرام وتحديث الفاتورة الأصلية)
-    // =================================================
-    function syncReturnInvoiceItems() {
-      const invoiceRef = (document.getElementById('ret-invoice-input')?.value || '').trim();
-      const sel = document.getElementById('ret-product-select');
-      if (!sel) return;
+    function saveExpenseForm(e) {
+      e.preventDefault();
+      const editId = document.getElementById('exp-edit-id')?.value || '';
+      const category = document.getElementById('exp-category-select')?.value || 'مصاريف تشغيلية';
+      const employeeName = document.getElementById('exp-employee-select')?.value || session.cashier;
+      const authorizedBy = (document.getElementById('exp-authorized-by-input')?.value || '').trim();
+      const amount = roundMoney(parseFloat(document.getElementById('exp-amount-input')?.value) || 0);
+      const shift = document.getElementById('exp-shift-select')?.value || session.shift;
+      const note = (document.getElementById('exp-note-input')?.value || '').trim();
+      const fromDrawer = Boolean(document.getElementById('exp-from-drawer-chk')?.checked);
 
-      const inv = invoiceRef
-        ? sales.find(s => String(s.id || '').trim().toLowerCase() === invoiceRef.toLowerCase())
-        : null;
-
-      if (inv && Array.isArray(inv.items) && inv.items.length) {
-        const grouped = new Map();
-        inv.items.forEach(it => {
-          if (!it || !it.id) return;
-          const pid = String(it.id);
-          const prodObj = products.find(p => String(p.id) === pid);
-          const u = normalizeUnit(it.unit || prodObj?.unit);
-          const prev = grouped.get(pid) || { id: pid, name: it.name || ('منتج ' + pid), qty: 0, unit: u };
-          prev.qty = Math.round((prev.qty + Number(it.qty || 0)) * 1000) / 1000;
-          grouped.set(pid, prev);
-        });
-        const invItems = Array.from(grouped.values()).filter(x => x.qty > 0);
-        if (invItems.length) {
-          sel.innerHTML = invItems.map(x => `<option value="${esc(x.id)}">${esc(x.name)} (مباع: ${formatQtyWithUnit(x.qty, x.unit)})</option>`).join('');
-          updateReturnPreview();
-          return;
-        }
-      }
-
-      sel.innerHTML = products.map(p => `<option value="${esc(p.id)}">${esc(p.name)} (${fmt(p.price)} / ${esc(getUnitDisplayLabel(p.unit))})</option>`).join('');
-      updateReturnPreview();
-    }
-
-    function openReturnModal() {
-      if (!products.length) {
-        showToast('لا توجد منتجات متاحة للمرتجع', 'error');
+      if (!authorizedBy) {
+        showToast('يرجى كتابة اسم من أبلغ بإخراج المبلغ', 'error');
         return;
       }
-      document.getElementById('ret-qty-input').value = '1';
+      if (amount <= 0) {
+        showToast('أدخل مبلغاً صحيحاً', 'error');
+        return;
+      }
+
+      if (editId) {
+        const idx = expensesLog.findIndex(x => String(x.id) === String(editId));
+        if (idx !== -1) {
+          expensesLog[idx] = {
+            ...expensesLog[idx],
+            category,
+            employeeName,
+            authorizedBy,
+            amount,
+            shift,
+            note,
+            fromDrawer,
+            updatedAt: Date.now()
+          };
+          showToast('تم تعديل بند المصروف بنجاح', 'success');
+        }
+      } else {
+        const now = new Date();
+        expensesLog.unshift({
+          id: 'EXP-' + Date.now().toString().slice(-6),
+          category,
+          employeeName,
+          authorizedBy,
+          amount,
+          shift,
+          note,
+          fromDrawer,
+          recordedBy: session.cashier,
+          dayDate: formatDayOnly(now),
+          date: now.toLocaleString('ar-EG'),
+          dateISO: now.toISOString(),
+          updatedAt: Date.now()
+        });
+        showToast('تم حفظ المصروف بنجاح', 'success');
+      }
+
+      resetExpenseForm();
+      saveState(true);
+      updatePosDrawerIndicator();
+      renderExpenses();
+    }
+
+    function editExpenseItem(id) {
+      const exp = expensesLog.find(x => String(x.id) === String(id));
+      if (!exp) return;
+      populateExpenseSelectors();
+      document.getElementById('exp-edit-id').value = exp.id;
+      document.getElementById('exp-category-select').value = exp.category;
+      document.getElementById('exp-employee-select').value = exp.employeeName || session.cashier;
+      document.getElementById('exp-authorized-by-input').value = exp.authorizedBy || '';
+      document.getElementById('exp-amount-input').value = exp.amount;
+      document.getElementById('exp-shift-select').value = exp.shift || session.shift;
+      document.getElementById('exp-note-input').value = exp.note || '';
+      document.getElementById('exp-from-drawer-chk').checked = exp.fromDrawer !== false;
+      document.getElementById('exp-form-title').textContent = `تعديل مصروف (${exp.id})`;
+      document.getElementById('exp-submit-btn').textContent = 'حفظ التعديلات';
+      document.getElementById('exp-cancel-edit-btn').classList.remove('hidden');
+    }
+
+    function deleteExpenseItem(id) {
+      const idx = expensesLog.findIndex(x => String(x.id) === String(id));
+      if (idx === -1) return;
+      expensesLog[idx]._deleted = true;
+      expensesLog[idx].updatedAt = Date.now();
+      saveState(true);
+      updatePosDrawerIndicator();
+      renderExpenses();
+      showToast('تم حذف المصروف وتحديث رصيد الدرج', 'warn');
+    }
+
+    function resetExpenseForm() {
+      document.getElementById('exp-edit-id').value = '';
+      document.getElementById('exp-authorized-by-input').value = '';
+      document.getElementById('exp-amount-input').value = '';
+      document.getElementById('exp-note-input').value = '';
+      document.getElementById('exp-from-drawer-chk').checked = true;
+      document.getElementById('exp-form-title').textContent = 'تسجيل مصروف جديد (إضافة / خصم من الدرج)';
+      document.getElementById('exp-submit-btn').textContent = '+ حفظ المصروف';
+      document.getElementById('exp-cancel-edit-btn').classList.add('hidden');
+    }
+
+    function renderExpenses() {
+      const fCat = document.getElementById('exp-filter-category')?.value || 'all';
+      const fEmp = document.getElementById('exp-filter-employee')?.value || 'all';
+      const fShift = document.getElementById('exp-filter-shift')?.value || 'all';
+      const todayStr = new Date().toLocaleDateString('ar-EG');
+
+      const activeExpenses = expensesLog.filter(e => e && !e._deleted);
+      const todayTotal = roundMoney(activeExpenses
+        .filter(e => new Date(e.dateISO || Date.now()).toLocaleDateString('ar-EG') === todayStr)
+        .reduce((s, e) => s + Number(e.amount || 0), 0));
+      const allTotal = roundMoney(activeExpenses.reduce((s, e) => s + Number(e.amount || 0), 0));
+      const metrics = getShiftDrawerMetrics();
+
+      const elShiftDrawer = document.getElementById('exp-stat-shift-drawer');
+      const elToday = document.getElementById('exp-stat-today');
+      const elTotal = document.getElementById('exp-stat-total');
+      const elDrawerNet = document.getElementById('exp-stat-drawer-net');
+      if (elShiftDrawer) elShiftDrawer.textContent = fmt(metrics.drawerExpensesTotal);
+      if (elToday) elToday.textContent = fmt(todayTotal);
+      if (elTotal) elTotal.textContent = fmt(allTotal);
+      if (elDrawerNet) elDrawerNet.textContent = fmt(metrics.netDrawerCash);
+
+      const filtered = activeExpenses.filter(e => {
+        const okCat = fCat === 'all' || e.category === fCat;
+        const okEmp = fEmp === 'all' || e.employeeName === fEmp;
+        const okShift = fShift === 'all' || e.shift === fShift;
+        return okCat && okEmp && okShift;
+      });
+
+      const tbody = document.getElementById('expenses-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = filtered.map(e => `
+        <tr>
+          <td class="py-3 px-4 font-mono text-xs text-slate-600">${esc(e.date || e.dayDate)}</td>
+          <td class="py-3 px-4 font-extrabold text-marine-950">${esc(e.category)}</td>
+          <td class="py-3 px-4 font-bold">${esc(e.employeeName || '—')}</td>
+          <td class="py-3 px-4 font-extrabold text-amber-900">${esc(e.authorizedBy || 'الإدارة')}</td>
+          <td class="py-3 px-4 text-xs">${esc(e.shift || '—')}</td>
+          <td class="py-3 px-4 text-xs text-slate-600">${esc(e.note || '—')}</td>
+          <td class="py-3 px-4 text-xs">
+            ${e.fromDrawer !== false
+              ? '<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold">مخصوم من الدرج</span>'
+              : '<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold">خارج الدرج</span>'}
+          </td>
+          <td class="py-3 px-4 font-mono font-extrabold text-rose-700">-${fmt(e.amount)}</td>
+          <td class="py-3 px-4 text-center space-x-1 space-x-reverse">
+            <button type="button" onclick="editExpenseItem('${e.id}')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-500 hover:text-slate-950 text-amber-900 text-xs font-bold">تعديل</button>
+            <button type="button" onclick="requireAdminPin(() => deleteExpenseItem('${e.id}'), 'حذف بند مصروف يتطلب رمز PIN للإدارة:')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-bold">حذف</button>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="9" class="py-6 text-center text-xs text-slate-400 font-bold">لا توجد مصروفات مسجلة مطابقة للفلتر الحالي</td></tr>';
+    }
+
+    // =================================================
+    // نقطة البيع والوحدات (الكمية، الكيلو، الجرام، مللي، وزن) والفئات الشجرية
+    // =================================================
+    function renderPosCategories() {
+      const catBar = document.getElementById('pos-categories-bar');
+      const subBar = document.getElementById('pos-subcategories-bar');
+      if (!catBar) return;
+      const cats = ['الكل', ...(settings.categories || [])];
+      if (!cats.includes(selectedCategory)) selectedCategory = 'الكل';
+
+      catBar.innerHTML = cats.map(c => `
+        <button type="button" onclick="selectPosCategory('${esc(c)}')"
+          class="px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition ${selectedCategory === c ? 'bg-marine-800 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+          ${esc(c)}
+        </button>
+      `).join('');
+
+      if (!subBar) return;
+      const subs = (selectedCategory !== 'الكل' && settings.subcategories && Array.isArray(settings.subcategories[selectedCategory]))
+        ? settings.subcategories[selectedCategory]
+        : [];
+      if (!subs.length) {
+        selectedSubcategory = 'الكل';
+        subBar.classList.add('hidden');
+        subBar.innerHTML = '';
+        return;
+      }
+
+      if (selectedSubcategory !== 'الكل' && !subs.includes(selectedSubcategory)) selectedSubcategory = 'الكل';
+      subBar.classList.remove('hidden');
+      subBar.innerHTML = ['الكل', ...subs].map(sc => `
+        <button type="button" onclick="selectPosSubcategory('${esc(sc)}')"
+          class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition ${selectedSubcategory === sc ? 'bg-cyan-600 text-white' : 'bg-cyan-50 text-cyan-950 hover:bg-cyan-100 border border-cyan-200'}">
+          ${sc === 'الكل' ? 'كل الأنواع الفرعية' : '↳ ' + esc(sc)}
+        </button>
+      `).join('');
+    }
+
+    function selectPosCategory(cat) {
+      selectedCategory = cat;
+      selectedSubcategory = 'الكل';
+      renderPosCategories();
+      renderPosGrid();
+    }
+
+    function selectPosSubcategory(subcat) {
+      selectedSubcategory = subcat;
+      renderPosCategories();
+      renderPosGrid();
+    }
+
+    function renderPosGrid() {
+      const grid = document.getElementById('pos-products-grid');
+      if (!grid) return;
+      const q = (document.getElementById('pos-search-input')?.value || '').trim().toLowerCase();
+
+      const filtered = products.filter(p => {
+        if (!p || p._deleted) return false;
+        const okCat = selectedCategory === 'الكل' || p.category === selectedCategory;
+        const okSub = selectedSubcategory === 'الكل' || (p.subcategory || '') === selectedSubcategory;
+        const okQ = !q ||
+          String(p.name || '').toLowerCase().includes(q) ||
+          String(p.brand || '').toLowerCase().includes(q) ||
+          String(p.category || '').toLowerCase().includes(q) ||
+          String(p.subcategory || '').toLowerCase().includes(q) ||
+          String(p.sku || '').toLowerCase().includes(q);
+        return okCat && okSub && okQ;
+      });
+
+      grid.innerHTML = filtered.map(p => {
+        const stock = Number(p.stock || 0);
+        const unit = normalizeUnit(p.unit);
+        const out = stock <= 0;
+        return `
+          <div onclick="${out ? '' : `addToCart('${p.id}')`}"
+            class="p-3.5 rounded-2xl border transition flex flex-col justify-between gap-2 ${out ? 'bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed' : 'bg-white border-slate-200 hover:border-cyan-500 hover:shadow-md cursor-pointer'}">
+            <div>
+              <div class="flex items-center justify-between gap-1 text-[10px] font-bold text-slate-500 mb-1">
+                <span class="px-2 py-0.5 rounded-full bg-marine-50 text-marine-800">${esc(p.category)}</span>
+                <span class="px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-900 border border-cyan-200">${esc(unit)}</span>
+              </div>
+              ${p.subcategory ? `<div class="text-[10px] font-bold text-cyan-700 mb-0.5">↳ ${esc(p.subcategory)}</div>` : ''}
+              <div class="font-extrabold text-sm text-slate-900 leading-snug">${esc(p.name)}</div>
+              ${p.brand ? `<div class="text-[11px] font-bold text-slate-500 mt-0.5">الماركة: ${esc(p.brand)}</div>` : ''}
+            </div>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+              <span class="font-mono font-extrabold text-sm text-marine-950">${fmt(p.price)}</span>
+              <span class="font-mono text-[11px] font-bold ${out ? 'text-rose-600' : 'text-emerald-700'}">
+                ${out ? 'نفذ' : `متاح: ${formatQtyWithUnit(stock, unit)}`}
+              </span>
+            </div>
+          </div>
+        `;
+      }).join('') || '<div class="col-span-full py-10 text-center text-xs text-slate-400 font-bold">لا توجد منتجات مطابقة للبحث أو التصنيف</div>';
+    }
+
+    function addToCart(productId, customQty = null) {
+      const prod = products.find(p => String(p.id) === String(productId));
+      if (!prod) return;
+      const unit = normalizeUnit(prod.unit);
+      const stock = Number(prod.stock || 0);
+      if (stock <= 0) {
+        showToast('الرصيد نافذ لهذا المنتج', 'error');
+        return;
+      }
+
+      const defaultStep = customQty !== null ? customQty : (unit === 'الكيلو' || unit === 'وزن' ? 0.5 : (unit === 'الجرام' ? 50 : 1));
+      const existing = cart.find(c => String(c.id) === String(productId));
+      if (existing) {
+        const nextQty = Math.round((Number(existing.qty) + Number(defaultStep)) * 1000) / 1000;
+        if (nextQty > stock) {
+          showToast(`الرصيد المتاح بالمخزون هو ${formatQtyWithUnit(stock, unit)} فقط`, 'warn');
+          existing.qty = stock;
+        } else {
+          existing.qty = nextQty;
+        }
+      } else {
+        const initQty = Math.min(stock, defaultStep);
+        cart.push({
+          id: prod.id,
+          name: prod.name,
+          brand: prod.brand || '',
+          unit,
+          price: Number(prod.price || 0),
+          cost: Number(prod.cost || 0),
+          qty: initQty
+        });
+      }
+      renderCart();
+    }
+
+    function updateCartItemQty(productId, newVal) {
+      const item = cart.find(c => String(c.id) === String(productId));
+      const prod = products.find(p => String(p.id) === String(productId));
+      if (!item || !prod) return;
+      let q = parseFloat(newVal);
+      if (isNaN(q) || q <= 0) {
+        removeCartItem(productId);
+        return;
+      }
+      const stock = Number(prod.stock || 0);
+      if (q > stock) {
+        showToast(`الحد الأقصى المتاح: ${formatQtyWithUnit(stock, item.unit)}`, 'warn');
+        q = stock;
+      }
+      item.qty = Math.round(q * 1000) / 1000;
+      renderCart();
+    }
+
+    function setCartItemGramsForKilo(productId, gramsVal) {
+      const g = Math.max(0, parseFloat(gramsVal) || 0);
+      const kg = Math.round((g / 1000) * 1000) / 1000;
+      if (kg > 0) updateCartItemQty(productId, kg);
+    }
+
+    function removeCartItem(productId) {
+      cart = cart.filter(c => String(c.id) !== String(productId));
+      renderCart();
+    }
+
+    function clearCart() {
+      cart = [];
+      renderCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById('pos-cart-items');
+      if (!container) return;
+
+      if (!cart.length) {
+        container.innerHTML = '<div class="py-8 text-center text-slate-400 font-bold">السلة فارغة — اضغط على أي منتج لإضافته</div>';
+      } else {
+        container.innerHTML = cart.map(item => {
+          const unit = normalizeUnit(item.unit);
+          const isKilo = unit === 'الكيلو' || unit === 'وزن';
+          const gramsEquiv = Math.round(Number(item.qty) * 1000);
+          const step = isKilo ? 0.1 : (unit === 'الجرام' ? 10 : 1);
+
+          const kiloHelperHtml = isKilo ? `
+            <div class="mt-1.5 pt-1.5 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-1 text-[10px]">
+              <span class="text-cyan-900 font-bold">أو بالجرام (${gramsEquiv} جم):</span>
+              <div class="flex items-center gap-1">
+                <input type="number" min="1" step="1" value="${gramsEquiv}" onchange="setCartItemGramsForKilo('${item.id}', this.value)"
+                  class="w-16 px-1.5 py-0.5 bg-white border border-cyan-300 rounded font-mono font-bold text-center" />
+                <button type="button" onclick="setCartItemGramsForKilo('${item.id}', 100)" class="px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-950 font-bold">100جم</button>
+                <button type="button" onclick="setCartItemGramsForKilo('${item.id}', 250)" class="px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-950 font-bold">250جم</button>
+                <button type="button" onclick="setCartItemGramsForKilo('${item.id}', 500)" class="px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-950 font-bold">500جم</button>
+              </div>
+            </div>
+          ` : '';
+
+          return `
+            <div class="py-2.5 space-y-1">
+              <div class="flex items-center justify-between gap-2">
+                <div class="font-extrabold text-slate-900">${esc(item.name)} <span class="text-[10px] text-cyan-800">(${esc(unit)})</span></div>
+                <button type="button" onclick="removeCartItem('${item.id}')" class="text-rose-600 hover:text-rose-800 font-bold">✕</button>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="updateCartItemQty('${item.id}', ${(Number(item.qty) - step).toFixed(3)})" class="w-6 h-6 rounded-lg bg-slate-200 hover:bg-slate-300 font-extrabold">-</button>
+                  <input type="number" step="any" min="0.001" value="${item.qty}" onchange="updateCartItemQty('${item.id}', this.value)"
+                    class="w-16 px-1.5 py-1 bg-white border border-slate-300 rounded-lg font-mono font-bold text-center" />
+                  <button type="button" onclick="updateCartItemQty('${item.id}', ${(Number(item.qty) + step).toFixed(3)})" class="w-6 h-6 rounded-lg bg-slate-200 hover:bg-slate-300 font-extrabold">+</button>
+                </div>
+                <div class="font-mono font-extrabold text-marine-950">${fmt(item.price * item.qty)}</div>
+              </div>
+              ${kiloHelperHtml}
+            </div>
+          `;
+        }).join('');
+      }
+
+      const subtotal = roundMoney(cart.reduce((s, i) => s + Number(i.price) * Number(i.qty), 0));
+      const rawDiscount = Math.max(0, parseFloat(document.getElementById('pos-discount-input')?.value) || 0);
+      const discount = Math.min(subtotal, roundMoney(rawDiscount));
+      const total = roundMoney(Math.max(0, subtotal - discount));
+
+      const method = document.getElementById('pos-payment-select')?.value || 'كاش';
+      const paidInpVal = document.getElementById('pos-paid-amount')?.value;
+      let paidAmount = total;
+      if (method === 'آجل / ذمم') {
+        paidAmount = paidInpVal !== '' ? Math.min(total, Math.max(0, roundMoney(parseFloat(paidInpVal) || 0))) : 0;
+      } else if (paidInpVal !== '') {
+        paidAmount = Math.min(total, Math.max(0, roundMoney(parseFloat(paidInpVal) || 0)));
+      }
+      const remainingDebt = roundMoney(Math.max(0, total - paidAmount));
+
+      document.getElementById('cart-subtotal').textContent = fmt(subtotal);
+      document.getElementById('cart-discount-view').textContent = fmt(discount);
+      document.getElementById('cart-total').textContent = fmt(total);
+      const remEl = document.getElementById('cart-remaining-debt');
+      if (remEl) remEl.textContent = fmt(remainingDebt);
+    }
+
+    function togglePaymentProof() {
+      const m = document.getElementById('pos-payment-select')?.value;
+      document.getElementById('pos-wallet-box')?.classList.toggle('hidden', m !== 'محفظة إلكترونية');
+      document.getElementById('pos-instapay-box')?.classList.toggle('hidden', m !== 'إنستاباي');
+      renderCart();
+    }
+
+    function handleBarcodeEnter(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        scanBarcodeValue();
+      }
+    }
+
+    function scanBarcodeValue() {
+      const inp = document.getElementById('pos-barcode-input');
+      const code = (inp?.value || '').trim();
+      if (!code) return;
+      const prod = products.find(p => String(p.sku || '').trim() === code);
+      if (!prod) {
+        showToast('لم يتم العثور على منتج بهذا الباركود: ' + code, 'error');
+        return;
+      }
+      addToCart(prod.id);
+      inp.value = '';
+      showToast('تمت إضافة: ' + prod.name, 'success');
+    }
+
+    function toggleCameraBarcodeScanner() {
+      if (isCameraScanning) {
+        stopCameraBarcodeScanner();
+        return;
+      }
+      if (!window.Html5Qrcode) {
+        showToast('مكتبة الكاميرا قيد التحميل، حاول بعد لحظات', 'warn');
+        return;
+      }
+      const box = document.getElementById('pos-camera-scanner-box');
+      box?.classList.remove('hidden');
+      html5QrScannerInstance = new Html5Qrcode('pos-camera-reader');
+      isCameraScanning = true;
+      html5QrScannerInstance.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 220, height: 120 } },
+        (decodedText) => {
+          document.getElementById('pos-barcode-input').value = decodedText;
+          scanBarcodeValue();
+        },
+        () => {}
+      ).catch(() => {
+        isCameraScanning = false;
+        box?.classList.add('hidden');
+        showToast('تعذر فتح كاميرا الجهاز', 'error');
+      });
+    }
+
+    function stopCameraBarcodeScanner() {
+      const box = document.getElementById('pos-camera-scanner-box');
+      box?.classList.add('hidden');
+      if (html5QrScannerInstance && isCameraScanning) {
+        html5QrScannerInstance.stop().catch(() => {});
+      }
+      isCameraScanning = false;
+    }
+
+    function completeSale() {
+      if (!cart.length) {
+        showToast('السلة فارغة، أضف منتجات أولاً', 'error');
+        return;
+      }
+
+      const customerName = (document.getElementById('pos-customer-input')?.value || '').trim() || 'عميل نقدي';
+      const customerPhone = (document.getElementById('pos-customer-phone')?.value || '').trim();
+      const method = document.getElementById('pos-payment-select')?.value || 'كاش';
+      const subtotal = roundMoney(cart.reduce((s, i) => s + Number(i.price) * Number(i.qty), 0));
+      const discount = Math.min(subtotal, Math.max(0, roundMoney(parseFloat(document.getElementById('pos-discount-input')?.value) || 0)));
+      const total = roundMoney(Math.max(0, subtotal - discount));
+
+      const paidInpVal = document.getElementById('pos-paid-amount')?.value;
+      let paidAmount = total;
+      if (method === 'آجل / ذمم') {
+        paidAmount = paidInpVal !== '' ? Math.min(total, Math.max(0, roundMoney(parseFloat(paidInpVal) || 0))) : 0;
+      } else if (paidInpVal !== '') {
+        paidAmount = Math.min(total, Math.max(0, roundMoney(parseFloat(paidInpVal) || 0)));
+      }
+      const remainingDebt = roundMoney(Math.max(0, total - paidAmount));
+
+      if (remainingDebt > 0 && customerName === 'عميل نقدي') {
+        showToast('يرجى إدخال اسم العميل لتسجيل المبلغ المتبقي في الذمم', 'error');
+        return;
+      }
+
+      let proof = method;
+      if (method === 'محفظة إلكترونية') {
+        const prov = document.getElementById('pos-wallet-provider')?.value || 'محفظة';
+        const wPhone = (document.getElementById('pos-wallet-phone')?.value || '').trim();
+        proof = wPhone ? `${prov} (${wPhone})` : prov;
+      } else if (method === 'إنستاباي') {
+        const ref = (document.getElementById('pos-instapay-ref')?.value || '').trim();
+        proof = ref ? `إنستاباي (${ref})` : 'إنستاباي';
+      } else if (remainingDebt > 0) {
+        proof = `${method} (مدفوع ${fmt(paidAmount)} / متبقي ${fmt(remainingDebt)})`;
+      }
+
+      let totalCost = 0;
+      cart.forEach(item => {
+        const prod = products.find(p => String(p.id) === String(item.id));
+        if (prod) {
+          prod.stock = Math.max(0, Math.round((Number(prod.stock || 0) - Number(item.qty)) * 1000) / 1000);
+          prod.updatedAt = Date.now();
+        }
+        totalCost += Number(item.cost || 0) * Number(item.qty);
+      });
+
+      const now = new Date();
+      const invId = 'INV-' + Date.now().toString().slice(-6);
+      const newInv = {
+        id: invId,
+        date: now.toLocaleString('ar-EG'),
+        dayDate: formatDayOnly(now),
+        dateISO: now.toISOString(),
+        cashier: session.cashier,
+        shift: session.shift,
+        customer: customerName,
+        customerPhone,
+        method,
+        proof,
+        items: cart.map(i => ({ ...i })),
+        subtotal,
+        discount,
+        total,
+        paidAmount,
+        remainingDebt,
+        profit: roundMoney(total - totalCost),
+        updatedAt: Date.now()
+      };
+      sales.unshift(newInv);
+
+      if (customerName !== 'عميل نقدي' || remainingDebt > 0) {
+        upsertCustomerActivity(customerName, customerPhone, total, remainingDebt);
+      }
+
+      cart = [];
+      document.getElementById('pos-discount-input').value = '0';
+      document.getElementById('pos-paid-amount').value = '';
+      saveState(true);
+      renderCart();
+      renderPosGrid();
+      renderInventory();
+      updatePosDrawerIndicator();
+      openReceipt(invId);
+      showToast('تم إتمام البيع وإصدار الفاتورة ' + invId, 'success');
+    }
+
+    // =================================================
+    // المخزون والوحدات (الكمية، الكيلو، الجرام، مللي، وزن) وملصقات الباركود
+    // =================================================
+    function renderInventory() {
+      const tbody = document.getElementById('inventory-tbody');
+      if (!tbody) return;
+      const q = (document.getElementById('inv-search-input')?.value || '').trim().toLowerCase();
+      const filter = document.getElementById('inv-stock-filter')?.value || 'all';
+
+      const activeProds = products.filter(p => p && !p._deleted);
+      document.getElementById('inv-stat-count').textContent = activeProds.length;
+      const totalUnits = Math.round(activeProds.reduce((s, p) => s + Number(p.stock || 0), 0) * 100) / 100;
+      document.getElementById('inv-stat-units').textContent = totalUnits;
+      const totalCostVal = roundMoney(activeProds.reduce((s, p) => s + Number(p.cost || 0) * Number(p.stock || 0), 0));
+      document.getElementById('inv-stat-cost').textContent = fmt(totalCostVal);
+      const lowCount = activeProds.filter(p => Number(p.stock || 0) <= Number(p.minStock || 2)).length;
+      document.getElementById('inv-stat-low').textContent = lowCount;
+
+      const roleNote = document.getElementById('inv-role-note');
+      if (roleNote) {
+        roleNote.textContent = isAdmin()
+          ? 'وضع الإدارة: يمكنك إضافة وتعديل المنتجات ووحدات القياس (الكمية، الكيلو، الجرام، مللي، وزن) وطباعة ملصقات الباركود.'
+          : 'وضع الكاشير: عرض الرصيد المتاح والأسعار وطباعة ملصقات الباركود (الإضافة والتعديل تتطلب PIN الإدارة).';
+      }
+
+      const filtered = activeProds.filter(p => {
+        const stock = Number(p.stock || 0);
+        const minS = Number(p.minStock || 2);
+        const okFilter = filter === 'all' ||
+          (filter === 'available' && stock > minS) ||
+          (filter === 'low' && stock > 0 && stock <= minS) ||
+          (filter === 'out' && stock <= 0);
+        const okQ = !q ||
+          String(p.name || '').toLowerCase().includes(q) ||
+          String(p.brand || '').toLowerCase().includes(q) ||
+          String(p.category || '').toLowerCase().includes(q) ||
+          String(p.subcategory || '').toLowerCase().includes(q) ||
+          String(p.sku || '').toLowerCase().includes(q);
+        return okFilter && okQ;
+      });
+
+      tbody.innerHTML = filtered.map(p => {
+        const stock = Number(p.stock || 0);
+        const minS = Number(p.minStock || 2);
+        const unit = normalizeUnit(p.unit);
+        const statusBadge = stock <= 0
+          ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">نافذ</span>'
+          : stock <= minS
+          ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900">منخفض</span>'
+          : '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">متاح</span>';
+
+        return `
+          <tr>
+            <td class="py-3 px-4 font-mono text-xs font-bold">${esc(p.sku)}</td>
+            <td class="py-3 px-4">
+              <div class="font-extrabold text-slate-900">${esc(p.name)}</div>
+              ${p.brand ? `<div class="text-[11px] text-slate-500 font-bold">الماركة: ${esc(p.brand)}</div>` : ''}
+            </td>
+            <td class="py-3 px-4 text-xs">
+              <div class="font-bold text-marine-900">${esc(p.category)}</div>
+              ${p.subcategory ? `<div class="text-cyan-700">↳ ${esc(p.subcategory)}</div>` : ''}
+            </td>
+            <td class="py-3 px-4 text-xs font-extrabold text-cyan-900">${esc(unit)}</td>
+            ${isAdmin() ? `<td class="py-3 px-4 font-mono text-xs">${fmt(p.cost)}</td>` : ''}
+            <td class="py-3 px-4 font-mono text-xs font-extrabold text-marine-950">${fmt(p.price)}</td>
+            <td class="py-3 px-4 font-mono text-xs font-bold">${esc(formatQtyWithUnit(stock, unit))}</td>
+            <td class="py-3 px-4">${statusBadge}</td>
+            <td class="py-3 px-4 text-center space-x-1 space-x-reverse">
+              <button type="button" onclick="openBarcodeLabelModal('${p.id}')" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold">باركود</button>
+              <button type="button" onclick="requireAdminPin(() => openProductForm('${p.id}'), 'تعديل المخزون يتطلب رمز PIN للإدارة:')"
+                class="px-2.5 py-1 rounded-lg bg-marine-50 hover:bg-marine-700 hover:text-white text-marine-800 text-xs font-bold">
+                ${isAdmin() ? 'تعديل' : 'تعديل (PIN)'}
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('') || `<tr><td colspan="${isAdmin() ? 9 : 8}" class="py-6 text-center text-xs text-slate-400 font-bold">لا توجد أصناف مطابقة</td></tr>`;
+    }
+
+    function openProductForm(id = null) {
+      const catSel = document.getElementById('prod-cat-input');
+      if (catSel) {
+        catSel.innerHTML = (settings.categories || []).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      }
+
+      if (id) {
+        const p = products.find(x => String(x.id) === String(id));
+        if (!p) return;
+        document.getElementById('modal-product-title').textContent = 'تعديل منتج بالمخزون';
+        document.getElementById('prod-edit-id').value = p.id;
+        document.getElementById('prod-name-input').value = p.name;
+        document.getElementById('prod-brand-input').value = p.brand || '';
+        document.getElementById('prod-sku-input').value = p.sku;
+        catSel.value = p.category;
+        populateProductSubcategorySelect();
+        document.getElementById('prod-subcat-input').value = p.subcategory || '';
+        document.getElementById('prod-unit-input').value = normalizeUnit(p.unit);
+        document.getElementById('prod-cost-input').value = p.cost;
+        document.getElementById('prod-price-input').value = p.price;
+        document.getElementById('prod-stock-input').value = p.stock;
+      } else {
+        document.getElementById('modal-product-title').textContent = 'إضافة منتج جديد للمخزون';
+        document.getElementById('prod-edit-id').value = '';
+        document.getElementById('prod-name-input').value = '';
+        document.getElementById('prod-brand-input').value = '';
+        document.getElementById('prod-sku-input').value = '622' + Date.now().toString().slice(-5);
+        populateProductSubcategorySelect();
+        document.getElementById('prod-unit-input').value = 'الكمية';
+        document.getElementById('prod-cost-input').value = '';
+        document.getElementById('prod-price-input').value = '';
+        document.getElementById('prod-stock-input').value = '1';
+      }
+
+      updateProductUnitLabels();
+      const m = document.getElementById('modal-product');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function populateProductSubcategorySelect() {
+      const cat = document.getElementById('prod-cat-input')?.value;
+      const subSel = document.getElementById('prod-subcat-input');
+      if (!subSel) return;
+      const subs = (cat && settings.subcategories && Array.isArray(settings.subcategories[cat])) ? settings.subcategories[cat] : [];
+      subSel.innerHTML = '<option value="">— بدون فئة فرعية —</option>' +
+        subs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    }
+
+    function updateProductUnitLabels() {
+      const unit = document.getElementById('prod-unit-input')?.value || 'الكمية';
+      const costLbl = document.getElementById('prod-cost-label');
+      const priceLbl = document.getElementById('prod-price-label');
+      const stockLbl = document.getElementById('prod-stock-label');
+      const guideBox = document.getElementById('prod-unit-guide-box');
+
+      if (unit === 'الكيلو') {
+        if (costLbl) costLbl.textContent = 'سعر شراء الكيلو الواحد';
+        if (priceLbl) priceLbl.textContent = 'سعر بيع الكيلو الواحد';
+        if (stockLbl) stockLbl.textContent = 'الرصيد بالكيلو (مثال: 10.5)';
+        if (guideBox) guideBox.textContent = 'معادلة الكيلو: أدخل سعر الكيلو الواحد والرصيد بالكيلو. في نقطة البيع يمكن للكاشير البيع بالكيلو (0.500) أو إدخال الجرامات (مثل 200 جرام) ليضرب 0.200 × سعر الكيلو تلقائياً.';
+      } else if (unit === 'الجرام') {
+        if (costLbl) costLbl.textContent = 'سعر شراء الجرام الواحد';
+        if (priceLbl) priceLbl.textContent = 'سعر بيع الجرام الواحد';
+        if (stockLbl) stockLbl.textContent = 'الرصيد بالجرام (مثال: 1000)';
+        if (guideBox) guideBox.textContent = 'معادلة الجرام: أدخل سعر الجرام الواحد والرصيد الإجمالي بالجرام. عند البيع 5 جرام أو 200 جرام يضرب العدد في سعر الجرام مباشرة.';
+      } else if (unit === 'مللي') {
+        if (costLbl) costLbl.textContent = 'سعر شراء المللي الواحد';
+        if (priceLbl) priceLbl.textContent = 'سعر بيع المللي الواحد';
+        if (stockLbl) stockLbl.textContent = 'الرصيد بالمللي';
+        if (guideBox) guideBox.textContent = 'معادلة المللي: أدخل سعر المللي الواحد والرصيد الإجمالي بالمللي.';
+      } else {
+        if (costLbl) costLbl.textContent = 'سعر شراء الوحدة';
+        if (priceLbl) priceLbl.textContent = 'سعر بيع الوحدة';
+        if (stockLbl) stockLbl.textContent = 'الرصيد بالمخزون';
+        if (guideBox) guideBox.textContent = 'وحدة القياس القياسية: يتم الحساب والخصم حسب العدد أو الوزن المدخل.';
+      }
+    }
+
+    function closeProductModal() {
+      const m = document.getElementById('modal-product');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function saveProductForm(e) {
+      e.preventDefault();
+      const editId = document.getElementById('prod-edit-id')?.value || '';
+      const name = document.getElementById('prod-name-input').value.trim();
+      const brand = document.getElementById('prod-brand-input').value.trim();
+      const sku = document.getElementById('prod-sku-input').value.trim();
+      const category = document.getElementById('prod-cat-input').value;
+      const subcategory = document.getElementById('prod-subcat-input').value;
+      const unit = normalizeUnit(document.getElementById('prod-unit-input').value);
+      const cost = Math.max(0, parseFloat(document.getElementById('prod-cost-input').value) || 0);
+      const price = Math.max(0, parseFloat(document.getElementById('prod-price-input').value) || 0);
+      const stock = Math.max(0, parseFloat(document.getElementById('prod-stock-input').value) || 0);
+
+      if (editId) {
+        const idx = products.findIndex(p => String(p.id) === String(editId));
+        if (idx !== -1) {
+          products[idx] = { ...products[idx], name, brand, sku, category, subcategory, unit, cost, price, stock, updatedAt: Date.now() };
+        }
+      } else {
+        products.unshift({
+          id: 'PRD-' + Date.now().toString().slice(-6),
+          sku,
+          name,
+          brand,
+          category,
+          subcategory,
+          unit,
+          cost,
+          price,
+          stock,
+          minStock: unit === 'الجرام' ? 100 : 2,
+          updatedAt: Date.now()
+        });
+      }
+
+      saveState(true);
+      closeProductModal();
+      renderPosGrid();
+      renderInventory();
+      showToast('تم حفظ بيانات المنتج بنجاح', 'success');
+    }
+
+    function openBarcodeLabelModal(prodId) {
+      currentBarcodeProductId = prodId;
+      document.getElementById('barcode-label-copies').value = 1;
+      renderBarcodeLabelContent();
+      const m = document.getElementById('modal-barcode-label');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    function renderBarcodeLabelContent() {
+      const prod = products.find(p => String(p.id) === String(currentBarcodeProductId));
+      const body = document.getElementById('barcode-label-body');
+      if (!prod || !body) return;
+      const copies = Math.min(30, Math.max(1, parseInt(document.getElementById('barcode-label-copies')?.value, 10) || 1));
+      const bars = Array.from({ length: 24 }, (_, idx) => {
+        const w = (idx % 3 === 0) ? 3 : (idx % 2 === 0 ? 2 : 1);
+        return `<span style="display:inline-block;height:28px;width:${w}px;background:#000;margin-left:1px;"></span>`;
+      }).join('');
+
+      body.innerHTML = Array.from({ length: copies }, () => `
+        <div class="border border-slate-400 rounded-xl p-2.5 text-center w-44 bg-white">
+          <div class="text-[10px] font-extrabold text-slate-700">${esc(settings.storeName)}</div>
+          <div class="text-xs font-extrabold text-slate-950 truncate">${esc(prod.name)}</div>
+          <div class="my-1.5 flex justify-center">${bars}</div>
+          <div class="font-mono text-[10px] font-bold">${esc(prod.sku)}</div>
+          <div class="font-mono text-xs font-extrabold text-marine-950 mt-0.5">${fmt(prod.price)} / ${esc(normalizeUnit(prod.unit))}</div>
+        </div>
+      `).join('');
+    }
+
+    function closeBarcodeLabelModal() {
+      const m = document.getElementById('modal-barcode-label');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    // =================================================
+    // المرتجعات
+    // =================================================
+    function openReturnModal() {
+      const sel = document.getElementById('ret-product-select');
+      if (sel) {
+        sel.innerHTML = products.filter(p => !p._deleted).map(p =>
+          `<option value="${esc(p.id)}">${esc(p.name)} (${esc(normalizeUnit(p.unit))})</option>`
+        ).join('');
+      }
       document.getElementById('ret-invoice-input').value = '';
-      syncReturnInvoiceItems();
+      document.getElementById('ret-qty-input').value = '1';
+      updateReturnPreview();
       const m = document.getElementById('modal-return');
       m.classList.remove('hidden');
       m.classList.add('flex');
@@ -2817,18 +2813,28 @@
       m.classList.remove('flex');
     }
 
-    function updateReturnPreview() {
-      const invoiceRef = document.getElementById('ret-invoice-input')?.value.trim() || '';
-      const pid = document.getElementById('ret-product-select')?.value;
-      const qty = Math.max(0.001, parseFloat(document.getElementById('ret-qty-input')?.value) || 1);
-      const prod = products.find(p => String(p.id) === String(pid));
-      const unit = normalizeUnit(prod?.unit);
+    function syncReturnInvoiceItems() {
+      const invoiceRef = (document.getElementById('ret-invoice-input')?.value || '').trim();
       const inv = invoiceRef
         ? sales.find(s => String(s.id || '').trim().toLowerCase() === invoiceRef.toLowerCase())
         : null;
+      const sel = document.getElementById('ret-product-select');
+      if (inv && Array.isArray(inv.items) && inv.items.length && sel) {
+        sel.innerHTML = inv.items.map(it =>
+          `<option value="${esc(it.id)}">${esc(it.name)} (مباع: ${esc(formatQtyWithUnit(it.qty, it.unit))})</option>`
+        ).join('');
+      }
+      updateReturnPreview();
+    }
 
-      const qtyLbl = document.getElementById('ret-qty-label');
-      if (qtyLbl) qtyLbl.textContent = `الكمية / الوزن المرتجع (${getUnitDisplayLabel(unit)})`;
+    function updateReturnPreview() {
+      const invoiceRef = (document.getElementById('ret-invoice-input')?.value || '').trim();
+      const pid = document.getElementById('ret-product-select')?.value;
+      const qty = Math.max(0.001, parseFloat(document.getElementById('ret-qty-input')?.value) || 0);
+      const prod = products.find(p => String(p.id) === String(pid));
+      const inv = invoiceRef
+        ? sales.find(s => String(s.id || '').trim().toLowerCase() === invoiceRef.toLowerCase())
+        : null;
 
       let unitPrice = Number(prod?.price || 0);
       if (inv && Array.isArray(inv.items)) {
@@ -2844,26 +2850,21 @@
       }
 
       const unitView = document.getElementById('ret-unit-price-view');
-      if (unitView) unitView.value = `${fmt(unitPrice)} / ${getUnitDisplayLabel(unit)}`;
+      if (unitView) unitView.value = fmt(unitPrice);
       const previewEl = document.getElementById('ret-amount-preview');
-      if (previewEl) previewEl.textContent = fmt(roundMoney(unitPrice * qty));
+      if (previewEl) previewEl.textContent = fmt(unitPrice * qty);
     }
 
     function submitReturnItem(e) {
       e.preventDefault();
       const pid = document.getElementById('ret-product-select')?.value;
-      const rawQty = parseFloat(document.getElementById('ret-qty-input')?.value);
-      const invoiceRef = document.getElementById('ret-invoice-input')?.value.trim() || '';
+      const qty = Math.round((Math.max(0.001, parseFloat(document.getElementById('ret-qty-input')?.value) || 0)) * 1000) / 1000;
+      const invoiceRef = (document.getElementById('ret-invoice-input')?.value || '').trim();
       const prod = products.find(p => String(p.id) === String(pid));
-      if (!prod || Number.isNaN(rawQty) || rawQty <= 0) {
-        showToast('اختر منتجاً وكمية/وزناً صحيحاً', 'error');
+      if (!prod || qty <= 0) {
+        showToast('اختر منتجاً وكمية صحيحة', 'error');
         return;
       }
-
-      const unit = normalizeUnit(prod.unit);
-      const qty = isFractionalUnit(unit)
-        ? Math.round(rawQty * 1000) / 1000
-        : Math.max(1, Math.round(rawQty));
 
       const inv = invoiceRef
         ? sales.find(s => String(s.id || '').trim().toLowerCase() === invoiceRef.toLowerCase())
@@ -2886,362 +2887,157 @@
       }
 
       prod.stock = Math.round((Number(prod.stock || 0) + qty) * 1000) / 1000;
+      prod.updatedAt = Date.now();
       const refundAmount = roundMoney(unitPrice * qty);
       const refundCost = roundMoney(unitCost * qty);
 
       if (inv && Array.isArray(inv.items)) {
-        const targetInv = sales.find(s => String(s.id) === String(inv.id));
-        if (targetInv && Array.isArray(targetInv.items)) {
-          let leftToDeduct = qty;
-          for (let i = targetInv.items.length - 1; i >= 0 && leftToDeduct > 0.0001; i--) {
-            const it = targetInv.items[i];
-            if (it && String(it.id) === String(pid)) {
-              const currentItemQty = Number(it.qty || 0);
-              const deductFromThis = Math.min(currentItemQty, leftToDeduct);
-              const newItemQty = Math.round((currentItemQty - deductFromThis) * 1000) / 1000;
-              leftToDeduct = Math.round((leftToDeduct - deductFromThis) * 1000) / 1000;
-              if (newItemQty <= 0) {
-                targetInv.items.splice(i, 1);
-              } else {
-                it.qty = newItemQty;
-              }
-            }
-          }
-
-          if (targetInv.items.length === 0) {
-            sales = sales.filter(s => String(s.id) !== String(targetInv.id));
-          } else {
-            const newSubtotal = roundMoney(targetInv.items.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0));
-            const newCost = roundMoney(targetInv.items.reduce((sum, it) => sum + Number(it.cost ?? prod.cost ?? 0) * Number(it.qty || 0), 0));
-            targetInv.subtotal = newSubtotal;
-            targetInv.discount = Math.min(Number(targetInv.discount || 0), newSubtotal);
-            targetInv.total = roundMoney(Math.max(0, newSubtotal - targetInv.discount));
-            targetInv.profit = roundMoney(targetInv.total - newCost);
-            targetInv.updatedAt = Date.now();
+        let leftToDeduct = qty;
+        for (let i = inv.items.length - 1; i >= 0 && leftToDeduct > 0; i--) {
+          const it = inv.items[i];
+          if (it && String(it.id) === String(pid)) {
+            const currentItemQty = Number(it.qty || 0);
+            const deductFromThis = Math.min(currentItemQty, leftToDeduct);
+            const newItemQty = Math.round((currentItemQty - deductFromThis) * 1000) / 1000;
+            leftToDeduct = Math.round((leftToDeduct - deductFromThis) * 1000) / 1000;
+            if (newItemQty <= 0) inv.items.splice(i, 1);
+            else it.qty = newItemQty;
           }
         }
+        const newSubtotal = roundMoney(inv.items.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0));
+        const newCost = roundMoney(inv.items.reduce((sum, it) => sum + Number(it.cost ?? prod.cost ?? 0) * Number(it.qty || 0), 0));
+        inv.subtotal = newSubtotal;
+        inv.discount = Math.min(Number(inv.discount || 0), newSubtotal);
+        inv.total = roundMoney(Math.max(0, newSubtotal - inv.discount));
+        inv.profit = roundMoney(inv.total - newCost);
+        inv.updatedAt = Date.now();
       }
 
-      const nowRetDate = new Date();
-      const verifiedInvoiceId = inv ? inv.id : '';
-      const retRecord = {
+      const now = new Date();
+      returnsLog.unshift({
         id: 'RET-' + Date.now().toString().slice(-6),
-        date: nowRetDate.toLocaleString('ar-EG'),
-        dayDate: formatDayOnly(nowRetDate),
-        dateISO: nowRetDate.toISOString(),
+        dayDate: formatDayOnly(now),
+        date: now.toLocaleString('ar-EG'),
+        dateISO: now.toISOString(),
         productId: prod.id,
         productName: prod.name,
-        unit,
+        unit: normalizeUnit(prod.unit),
         qty,
-        invoiceRef: verifiedInvoiceId || (invoiceRef || 'مرتجع مباشر'),
-        verifiedInvoice: Boolean(verifiedInvoiceId),
+        invoiceRef: inv ? inv.id : (invoiceRef || 'مرتجع مباشر'),
+        verifiedInvoice: Boolean(inv),
         cashier: session.cashier,
         shift: session.shift,
         amount: refundAmount,
         profitDeduction: roundMoney(refundAmount - refundCost),
-      };
+        updatedAt: Date.now()
+      });
 
-      returnsLog.unshift(retRecord);
       saveState(true);
       closeReturnModal();
       renderPosGrid();
       renderInventory();
       renderReports();
-      showToast(`تم تسجيل مرتجع (${formatQtyWithUnit(qty, unit)} × ${prod.name}) وإعادة الرصيد للمخزون`, 'success');
+      updatePosDrawerIndicator();
+      showToast(`تم تسجيل مرتجع (${formatQtyWithUnit(qty, prod.unit)} × ${prod.name})`, 'success');
     }
 
     // =================================================
-    // المخزون ووحدات القياس والفئات الشجرية وطباعة ملصقات الباركود
+    // العملاء والذمم والموردون والمشتريات
     // =================================================
-    function renderInventory() {
-      const q = (document.getElementById('inv-search-input').value || '').trim().toLowerCase();
-      const filter = document.getElementById('inv-stock-filter').value;
-      document.getElementById('inv-stat-count').textContent = products.length;
-      const totalStockUnits = Math.round(products.reduce((s, p) => s + Number(p.stock || 0), 0) * 1000) / 1000;
-      document.getElementById('inv-stat-units').textContent = totalStockUnits;
-      document.getElementById('inv-stat-cost').textContent = fmt(products.reduce((s, p) => s + Number(p.cost || 0) * Number(p.stock || 0), 0));
-      document.getElementById('inv-stat-low').textContent = products.filter(p => p.stock <= p.minStock).length;
-
-      const list = products.filter(p => {
-        const okQ = !q ||
-          p.name.toLowerCase().includes(q) ||
-          (p.brand || '').toLowerCase().includes(q) ||
-          (p.category || '').toLowerCase().includes(q) ||
-          (p.subcategory || '').toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q);
-        if (!okQ) return false;
-        if (filter === 'available') return p.stock > p.minStock;
-        if (filter === 'low') return p.stock > 0 && p.stock <= p.minStock;
-        if (filter === 'out') return p.stock <= 0;
-        return true;
-      });
-
-      document.getElementById('inventory-tbody').innerHTML = list.map(p => {
-        const unit = normalizeUnit(p.unit);
-        const st = p.stock <= 0
-          ? '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700">نافذ</span>'
-          : p.stock <= p.minStock
-          ? '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">منخفض</span>'
-          : '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">متاح</span>';
-
-        return `
-          <tr>
-            <td class="py-3 px-4 font-mono text-xs">${esc(p.sku)}</td>
-            <td class="py-3 px-4 font-bold">
-              <div>${esc(p.name)}</div>
-              ${p.brand ? `<span class="inline-block mt-0.5 px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[10px] font-extrabold">الماركة: ${esc(p.brand)}</span>` : ''}
-            </td>
-            <td class="py-3 px-4 text-xs">
-              <div class="font-bold text-slate-800">${esc(p.category)}</div>
-              ${p.subcategory ? `<div class="text-[11px] text-cyan-800 font-bold">↳ ${esc(p.subcategory)}</div>` : ''}
-            </td>
-            <td class="py-3 px-4 text-xs">
-              <span class="px-2 py-0.5 rounded-full font-extrabold bg-cyan-50 text-cyan-900 border border-cyan-200">${esc(unit)}</span>
-            </td>
-            ${isAdmin() ? `<td class="py-3 px-4 font-mono text-xs">${fmt(p.cost)}</td>` : ''}
-            <td class="py-3 px-4 font-mono text-xs font-bold">${fmt(p.price)}</td>
-            <td class="py-3 px-4 font-mono font-bold">${esc(formatQtyWithUnit(p.stock, unit))}</td>
-            <td class="py-3 px-4">${st}</td>
-            <td class="py-3 px-4 text-center space-x-1 space-x-reverse">
-              <button type="button" onclick="openBarcodeLabelModal('${p.id}')"
-                class="px-2.5 py-1 rounded-lg bg-cyan-50 hover:bg-cyan-700 hover:text-white text-cyan-900 text-xs font-bold">
-                🏷 باركود
-              </button>
-              <button type="button" onclick="requireAdminPin(() => openProductForm('${p.id}'), 'تعديل المخزون يتطلب رمز PIN للإدارة:')"
-                class="px-2.5 py-1 rounded-lg bg-marine-50 hover:bg-marine-700 hover:text-white text-marine-800 text-xs font-bold">
-                ${isAdmin() ? 'تعديل' : 'تعديل (PIN)'}
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
+    function populateCustomersDatalist() {
+      const dl = document.getElementById('pos-customers-datalist');
+      if (!dl) return;
+      dl.innerHTML = customers.filter(c => !c._deleted).map(c => `<option value="${esc(c.name)}"></option>`).join('');
     }
 
-    function buildBarcodeBarsSvg(skuText) {
-      const clean = String(skuText || '000000');
-      let bars = '';
-      let x = 8;
-      for (let i = 0; i < clean.length; i++) {
-        const code = clean.charCodeAt(i);
-        const w1 = (code % 3) + 1.5;
-        const gap = ((code >> 1) % 2) + 1.2;
-        const w2 = ((code >> 2) % 2) + 1.2;
-        bars += `<rect x="${x.toFixed(1)}" y="6" width="${w1.toFixed(1)}" height="34" fill="#0f172a" />`;
-        x += w1 + gap;
-        bars += `<rect x="${x.toFixed(1)}" y="6" width="${w2.toFixed(1)}" height="34" fill="#0f172a" />`;
-        x += w2 + gap + 1.2;
-      }
-      const totalWidth = Math.max(170, Math.ceil(x + 8));
-      return `<svg width="${totalWidth}" height="46" viewBox="0 0 ${totalWidth} 46" xmlns="http://www.w3.org/2000/svg" class="mx-auto">${bars}</svg>`;
-    }
-
-    function openBarcodeLabelModal(productId) {
-      currentBarcodeProductId = productId;
-      const copiesInp = document.getElementById('barcode-label-copies');
-      if (copiesInp) copiesInp.value = '1';
-      renderBarcodeLabelContent();
-      const m = document.getElementById('modal-barcode-label');
-      m.classList.remove('hidden');
-      m.classList.add('flex');
-    }
-
-    function renderBarcodeLabelContent() {
-      const prod = products.find(p => String(p.id) === String(currentBarcodeProductId));
-      const body = document.getElementById('barcode-label-body');
-      if (!prod || !body) return;
-      const copies = Math.min(30, Math.max(1, parseInt(document.getElementById('barcode-label-copies')?.value, 10) || 1));
-      const svgBars = buildBarcodeBarsSvg(prod.sku);
-      const unitLbl = getUnitDisplayLabel(prod.unit);
-      const displayTitle = prod.brand ? `${prod.name} (${prod.brand})` : prod.name;
-
-      const singleLabel = `
-        <div class="w-56 border border-dashed border-slate-400 rounded-xl p-2.5 text-center bg-white">
-          <div class="text-[11px] font-extrabold text-marine-950">${esc(settings.storeName)}</div>
-          <div class="text-xs font-bold text-slate-800 truncate mt-0.5">${esc(displayTitle)}</div>
-          <div class="my-1">${svgBars}</div>
-          <div class="font-mono text-[11px] text-slate-600">${esc(prod.sku)}</div>
-          <div class="font-mono text-sm font-extrabold text-slate-950 mt-0.5">${fmt(prod.price)} <span class="text-[10px] font-sans font-bold text-slate-600">/ ${esc(unitLbl)}</span></div>
-        </div>
-      `;
-      body.innerHTML = Array.from({ length: copies }, () => singleLabel).join('');
-    }
-
-    function closeBarcodeLabelModal() {
-      currentBarcodeProductId = null;
-      const m = document.getElementById('modal-barcode-label');
-      m.classList.add('hidden');
-      m.classList.remove('flex');
-    }
-
-    function updateProductUnitLabels() {
-      const unit = normalizeUnit(document.getElementById('prod-unit-input')?.value);
-      const unitLbl = getUnitDisplayLabel(unit);
-      const costLbl = document.getElementById('prod-cost-label');
-      const priceLbl = document.getElementById('prod-price-label');
-      const stockLbl = document.getElementById('prod-stock-label');
-      const stockInp = document.getElementById('prod-stock-input');
-      const guideBox = document.getElementById('prod-unit-guide-box');
-
-      if (costLbl) costLbl.textContent = `سعر الشراء (${unitLbl})`;
-      if (priceLbl) priceLbl.textContent = `سعر البيع (${unitLbl})`;
-      if (stockLbl) stockLbl.textContent = `الرصيد بالمخزون (${unitLbl})`;
-      if (stockInp) stockInp.step = isFractionalUnit(unit) ? 'any' : '1';
-
-      if (guideBox) {
-        if (unit === 'الكيلو' || unit === 'وزن') {
-          guideBox.textContent = 'الطريقة الحسابية للكيلو: اكتب سعر شراء الكيلو الواحد وسعر بيع الكيلو الواحد والرصيد بالكيلو (مثال: 10 كيلو). في نقطة البيع يمكن للكاشير البيع بالكيلو (0.500) أو كتابة الجرامات (200 جرام) وسيحسب النظام السعر ويخصم من المخزون تلقائياً.';
-        } else if (unit === 'الجرام') {
-          guideBox.textContent = 'الطريقة الحسابية للجرام: اكتب سعر شراء الجرام الواحد وسعر بيع الجرام الواحد والرصيد بالجرام (مثال: 1000 جرام). في نقطة البيع اكتب عدد الجرامات المباعة (مثال: 5 جرام أو 200 جرام) ليضربها في سعر الجرام.';
-        } else if (unit === 'مللي') {
-          guideBox.textContent = 'الطريقة الحسابية للمللي: اكتب سعر شراء المللي الواحد وسعر بيع المللي الواحد والرصيد بالمللي، وعند البيع أدخل عدد المللي المباعة.';
-        } else {
-          guideBox.textContent = 'الطريقة الحسابية للكمية: اكتب سعر شراء القطعة/العلبة وسعر بيع القطعة والعدد المتاح بالمخزون.';
+    function onCustomerInputChange() {
+      const name = (document.getElementById('pos-customer-input')?.value || '').trim().toLowerCase();
+      const alertBox = document.getElementById('pos-customer-debt-alert');
+      const phoneInp = document.getElementById('pos-customer-phone');
+      const cust = customers.find(c => !c._deleted && String(c.name || '').trim().toLowerCase() === name);
+      if (cust) {
+        if (phoneInp && !phoneInp.value && cust.phone) phoneInp.value = cust.phone;
+        if (alertBox && Number(cust.debt || 0) > 0) {
+          alertBox.textContent = `تنبيه ذمم: العميل (${cust.name}) عليه رصيد متبقي سابق بقيمة ${fmt(cust.debt)}`;
+          alertBox.classList.remove('hidden');
+          return;
         }
       }
+      alertBox?.classList.add('hidden');
     }
 
-    function populateProductSubcategorySelect(selectedSub = '') {
-      const cat = document.getElementById('prod-cat-input')?.value;
-      const subSel = document.getElementById('prod-subcat-input');
-      if (!subSel) return;
-      const subs = (cat && settings.subcategories && Array.isArray(settings.subcategories[cat]))
-        ? settings.subcategories[cat]
-        : [];
-      subSel.innerHTML = '<option value="">— بدون فئة فرعية —</option>' +
-        subs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-      subSel.value = subs.includes(selectedSub) ? selectedSub : '';
-    }
-
-    function openProductForm(id = null) {
-      const sel = document.getElementById('prod-cat-input');
-      const unitSel = document.getElementById('prod-unit-input');
-      const cats = Array.isArray(settings.categories) && settings.categories.length ? settings.categories : CATEGORIES;
-      sel.innerHTML = cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-      if (id) {
-        const p = products.find(x => x.id === id);
-        if (!p) return;
-        document.getElementById('modal-product-title').textContent = 'تعديل منتج';
-        document.getElementById('prod-edit-id').value = p.id;
-        document.getElementById('prod-name-input').value = p.name;
-        document.getElementById('prod-brand-input').value = p.brand || '';
-        document.getElementById('prod-sku-input').value = p.sku;
-        sel.value = cats.includes(p.category) ? p.category : (cats[0] || '');
-        populateProductSubcategorySelect(p.subcategory || '');
-        if (unitSel) unitSel.value = normalizeUnit(p.unit);
-        document.getElementById('prod-cost-input').value = p.cost;
-        document.getElementById('prod-price-input').value = p.price;
-        document.getElementById('prod-stock-input').value = p.stock;
+    function upsertCustomerActivity(name, phone, purchaseVal, addedDebt) {
+      const key = String(name || '').trim().toLowerCase();
+      let cust = customers.find(c => !c._deleted && String(c.name || '').trim().toLowerCase() === key);
+      if (cust) {
+        if (phone) cust.phone = phone;
+        cust.totalPurchases = roundMoney(Number(cust.totalPurchases || 0) + Number(purchaseVal || 0));
+        cust.debt = roundMoney(Number(cust.debt || 0) + Number(addedDebt || 0));
+        cust.updatedAt = Date.now();
       } else {
-        document.getElementById('modal-product-title').textContent = 'إضافة منتج جديد';
-        document.getElementById('prod-edit-id').value = '';
-        document.getElementById('prod-name-input').value = '';
-        document.getElementById('prod-brand-input').value = '';
-        document.getElementById('prod-sku-input').value = String(Date.now()).slice(-7);
-        populateProductSubcategorySelect('');
-        if (unitSel) unitSel.value = 'الكمية';
-        document.getElementById('prod-cost-input').value = '';
-        document.getElementById('prod-price-input').value = '';
-        document.getElementById('prod-stock-input').value = '10';
+        customers.unshift({
+          id: 'CUST-' + Date.now().toString().slice(-6),
+          name: name.trim(),
+          phone: phone || '',
+          totalPurchases: roundMoney(purchaseVal || 0),
+          debt: roundMoney(addedDebt || 0),
+          updatedAt: Date.now()
+        });
       }
-      updateProductUnitLabels();
-      const m = document.getElementById('modal-product');
-      m.classList.remove('hidden');
-      m.classList.add('flex');
+      populateCustomersDatalist();
     }
 
-    function closeProductModal() {
-      const m = document.getElementById('modal-product');
-      m.classList.add('hidden');
-      m.classList.remove('flex');
-    }
-
-    function saveProductForm(e) {
-      e.preventDefault();
-      const id = document.getElementById('prod-edit-id').value;
-      const unit = normalizeUnit(document.getElementById('prod-unit-input')?.value);
-      const rawStock = parseFloat(document.getElementById('prod-stock-input').value) || 0;
-      const cleanStock = isFractionalUnit(unit)
-        ? Math.max(0, Math.round(rawStock * 1000) / 1000)
-        : Math.max(0, Math.round(rawStock));
-
-      const obj = {
-        id: id || String(Date.now()),
-        name: document.getElementById('prod-name-input').value.trim(),
-        brand: (document.getElementById('prod-brand-input')?.value || '').trim(),
-        sku: document.getElementById('prod-sku-input').value.trim(),
-        category: document.getElementById('prod-cat-input').value,
-        subcategory: (document.getElementById('prod-subcat-input')?.value || '').trim(),
-        unit,
-        cost: parseFloat(document.getElementById('prod-cost-input').value) || 0,
-        price: parseFloat(document.getElementById('prod-price-input').value) || 0,
-        stock: cleanStock,
-        minStock: 3,
-      };
-      if (id) {
-        const idx = products.findIndex(x => x.id === id);
-        if (idx !== -1) products[idx] = { ...products[idx], ...obj };
-      } else {
-        products.unshift(obj);
-      }
-      saveState(true);
-      closeProductModal();
-      renderInventory();
-      renderPosGrid();
-      showToast(`تم حفظ المنتج بوحدة (${unit}) وتحديث المخزون`, 'success');
-    }
-
-    // =================================================
-    // العملاء والبيع الآجل (الذمم / الكشكول)
-    // =================================================
     function saveCustomerFromForm(e) {
       e.preventDefault();
       const name = document.getElementById('cust-form-name').value.trim();
       const phone = document.getElementById('cust-form-phone').value.trim();
-      const debtVal = Math.max(0, parseFloat(document.getElementById('cust-form-debt').value) || 0);
+      const debt = Math.max(0, roundMoney(parseFloat(document.getElementById('cust-form-debt').value) || 0));
       if (!name) return;
 
-      let cust = customers.find(c => String(c.name || '').trim().toLowerCase() === name.toLowerCase());
-      if (cust) {
-        cust.name = name;
-        cust.phone = phone || cust.phone || '';
-        cust.debt = debtVal;
-        cust.updatedAt = Date.now();
+      const key = name.toLowerCase();
+      const existing = customers.find(c => !c._deleted && String(c.name || '').trim().toLowerCase() === key);
+      if (existing) {
+        if (phone) existing.phone = phone;
+        existing.debt = roundMoney(Number(existing.debt || 0) + debt);
+        existing.updatedAt = Date.now();
       } else {
         customers.unshift({
           id: 'CUST-' + Date.now().toString().slice(-6),
           name,
           phone,
           totalPurchases: 0,
-          debt: debtVal,
+          debt,
           updatedAt: Date.now()
         });
       }
+
       document.getElementById('cust-form-name').value = '';
       document.getElementById('cust-form-phone').value = '';
       document.getElementById('cust-form-debt').value = '';
       saveState(true);
       populateCustomersDatalist();
       renderCustomers();
-      showToast('تم حفظ بيانات العميل والذمم', 'success');
+      showToast('تم حفظ بيانات العميل', 'success');
     }
 
     function renderCustomers() {
-      const totalDebt = customers.reduce((s, c) => s + Number(c.debt || 0), 0);
-      const totalPurch = customers.reduce((s, c) => s + Number(c.totalPurchases || 0), 0);
-      document.getElementById('cust-stat-count').textContent = customers.length;
-      document.getElementById('cust-stat-debt').textContent = fmt(totalDebt);
-      document.getElementById('cust-stat-purchases').textContent = fmt(totalPurch);
+      const activeCust = customers.filter(c => !c._deleted);
+      document.getElementById('cust-stat-count').textContent = activeCust.length;
+      document.getElementById('cust-stat-debt').textContent = fmt(activeCust.reduce((s, c) => s + Number(c.debt || 0), 0));
+      document.getElementById('cust-stat-purchases').textContent = fmt(activeCust.reduce((s, c) => s + Number(c.totalPurchases || 0), 0));
 
-      document.getElementById('customers-tbody').innerHTML = customers.map(c => `
+      const tbody = document.getElementById('customers-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = activeCust.map(c => `
         <tr>
-          <td class="py-3 px-4 font-bold">${esc(c.name)}</td>
+          <td class="py-3 px-4 font-extrabold text-slate-900">${esc(c.name)}</td>
           <td class="py-3 px-4 font-mono text-xs">${esc(c.phone || '—')}</td>
           <td class="py-3 px-4 font-mono text-xs font-bold text-emerald-700">${fmt(c.totalPurchases || 0)}</td>
           <td class="py-3 px-4 font-mono text-xs font-extrabold ${Number(c.debt || 0) > 0 ? 'text-rose-700' : 'text-slate-500'}">${fmt(c.debt || 0)}</td>
           <td class="py-3 px-4 text-center">
-            ${Number(c.debt || 0) > 0
-              ? `<button type="button" onclick="openSettleDebtModal('${c.id}')" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">سداد ذمة</button>`
-              : '<span class="text-xs text-slate-400 font-bold">خالص</span>'}
+            <button type="button" onclick="openSettleDebtModal('${c.id}')" class="px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 text-xs font-bold">
+              تحصيل دفعة
+            </button>
           </td>
         </tr>
       `).join('') || '<tr><td colspan="5" class="py-6 text-center text-xs text-slate-400 font-bold">لا يوجد عملاء مسجلون بعد</td></tr>';
@@ -3251,9 +3047,9 @@
       const cust = customers.find(c => String(c.id) === String(custId));
       if (!cust) return;
       document.getElementById('settle-cust-id').value = cust.id;
-      document.getElementById('settle-cust-name').textContent = `${cust.name} (${cust.phone || 'بدون هاتف'})`;
+      document.getElementById('settle-cust-name').textContent = 'العميل: ' + cust.name;
       document.getElementById('settle-cust-current-debt').textContent = fmt(cust.debt || 0);
-      document.getElementById('settle-amount-input').value = String(Number(cust.debt || 0));
+      document.getElementById('settle-amount-input').value = Number(cust.debt || 0) || '';
       const m = document.getElementById('modal-settle-debt');
       m.classList.remove('hidden');
       m.classList.add('flex');
@@ -3268,22 +3064,18 @@
     function submitDebtPayment(e) {
       e.preventDefault();
       const custId = document.getElementById('settle-cust-id').value;
-      const payAmt = Math.max(0, parseFloat(document.getElementById('settle-amount-input').value) || 0);
+      const amt = Math.max(0, roundMoney(parseFloat(document.getElementById('settle-amount-input').value) || 0));
       const cust = customers.find(c => String(c.id) === String(custId));
-      if (!cust || payAmt <= 0) return;
+      if (!cust || amt <= 0) return;
 
-      cust.debt = Math.max(0, roundMoney(Number(cust.debt || 0) - payAmt));
+      cust.debt = roundMoney(Math.max(0, Number(cust.debt || 0) - amt));
       cust.updatedAt = Date.now();
       saveState(true);
       closeSettleDebtModal();
       renderCustomers();
-      onCustomerInputChange();
-      showToast(`تم تحصيل (${fmt(payAmt)}) من ذمم ${cust.name}`, 'success');
+      showToast(`تم تحصيل ${fmt(amt)} من ${cust.name}`, 'success');
     }
 
-    // =================================================
-    // إدارة الموردين وفواتير المشتريات ومتوسط التكلفة
-    // =================================================
     function addSupplierForm(e) {
       e.preventDefault();
       const name = document.getElementById('sup-name-input').value.trim();
@@ -3303,97 +3095,194 @@
       document.getElementById('sup-notes-input').value = '';
       saveState(true);
       renderSuppliers();
-      showToast('تمت إضافة المورد بنجاح', 'success');
+      showToast('تم حفظ المورد الجديد', 'success');
     }
 
     function recordPurchaseInvoice(e) {
       e.preventDefault();
-      const supId = document.getElementById('pur-supplier-select').value;
-      const prodId = document.getElementById('pur-product-select').value;
-      const rawQty = parseFloat(document.getElementById('pur-qty-input').value) || 0;
-      const unitCost = Math.max(0, parseFloat(document.getElementById('pur-cost-input').value) || 0);
+      const supId = document.getElementById('pur-supplier-select')?.value;
+      const prodId = document.getElementById('pur-product-select')?.value;
+      const qty = Math.max(0.001, parseFloat(document.getElementById('pur-qty-input')?.value) || 0);
+      const unitCost = Math.max(0, parseFloat(document.getElementById('pur-cost-input')?.value) || 0);
 
-      const sup = suppliers.find(s => String(s.id) === String(supId)) || { name: 'مورد عام' };
+      const sup = suppliers.find(s => String(s.id) === String(supId));
       const prod = products.find(p => String(p.id) === String(prodId));
-      if (!prod || rawQty <= 0) {
-        showToast('اختر منتجاً وكمية/وزناً صحيحاً', 'error');
-        return;
-      }
+      if (!prod || qty <= 0) return;
 
-      const unit = normalizeUnit(prod.unit);
-      const qty = isFractionalUnit(unit)
-        ? Math.round(rawQty * 1000) / 1000
-        : Math.max(1, Math.round(rawQty));
-
-      const oldStock = Math.max(0, Number(prod.stock || 0));
-      const oldCost = Math.max(0, Number(prod.cost || 0));
+      const oldStock = Number(prod.stock || 0);
+      const oldCost = Number(prod.cost || 0);
       const newStock = Math.round((oldStock + qty) * 1000) / 1000;
-      const weightedAvgCost = newStock > 0
-        ? ((oldStock * oldCost) + (qty * unitCost)) / newStock
+      const avgCost = newStock > 0
+        ? Math.round(((oldStock * oldCost + qty * unitCost) / newStock) * 1000) / 1000
         : unitCost;
 
       prod.stock = newStock;
-      prod.cost = Number(weightedAvgCost.toFixed(3));
+      prod.cost = avgCost;
+      prod.updatedAt = Date.now();
 
-      const rec = {
+      const now = new Date();
+      purchases.unshift({
         id: 'PUR-' + Date.now().toString().slice(-6),
-        date: new Date().toLocaleString('ar-EG'),
-        supplierName: sup.name,
-        productId: prod.id,
+        date: now.toLocaleDateString('ar-EG'),
+        supplierName: sup ? sup.name : 'مورد عام',
         productName: prod.name,
-        unit,
+        unit: normalizeUnit(prod.unit),
         qty,
         unitCost,
-        totalCost: roundMoney(qty * unitCost),
+        total: roundMoney(qty * unitCost),
         updatedAt: Date.now()
-      };
-      purchases.unshift(rec);
+      });
+
       document.getElementById('pur-qty-input').value = '1';
       document.getElementById('pur-cost-input').value = '';
       saveState(true);
       renderSuppliers();
       renderInventory();
-      renderPosGrid();
-      showToast(`تم توريد (${formatQtyWithUnit(qty, unit)}) من (${prod.name}) وتحديث متوسط التكلفة إلى ${fmt(prod.cost)}`, 'success');
+      showToast('تم ترحيل فاتورة الشراء وتحديث المخزون ومتوسط التكلفة', 'success');
     }
 
     function renderSuppliers() {
-      document.getElementById('suppliers-list-chips').innerHTML = suppliers.map(s => `
-        <span class="px-3 py-1.5 rounded-xl bg-marine-50 border border-marine-200 font-bold text-marine-950">
-          ${esc(s.name)} ${s.phone ? `<span class="font-mono text-[11px] text-slate-500">(${esc(s.phone)})</span>` : ''}
-        </span>
-      `).join('');
+      const activeSups = suppliers.filter(s => !s._deleted);
+      const chips = document.getElementById('suppliers-list-chips');
+      if (chips) {
+        chips.innerHTML = activeSups.map(s =>
+          `<span class="px-2.5 py-1 rounded-xl bg-marine-50 border border-marine-200 font-bold text-marine-950">${esc(s.name)} ${s.phone ? `(${esc(s.phone)})` : ''}</span>`
+        ).join('');
+      }
 
       const supSel = document.getElementById('pur-supplier-select');
-      const prodSel = document.getElementById('pur-product-select');
       if (supSel) {
-        supSel.innerHTML = suppliers.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
-      }
-      if (prodSel) {
-        prodSel.innerHTML = products.map(p => `<option value="${esc(p.id)}">${esc(p.name)} — [${esc(normalizeUnit(p.unit))}] (حالي: ${esc(formatQtyWithUnit(p.stock, p.unit))})</option>`).join('');
+        supSel.innerHTML = activeSups.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
       }
 
-      document.getElementById('purchases-tbody').innerHTML = purchases.map(pur => {
-        const prodObj = products.find(p => String(p.id) === String(pur.productId));
-        const unit = normalizeUnit(pur.unit || prodObj?.unit);
-        return `
-        <tr>
-          <td class="py-2.5 px-4 font-mono font-bold">${esc(pur.id)}</td>
-          <td class="py-2.5 px-4">${esc(pur.date)}</td>
-          <td class="py-2.5 px-4 font-bold">${esc(pur.supplierName)}</td>
-          <td class="py-2.5 px-4 font-bold">${esc(pur.productName)}</td>
-          <td class="py-2.5 px-4 font-mono font-bold">${esc(formatQtyWithUnit(pur.qty, unit))}</td>
-          <td class="py-2.5 px-4 font-mono">${fmt(pur.unitCost)}</td>
-          <td class="py-2.5 px-4 font-mono font-extrabold text-marine-950">${fmt(pur.totalCost)}</td>
-        </tr>
-      `;
-      }).join('') || '<tr><td colspan="7" class="py-6 text-center text-slate-400 font-bold">لا توجد فواتير مشتريات مسجلة بعد</td></tr>';
+      const prodSel = document.getElementById('pur-product-select');
+      if (prodSel) {
+        prodSel.innerHTML = products.filter(p => !p._deleted).map(p =>
+          `<option value="${esc(p.id)}">${esc(p.name)} (${esc(normalizeUnit(p.unit))})</option>`
+        ).join('');
+      }
+
+      const tbody = document.getElementById('purchases-tbody');
+      if (tbody) {
+        tbody.innerHTML = purchases.filter(x => !x._deleted).map(pur => `
+          <tr>
+            <td class="py-2.5 px-4 font-mono font-bold">${esc(pur.id)}</td>
+            <td class="py-2.5 px-4 font-mono">${esc(pur.date)}</td>
+            <td class="py-2.5 px-4 font-bold">${esc(pur.supplierName)}</td>
+            <td class="py-2.5 px-4 font-bold">${esc(pur.productName)}</td>
+            <td class="py-2.5 px-4 font-mono">${esc(formatQtyWithUnit(pur.qty, pur.unit))}</td>
+            <td class="py-2.5 px-4 font-mono">${fmt(pur.unitCost)}</td>
+            <td class="py-2.5 px-4 font-mono font-extrabold text-marine-950">${fmt(pur.total)}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="7" class="py-4 text-center text-slate-400 font-bold">لا توجد فواتير مشتريات مسجلة بعد</td></tr>';
+      }
     }
 
     // =================================================
-    // إقفال الشيفت (جرد الدرج Z-Report) شاملاً المصروفات المخصومة من الدرج
+    // إقفال الشيفت (جرد الدرج Z-Report) شاملاً المصروفات المخصومة من الدرج والعجز والزيادة
     // =================================================
-    function openZReportModal() {
+    function updateZReportVariancePreview() {
+      const expected = parseFloat(document.getElementById('z-expected-cash-hidden')?.value) || 0;
+      const actualInp = document.getElementById('z-actual-cash-input');
+      const diffEl = document.getElementById('z-variance-amount-view');
+      const pctEl = document.getElementById('z-variance-percent-view');
+      const boxEl = document.getElementById('z-variance-box');
+      if (!actualInp || !diffEl || !pctEl) return;
+
+      const actual = Math.max(0, parseFloat(actualInp.value) || 0);
+      const diff = roundMoney(actual - expected);
+      const pct = expected > 0
+        ? Math.round((diff / expected) * 10000) / 100
+        : (actual > 0 ? 100 : 0);
+
+      const sign = diff > 0 ? '+' : '';
+      const pctSign = pct > 0 ? '+' : '';
+      if (diff === 0) {
+        diffEl.textContent = '0.00 ج.م (مطابق تماماً)';
+        pctEl.textContent = '0.00%';
+        if (boxEl) boxEl.className = 'p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-2 text-xs font-extrabold text-emerald-900';
+      } else if (diff < 0) {
+        diffEl.textContent = `${fmt(diff)} (عجز على الكاشير)`;
+        pctEl.textContent = `${pct.toFixed(2)}%`;
+        if (boxEl) boxEl.className = 'p-3 rounded-xl bg-rose-50 border border-rose-200 flex flex-wrap items-center justify-between gap-2 text-xs font-extrabold text-rose-900';
+      } else {
+        diffEl.textContent = `${sign}${fmt(diff)} (زيادة في الدرج)`;
+        pctEl.textContent = `${pctSign}${pct.toFixed(2)}%`;
+        if (boxEl) boxEl.className = 'p-3 rounded-xl bg-amber-50 border border-amber-300 flex flex-wrap items-center justify-between gap-2 text-xs font-extrabold text-amber-950';
+      }
+    }
+
+    function openZReportModal(savedReportId = null) {
+      if (savedReportId) {
+        const zr = zReportsLog.find(z => String(z.id) === String(savedReportId));
+        if (!zr) return;
+        const expected = Number(zr.netDrawerCash || 0);
+        const actual = zr.actualDrawerCash !== undefined ? Number(zr.actualDrawerCash) : expected;
+        const diff = zr.varianceAmount !== undefined ? Number(zr.varianceAmount) : roundMoney(actual - expected);
+        const pct = zr.variancePercent !== undefined
+          ? Number(zr.variancePercent)
+          : (expected > 0 ? Math.round((diff / expected) * 10000) / 100 : 0);
+
+        const diffBadge = diff === 0
+          ? `<span class="text-emerald-700">0.00 ج.م (مطابق تماماً — 0.00%)</span>`
+          : diff < 0
+          ? `<span class="text-rose-700">${fmt(diff)} (عجز بنسبة ${pct.toFixed(2)}%)</span>`
+          : `<span class="text-amber-800">+${fmt(diff)} (زيادة بنسبة +${pct.toFixed(2)}%)</span>`;
+
+        const savedExpenses = Array.isArray(zr.drawerExpensesList) ? zr.drawerExpensesList : [];
+        const savedExpHtml = savedExpenses.length
+          ? savedExpenses.map(exp => `
+              <div class="flex justify-between items-center py-1 px-2.5 rounded-lg bg-rose-50/70 border border-rose-100 text-xs">
+                <span>
+                  <strong>${esc(exp.category)}</strong>
+                  <span class="text-slate-600"> — الموظف: ${esc(exp.employeeName || '—')}</span>
+                  <span class="text-amber-900 font-bold"> — أبلغ بالإخراج: ${esc(exp.authorizedBy || 'الإدارة')}</span>
+                  ${exp.note ? `<span class="text-slate-500"> (${esc(exp.note)})</span>` : ''}
+                </span>
+                <strong class="font-mono text-rose-700">-${fmt(exp.amount)}</strong>
+              </div>
+            `).join('')
+          : '<div class="text-xs text-slate-400 font-bold py-1">لا توجد مصروفات مخصومة من الدرج في هذا الإقفال</div>';
+
+        document.getElementById('z-report-body').innerHTML = `
+          <div class="text-center border-b border-slate-300 pb-3">
+            <div class="font-extrabold text-lg text-marine-950">${esc(settings.storeName)} — سجل إقفال شيفت معتمد (${esc(zr.id)})</div>
+            <div class="text-xs text-slate-600 mt-1">الشيفت: <strong>${esc(zr.shift)}</strong> — الكاشير: <strong>${esc(zr.cashier)}</strong> — وقت الإقفال: <span class="font-mono">${esc(zr.closedAt)}</span></div>
+          </div>
+          <div class="space-y-2 text-xs sm:text-sm">
+            <div class="flex justify-between py-1.5 border-b border-slate-100"><span>عدد الفواتير في الشيفت:</span><strong class="font-mono">${Number(zr.invoicesCount || 0)}</strong></div>
+            <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي مبيعات الكاش:</span><strong class="font-mono text-emerald-700">${fmt(zr.cashSales || 0)}</strong></div>
+            <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي المحافظ الإلكترونية:</span><strong class="font-mono text-marine-800">${fmt(zr.walletSales || 0)}</strong></div>
+            <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي إنستاباي:</span><strong class="font-mono text-purple-800">${fmt(zr.instapaySales || 0)}</strong></div>
+            <div class="flex justify-between py-1.5 border-b border-slate-100"><span>مبيعات آجلة / ذمم:</span><strong class="font-mono text-amber-700">${fmt(zr.creditSales || 0)}</strong></div>
+            <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي المرتجعات:</span><strong class="font-mono text-rose-700">-${fmt(zr.returnsTotal || 0)}</strong></div>
+            <div class="flex justify-between py-1.5 border-b border-slate-100"><span>إجمالي المصروفات المخصومة من الدرج:</span><strong class="font-mono text-rose-700">-${fmt(zr.drawerExpensesTotal || 0)}</strong></div>
+            <div class="pt-1 space-y-1">
+              <div class="text-xs font-extrabold text-slate-700">تفاصيل المصروفات المخصومة من الدرج:</div>
+              <div class="space-y-1">${savedExpHtml}</div>
+            </div>
+            <div class="flex justify-between pt-2 font-extrabold text-slate-800 border-t border-slate-200">
+              <span>رصيد الكاش المتوقع بالدرج:</span>
+              <span class="font-mono">${fmt(expected)}</span>
+            </div>
+            <div class="flex justify-between font-extrabold text-marine-950">
+              <span>المبلغ الكلي الفعلي المقفل عليه:</span>
+              <span class="font-mono">${fmt(actual)}</span>
+            </div>
+            <div class="flex justify-between p-2.5 rounded-xl bg-slate-100 font-extrabold">
+              <span>نتيجة الجرد (العجز / الزيادة والنسبة):</span>
+              <span class="font-mono">${diffBadge}</span>
+            </div>
+            ${zr.notes ? `<div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 font-bold">ملاحظات الإقفال: ${esc(zr.notes)}</div>` : ''}
+          </div>
+        `;
+
+        const modalEl = document.getElementById('modal-z-report');
+        modalEl.classList.remove('hidden');
+        modalEl.classList.add('flex');
+        return;
+      }
+
       const m = getShiftDrawerMetrics();
 
       const drawerExpensesRows = m.drawerExpensesList.length
@@ -3430,16 +3319,38 @@
           </div>
 
           <div class="flex justify-between pt-2 text-sm sm:text-base font-extrabold text-emerald-900 border-t border-slate-200">
-            <span>رصيد الكاش المطابق بالدرج (بعد المرتجعات والمصروفات):</span>
+            <span>رصيد الكاش المتوقع بالدرج (بعد المرتجعات والمصروفات):</span>
             <span class="font-mono">${fmt(m.netDrawerCash)}</span>
           </div>
           <div class="flex justify-between text-xs sm:text-sm font-extrabold text-marine-950">
             <span>إجمالي المتحصل عبر كافة القنوات بعد الخصومات:</span>
             <span class="font-mono">${fmt(m.netAllChannels)}</span>
           </div>
+
+          <!-- جرد الكاشير الفعلي وحساب العجز أو الزيادة ونسبتها -->
+          <div class="p-3 rounded-2xl bg-slate-50 border border-slate-300 space-y-2.5 mt-2 no-print">
+            <input type="hidden" id="z-expected-cash-hidden" value="${m.netDrawerCash}" />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div>
+                <label class="block font-extrabold text-slate-800 mb-1">المبلغ الفعلي المعدود بالدرج عند الإقفال (ج.م):</label>
+                <input type="number" id="z-actual-cash-input" oninput="updateZReportVariancePreview()" min="0" step="0.5" value="${m.netDrawerCash}"
+                  class="w-full px-3 py-2 bg-white border border-marine-300 rounded-xl font-mono font-extrabold text-sm text-marine-950" />
+              </div>
+              <div>
+                <label class="block font-extrabold text-slate-800 mb-1">ملاحظات جرد الشيفت (اختياري):</label>
+                <input type="text" id="z-close-notes-input" placeholder="سبب العجز أو الزيادة إن وجد..."
+                  class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs" />
+              </div>
+            </div>
+            <div id="z-variance-box" class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-2 text-xs font-extrabold text-emerald-900">
+              <span>الفرق على الكاشير (عجز / زيادة): <strong id="z-variance-amount-view" class="font-mono">0.00 ج.م (مطابق تماماً)</strong></span>
+              <span>النسبة: <strong id="z-variance-percent-view" class="font-mono">0.00%</strong></span>
+            </div>
+          </div>
         </div>
       `;
 
+      updateZReportVariancePreview();
       const modalEl = document.getElementById('modal-z-report');
       modalEl.classList.remove('hidden');
       modalEl.classList.add('flex');
@@ -3454,19 +3365,52 @@
     function confirmCloseShiftZReport() {
       const activeShift = session.shift || settings.activeShift || 'الشيفت الصباحي';
       const metrics = getShiftDrawerMetrics(activeShift);
+      const actualInp = document.getElementById('z-actual-cash-input');
+      const notesInp = document.getElementById('z-close-notes-input');
+      if (!actualInp) {
+        closeZReportModal();
+        return;
+      }
+
+      const expectedCash = roundMoney(metrics.netDrawerCash);
+      const actualCash = roundMoney(Math.max(0, parseFloat(actualInp.value) || 0));
+      const varianceAmount = roundMoney(actualCash - expectedCash);
+      const variancePercent = expectedCash > 0
+        ? Math.round((varianceAmount / expectedCash) * 10000) / 100
+        : (actualCash > 0 ? 100 : 0);
+
+      const now = new Date();
       zReportsLog.unshift({
         id: 'ZR-' + Date.now().toString().slice(-6),
         shift: activeShift,
         cashier: session.cashier,
-        netDrawerCash: metrics.netDrawerCash,
-        drawerExpensesTotal: metrics.drawerExpensesTotal,
-        closedAtISO: new Date().toISOString(),
-        closedAt: new Date().toLocaleString('ar-EG'),
+        invoicesCount: metrics.shiftSales.length,
+        cashSales: roundMoney(metrics.cashSales),
+        walletSales: roundMoney(metrics.walletSales),
+        instapaySales: roundMoney(metrics.instapaySales),
+        creditSales: roundMoney(metrics.creditSales),
+        returnsTotal: roundMoney(metrics.returnsTotal),
+        drawerExpensesTotal: roundMoney(metrics.drawerExpensesTotal),
+        drawerExpensesList: metrics.drawerExpensesList.map(e => ({ ...e })),
+        netDrawerCash: expectedCash,
+        actualDrawerCash: actualCash,
+        varianceAmount,
+        variancePercent,
+        notes: (notesInp?.value || '').trim(),
+        dayDate: formatDayOnly(now),
+        closedAtISO: now.toISOString(),
+        closedAt: now.toLocaleString('ar-EG'),
         updatedAt: Date.now()
       });
       saveState(true);
       closeZReportModal();
-      showToast(`تم اعتماد إقفال (${activeShift}) وتسجيل جرد الدرج (${fmt(metrics.netDrawerCash)})`, 'success');
+      renderReports();
+      const statusText = varianceAmount === 0
+        ? 'مطابق تماماً'
+        : varianceAmount < 0
+        ? `عجز ${fmt(Math.abs(varianceAmount))} (${variancePercent.toFixed(2)}%)`
+        : `زيادة +${fmt(varianceAmount)} (+${variancePercent.toFixed(2)}%)`;
+      showToast(`تم اعتماد إقفال (${activeShift}) بمبلغ ${fmt(actualCash)} — ${statusText}`, 'success');
     }
 
     // =================================================
@@ -3552,13 +3496,20 @@
         return okPeriod && okShift && selectedProduct === 'all';
       });
 
-      return { filteredSales, filteredReturns, filteredExpenses, selectedProduct };
+      const filteredZReports = zReportsLog.filter(zr => {
+        if (!zr || zr._deleted) return false;
+        const okPeriod = reportPeriod !== 'today' || new Date(zr.closedAtISO || Date.now()).toLocaleDateString('ar-EG') === todayStr;
+        const okShift = selectedShift === 'all' || (zr.shift || '') === selectedShift;
+        return okPeriod && okShift;
+      });
+
+      return { filteredSales, filteredReturns, filteredExpenses, filteredZReports, selectedProduct };
     }
 
     function renderReports() {
       populateReportShiftFilter();
       populateReportProductFilter();
-      const { filteredSales, filteredReturns, filteredExpenses, selectedProduct } = getFilteredReportsData();
+      const { filteredSales, filteredReturns, filteredExpenses, filteredZReports, selectedProduct } = getFilteredReportsData();
 
       const getSaleRelevantAmount = (inv) => {
         if (selectedProduct === 'all') return Number(inv.total || 0);
@@ -3644,6 +3595,56 @@
         </tr>
       `;
       }).join('') || '<tr><td colspan="7" class="py-4 text-center text-slate-400 font-bold">لا توجد مرتجعات مطابقة للفلتر</td></tr>';
+
+      // عرض سجل إقفال الشيفتات وجرد الدرج والعجز والزيادة ونسبتها على الكاشير
+      const zSummaryBadge = document.getElementById('zreports-summary-badge');
+      const totalZVariance = roundMoney(filteredZReports.reduce((s, z) => s + Number(z.varianceAmount || 0), 0));
+      if (zSummaryBadge) {
+        zSummaryBadge.textContent = filteredZReports.length
+          ? `عدد الإقفالات: ${filteredZReports.length} | صافي العجز/الزيادة: ${totalZVariance > 0 ? '+' : ''}${fmt(totalZVariance)}`
+          : 'لا توجد إقفالات مسجلة';
+      }
+
+      const zTbody = document.getElementById('zreports-tbody');
+      if (zTbody) {
+        zTbody.innerHTML = filteredZReports.map(zr => {
+          const expected = Number(zr.netDrawerCash || 0);
+          const actual = zr.actualDrawerCash !== undefined ? Number(zr.actualDrawerCash) : expected;
+          const diff = zr.varianceAmount !== undefined ? Number(zr.varianceAmount) : roundMoney(actual - expected);
+          const pct = zr.variancePercent !== undefined
+            ? Number(zr.variancePercent)
+            : (expected > 0 ? Math.round((diff / expected) * 10000) / 100 : 0);
+
+          const varianceBadge = diff === 0
+            ? `<span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800">0.00 ج.م (مطابق)</span>`
+            : diff < 0
+            ? `<span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-rose-100 text-rose-800 font-mono">${fmt(diff)} (عجز)</span>`
+            : `<span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-900 font-mono">+${fmt(diff)} (زيادة)</span>`;
+
+          const pctBadge = diff === 0
+            ? `<span class="font-mono font-bold text-emerald-700">0.00%</span>`
+            : diff < 0
+            ? `<span class="font-mono font-extrabold text-rose-700">${pct.toFixed(2)}%</span>`
+            : `<span class="font-mono font-extrabold text-amber-800">+${pct.toFixed(2)}%</span>`;
+
+          return `
+            <tr>
+              <td class="py-2.5 px-4 font-mono text-slate-700">${esc(zr.closedAt || zr.dayDate || '—')}</td>
+              <td class="py-2.5 px-4 font-mono font-extrabold text-marine-950">${esc(zr.id)}</td>
+              <td class="py-2.5 px-4 font-bold">${esc(zr.shift)} — <span class="text-slate-700">${esc(zr.cashier)}</span></td>
+              <td class="py-2.5 px-4 font-mono font-bold text-slate-700">${fmt(expected)}</td>
+              <td class="py-2.5 px-4 font-mono font-extrabold text-marine-950">${fmt(actual)}</td>
+              <td class="py-2.5 px-4">${varianceBadge}</td>
+              <td class="py-2.5 px-4">${pctBadge}</td>
+              <td class="py-2.5 px-4 text-center">
+                <button type="button" onclick="openZReportModal('${zr.id}')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-500 hover:text-slate-950 text-amber-900 text-xs font-bold">
+                  عرض / طباعة
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('') || '<tr><td colspan="8" class="py-5 text-center text-slate-400 font-bold">لا توجد تقارير إقفال شيفت مسجلة مطابقة للفلتر الحالي</td></tr>';
+      }
     }
 
     // تصدير ملف Excel منظم (.xls بصيغة جدول HTML UTF-8 RTL) يفتح في جميع إصدارات Excel بحروف عربية سليمة وأعمدة مرتبة
