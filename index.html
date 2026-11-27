@@ -204,6 +204,8 @@
               <span>•</span>
               <span id="headerUserRole" class="text-slate-200">-</span>
               <span>•</span>
+              <span id="headerUserShift" class="text-gold-300 font-bold">-</span>
+              <span>•</span>
               <span id="headerLiveClock" class="font-mono text-gold-300">--:--:--</span>
             </div>
           </div>
@@ -584,7 +586,7 @@
               <thead class="bg-marine-900 text-white">
                 <tr>
                   <th class="py-3 px-3">رقم / وقت الإقفال</th>
-                  <th class="py-3 px-3">الكاشير</th>
+                  <th class="py-3 px-3">الكاشير / الشفت</th>
                   <th class="py-3 px-3">مبيعات نقدية</th>
                   <th class="py-3 px-3">مرتجعات / مصروفات</th>
                   <th class="py-3 px-3">الرصيد المتوقع</th>
@@ -612,7 +614,7 @@
                 <tr>
                   <th class="py-2.5 px-3">رقم الفاتورة</th>
                   <th class="py-2.5 px-3">التاريخ</th>
-                  <th class="py-2.5 px-3">الكاشير</th>
+                  <th class="py-2.5 px-3">الكاشير / الشفت</th>
                   <th class="py-2.5 px-3">العميل وطريقة الدفع</th>
                   <th class="py-2.5 px-3">الإجمالي</th>
                   <th class="py-2.5 px-3">المدفوع / الباقي</th>
@@ -630,16 +632,24 @@
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
           <h3 class="font-black text-base text-marine-900 border-b pb-2">🏪 بيانات المتجر واللوجو</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label class="block text-xs font-bold mb-1">اسم النشاط</label>
               <input type="text" id="settingStoreName" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
             </div>
             <div>
-              <label class="block text-xs font-bold mb-1">وصف / عنوان مختصر</label>
+              <label class="block text-xs font-bold mb-1">وصف / نبذة مختصرة</label>
               <input type="text" id="settingStoreSubtitle" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
             </div>
             <div>
+              <label class="block text-xs font-bold mb-1">العنوان</label>
+              <input type="text" id="settingStoreAddress" placeholder="مثال: شارع البحر - بجوار الميناء" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">رقم الهاتف</label>
+              <input type="tel" id="settingStorePhone" placeholder="مثال: 01000000000" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-mono font-bold" />
+            </div>
+            <div class="md:col-span-2">
               <label class="block text-xs font-bold mb-1">لوجو النشاط (يبقى محفوظاً)</label>
               <div class="flex items-center gap-2">
                 <input type="file" id="settingLogoFile" accept="image/*" onchange="handleLogoUpload(event)" class="block w-full text-xs text-slate-600 file:mr-0 file:ml-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-marine-900 file:text-gold-400" />
@@ -682,6 +692,7 @@
                 <tr>
                   <th class="py-2.5 px-3">الاسم</th>
                   <th class="py-2.5 px-3">الدور / الصلاحية</th>
+                  <th class="py-2.5 px-3">الشفت</th>
                   <th class="py-2.5 px-3">رمز PIN</th>
                   <th class="py-2.5 px-3">صلاحية مصروفات الدرج</th>
                   <th class="py-2.5 px-3">إجراءات</th>
@@ -754,23 +765,24 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block text-xs font-bold mb-1">الفئة الرئيسية</label>
-            <select id="prodCategory" onchange="populateSubcategorySelect()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold"></select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold mb-1">الفئة الفرعية</label>
-            <select id="prodSubcategory" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold"></select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold mb-1">الوحدة الحسابية *</label>
-            <select id="prodUnit" onchange="updateUnitHints()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-black">
-              <option value="الكمية">الكمية</option>
-              <option value="المتر">المتر</option>
-              <option value="الكيلو">الكيلو</option>
-              <option value="الجرام">الجرام</option>
-              <option value="مللي">مللي</option>
-              <option value="وزن">وزن</option>
+            <label class="block text-xs font-bold mb-1">الدور / الصلاحية *</label>
+            <select id="staffRoleInput" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold">
+              <option value="cashier">كاشير</option>
+              <option value="supervisor">مشرف</option>
+              <option value="admin">إدارة (كامل الصلاحيات)</option>
             </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">تحديد الشفت *</label>
+            <select id="staffShiftInput" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold">
+              <option value="شفت صباحي">شفت صباحي</option>
+              <option value="شفت مسائي">شفت مسائي</option>
+              <option value="شفت بتوين">شفت بتوين</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">رمز PIN *</label>
+            <input type="text" id="staffPinInput" required maxlength="10" placeholder="مثال: 1234" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono font-black" />
           </div>
         </div>
         <p id="prodUnitHint" class="text-[11px] font-bold text-marine-900 bg-marine-50 border border-marine-200 rounded-xl p-2.5"></p>
@@ -1059,11 +1071,13 @@
         store: {
           name: 'شبكة وصنارة',
           subtitle: 'أدوات ومعدات الصيد والرحلات • محاسبة متكاملة',
+          address: '',
+          phone: '',
           logo: ''
         },
         staff: [
-          { id: 'st-admin-1', name: 'مدير النظام', role: 'admin', pin: '2025', canExpense: true },
-          { id: 'st-cashier-1', name: 'كاشير الفرع', role: 'cashier', pin: '1111', canExpense: true }
+          { id: 'st-admin-1', name: 'مدير النظام', role: 'admin', shift: 'شفت بتوين', pin: '2025', canExpense: true },
+          { id: 'st-cashier-1', name: 'كاشير الفرع', role: 'cashier', shift: 'شفت صباحي', pin: '1111', canExpense: true }
         ],
         categories: [
           { id: 'cat-rods', name: 'أعواد صيد الأسماك', visibleToCashier: true, subcategories: ['أعواد صيد المياه العذبة', 'أعواد صيد المياه المالحة'] },
@@ -1139,6 +1153,7 @@
           id: 'SHF-' + Date.now(),
           startedAt: new Date().toISOString(),
           openedBy: 'النظام',
+          shiftName: 'شفت صباحي',
           openingCash: 0,
           transactions: []
         },
@@ -1194,12 +1209,16 @@
       return 'كاشير';
     }
 
+    function getShiftLabel(shift) {
+      const allowed = ['شفت صباحي', 'شفت مسائي', 'شفت بتوين'];
+      return allowed.includes(shift) ? shift : 'شفت صباحي';
+    }
+
     function saveState() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
       } catch (err) {
         console.error('Error saving state:', err);
-        showToast('تنبيه: تعذر حفظ البيانات محلياً', 'error');
       }
     }
 
@@ -1282,6 +1301,8 @@
     function applyStoreBranding() {
       const name = appState.store.name || 'شبكة وصنارة';
       const sub = appState.store.subtitle || '';
+      const address = appState.store.address || '';
+      const phone = appState.store.phone || '';
       const logo = appState.store.logo || '';
 
       document.title = `${name} — نظام نقاط البيع والمحاسبة`;
@@ -1290,7 +1311,10 @@
         if (el) el.textContent = name;
       });
       const gateSub = document.getElementById('gateStoreSubtitle');
-      if (gateSub) gateSub.textContent = sub;
+      if (gateSub) {
+        const metaParts = [sub, address, phone ? `هاتف: ${phone}` : ''].filter(Boolean);
+        gateSub.textContent = metaParts.join(' • ');
+      }
 
       [['gateLogoImg', 'gateLogoFallback'], ['headerLogoImg', 'headerLogoFallback']].forEach(([imgId, fbId]) => {
         const img = document.getElementById(imgId);
@@ -1315,13 +1339,13 @@
       const cSel = document.getElementById('gateCashierSelect');
       if (cSel) {
         cSel.innerHTML = cashiers.length
-          ? cashiers.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')
-          : adminsAndStaff.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${getRoleArabicLabel(c.role)})</option>`).join('');
+          ? cashiers.map(c => `<option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(getShiftLabel(c.shift))}</option>`).join('')
+          : adminsAndStaff.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${getRoleArabicLabel(c.role)} - ${escapeHtml(getShiftLabel(c.shift))})</option>`).join('');
       }
 
       const aSel = document.getElementById('gateAdminSelect');
       if (aSel) {
-        aSel.innerHTML = adminsAndStaff.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${getRoleArabicLabel(s.role)})</option>`).join('');
+        aSel.innerHTML = adminsAndStaff.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${getRoleArabicLabel(s.role)} - ${escapeHtml(getShiftLabel(s.shift))})</option>`).join('');
         const firstAdmin = adminsAndStaff.find(s => s.role === 'admin');
         if (firstAdmin) aSel.value = firstAdmin.id;
       }
@@ -1353,21 +1377,17 @@
       errEl.classList.add('hidden');
 
       const member = appState.staff.find(s => s.id === selId);
-      if (!member) {
-        errEl.textContent = 'يرجى اختيار حساب كاشير صحيح.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-      if (member.pin !== pin) {
+      if (!member || member.pin !== pin) {
         errEl.textContent = 'رمز PIN للكاشير غير صحيح.';
         errEl.classList.remove('hidden');
         return;
       }
 
-      appState.currentUser = { ...member };
+      appState.currentUser = { ...member, shift: getShiftLabel(member.shift) };
       if (!appState.activeShift.openedBy || appState.activeShift.openedBy === 'النظام') {
         appState.activeShift.openedBy = member.name;
       }
+      appState.activeShift.shiftName = getShiftLabel(member.shift);
       saveState();
       enterMainApp();
     }
@@ -1385,7 +1405,8 @@
         return;
       }
 
-      appState.currentUser = { ...member };
+      appState.currentUser = { ...member, shift: getShiftLabel(member.shift) };
+      appState.activeShift.shiftName = getShiftLabel(member.shift);
       saveState();
       enterMainApp();
     }
@@ -1406,7 +1427,8 @@
 
       document.getElementById('headerUserName').textContent = appState.currentUser.name;
       document.getElementById('headerUserRole').textContent = isAdminUser() ? `صلاحية ${getRoleArabicLabel(appState.currentUser.role)}` : 'كاشير';
-
+      const userShiftEl = document.getElementById('headerUserShift');
+      if (userShiftEl) userShiftEl.textContent = getShiftLabel(appState.currentUser.shift);
       const expBtn = document.getElementById('headerExpenseBtn');
       const expTabBtn = document.getElementById('expensesTabAddBtn');
       const allowExp = canUserExpense();
@@ -1848,6 +1870,7 @@
       const isWallet = paymentMethod.includes('محفظ') || paymentMethod.includes('إلكترون');
       const walletName = isWallet ? (selectedEWallet || appState.eWallets[0] || '') : '';
       const walletRef = isWallet ? (document.getElementById('posWalletRefInput')?.value.trim() || '') : '';
+      const shiftName = getShiftLabel(appState.currentUser?.shift || appState.activeShift?.shiftName);
 
       const effectivePaid = hasPaidInput ? paid : (isCredit ? 0 : total);
 
@@ -1876,6 +1899,7 @@
         id: 'INV-' + (1000 + appState.invoices.length + 1),
         date: new Date().toISOString(),
         cashierName: appState.currentUser?.name || 'كاشير',
+        shiftName,
         customerId: customer.id,
         customerName: customer.name,
         paymentMethod,
@@ -1896,9 +1920,10 @@
         id: 'TRX-' + Date.now() + '-' + Math.floor(Math.random() * 100),
         time: invoice.date,
         type: 'sale',
+        shiftName,
         paymentMethod,
         walletName,
-        description: `فاتورة بيع ${invoice.id} (${customer.name})${walletName ? ' - ' + walletName : ''}`,
+        description: `فاتورة بيع ${invoice.id} (${customer.name} - ${shiftName})${walletName ? ' - ' + walletName : ''}`,
         amount: total,
         paidAmount: effectivePaid,
         by: invoice.cashierName
@@ -2159,6 +2184,7 @@
         unit: prod.unit || 'الكمية',
         qty,
         refundAmount,
+        shiftName: getShiftLabel(appState.currentUser?.shift || appState.activeShift?.shiftName),
         by: appState.currentUser?.name || 'كاشير'
       };
 
@@ -2167,7 +2193,8 @@
         id: 'TRX-' + Date.now() + '-' + Math.floor(Math.random() * 100),
         time: retRecord.date,
         type: 'return',
-        description: `مرتجع ${retRecord.id} (${prod.name} × ${fmtQty(qty)} ${retRecord.unit})`,
+        shiftName: retRecord.shiftName,
+        description: `مرتجع ${retRecord.id} (${prod.name} × ${fmtQty(qty)} ${retRecord.unit} - ${retRecord.shiftName})`,
         amount: refundAmount,
         by: retRecord.by
       });
@@ -2230,6 +2257,7 @@
         date: new Date().toISOString(),
         title,
         amount: Number(amount.toFixed(2)),
+        shiftName: getShiftLabel(appState.currentUser?.shift || appState.activeShift?.shiftName),
         by: appState.currentUser?.name || 'كاشير'
       };
 
@@ -2238,7 +2266,8 @@
         id: 'TRX-' + Date.now() + '-' + Math.floor(Math.random() * 100),
         time: expRecord.date,
         type: 'expense',
-        description: `مصروف درج: ${title}`,
+        shiftName: expRecord.shiftName,
+        description: `مصروف درج (${expRecord.shiftName}): ${title}`,
         amount: expRecord.amount,
         by: expRecord.by
       });
@@ -2607,11 +2636,13 @@
       const variancePercent = sum.expectedCash > 0
         ? Number(((Math.abs(variance) / sum.expectedCash) * 100).toFixed(2))
         : (variance !== 0 ? 100 : 0);
+      const shiftName = getShiftLabel(appState.currentUser?.shift || appState.activeShift?.shiftName);
 
       const report = {
         id: 'Z-' + (100 + appState.zReports.length + 1),
         closedAt: new Date().toISOString(),
         cashierName: appState.currentUser?.name || appState.activeShift.openedBy || 'كاشير',
+        shiftName,
         cashSales: sum.cashSales,
         walletSales: sum.walletSales,
         creditSales: sum.creditSales,
@@ -2630,6 +2661,7 @@
         id: 'SHF-' + Date.now(),
         startedAt: new Date().toISOString(),
         openedBy: appState.currentUser?.name || 'كاشير',
+        shiftName,
         openingCash: actualCash,
         transactions: []
       };
@@ -2691,7 +2723,10 @@
                   <div class="font-mono font-black text-marine-900">${z.id}</div>
                   <div class="text-[11px] text-slate-500">${formatDateTime(z.closedAt)}</div>
                 </td>
-                <td class="py-2.5 px-3 font-bold">${escapeHtml(z.cashierName)}</td>
+                <td class="py-2.5 px-3">
+                  <div class="font-bold">${escapeHtml(z.cashierName)}</div>
+                  <span class="inline-block mt-0.5 px-2 py-0.5 rounded bg-marine-50 text-marine-900 border border-marine-200 text-[10px] font-black">${escapeHtml(getShiftLabel(z.shiftName))}</span>
+                </td>
                 <td class="py-2.5 px-3 font-mono font-bold text-emerald-700">${fmtMoney(z.cashSales)}</td>
                 <td class="py-2.5 px-3 font-mono text-xs text-rose-700">مرتجع: ${fmtMoney(z.returnsTotal)}<br>مصروف: ${fmtMoney(z.expensesTotal)}</td>
                 <td class="py-2.5 px-3 font-mono font-black">${fmtMoney(z.expectedCash)}</td>
@@ -2716,7 +2751,10 @@
             <tr class="hover:bg-slate-50">
               <td class="py-2.5 px-3 font-mono font-black text-marine-900">${inv.id}</td>
               <td class="py-2.5 px-3 text-xs">${formatDateTime(inv.date)}</td>
-              <td class="py-2.5 px-3 text-xs font-bold">${escapeHtml(inv.cashierName)}</td>
+              <td class="py-2.5 px-3 text-xs">
+                <div class="font-bold">${escapeHtml(inv.cashierName)}</div>
+                <span class="inline-block mt-0.5 px-2 py-0.5 rounded bg-marine-50 text-marine-900 text-[10px] font-black">${escapeHtml(getShiftLabel(inv.shiftName))}</span>
+              </td>
               <td class="py-2.5 px-3 text-xs">
                 <div class="font-bold">${escapeHtml(inv.customerName)}</div>
                 <div class="text-slate-500">${escapeHtml(inv.paymentMethod)}${inv.walletName ? ` (${escapeHtml(inv.walletName)})` : ''}</div>
@@ -2745,6 +2783,7 @@
         'رقم الفاتورة': i.id,
         'التاريخ': formatDateTime(i.date),
         'الكاشير': i.cashierName,
+        'الشفت': getShiftLabel(i.shiftName),
         'العميل': i.customerName,
         'طريقة الدفع': i.paymentMethod,
         'المحفظة': i.walletName || '',
@@ -2772,8 +2811,14 @@
     }
 
     function buildInvoiceWhatsAppText(inv) {
+      const storeMetaLines = [
+        appState.store.address ? `العنوان: ${appState.store.address}` : '',
+        appState.store.phone ? `هاتف: ${appState.store.phone}` : ''
+      ].filter(Boolean);
+
       const lines = [
         `*${appState.store.name}*`,
+        ...storeMetaLines,
         `رقم الفاتورة: *${inv.id}*`,
         `التاريخ: ${formatDateTime(inv.date)}`,
         `العميل: ${inv.customerName}`,
@@ -2842,6 +2887,12 @@
         ? `<img src="${appState.store.logo}" alt="لوجو" class="w-16 h-16 object-contain rounded-xl border p-1" />`
         : `<div class="w-16 h-16 rounded-xl bg-marine-900 text-gold-400 flex items-center justify-center text-3xl font-black">🎣</div>`;
 
+      const storeExtraHtml = [
+        appState.store.subtitle ? `<p class="text-xs text-slate-600">${escapeHtml(appState.store.subtitle)}</p>` : '',
+        appState.store.address ? `<p class="text-xs text-slate-700 font-bold">العنوان: ${escapeHtml(appState.store.address)}</p>` : '',
+        appState.store.phone ? `<p class="text-xs text-slate-700 font-mono font-bold">هاتف: ${escapeHtml(appState.store.phone)}</p>` : ''
+      ].filter(Boolean).join('');
+
       const itemsHtml = inv.items.map((it, idx) => `
         <tr class="border-b border-slate-200">
           <td class="py-2 px-2 text-center">${idx + 1}</td>
@@ -2858,7 +2909,7 @@
             ${logoHtml}
             <div>
               <h1 class="text-xl sm:text-2xl font-black text-marine-900">${escapeHtml(appState.store.name)}</h1>
-              <p class="text-xs text-slate-600">${escapeHtml(appState.store.subtitle || '')}</p>
+              ${storeExtraHtml}
             </div>
           </div>
           <div class="text-left text-xs space-y-1">
@@ -2949,7 +3000,7 @@
         <div class="border-b-2 border-marine-900 pb-4 mb-4 flex items-center justify-between">
           <div>
             <h1 class="text-xl font-black text-marine-900">${escapeHtml(appState.store.name)} — تقرير إقفال الدرج (Z-Report)</h1>
-            <p class="text-xs text-slate-600">رقم التقرير: <strong class="font-mono">${z.id}</strong> • الكاشير: <strong>${escapeHtml(z.cashierName)}</strong></p>
+            <p class="text-xs text-slate-600">رقم التقرير: <strong class="font-mono">${z.id}</strong> • الكاشير: <strong>${escapeHtml(z.cashierName)}</strong> • الشفت: <strong>${escapeHtml(getShiftLabel(z.shiftName))}</strong></p>
           </div>
           <div class="text-left text-xs">
             <div>تاريخ الإقفال:</div>
@@ -2989,8 +3040,12 @@
     function renderSettingsView() {
       const nameInp = document.getElementById('settingStoreName');
       const subInp = document.getElementById('settingStoreSubtitle');
+      const addrInp = document.getElementById('settingStoreAddress');
+      const phoneInp = document.getElementById('settingStorePhone');
       if (nameInp) nameInp.value = appState.store.name || '';
       if (subInp) subInp.value = appState.store.subtitle || '';
+      if (addrInp) addrInp.value = appState.store.address || '';
+      if (phoneInp) phoneInp.value = appState.store.phone || '';
 
       renderStaffTable();
       renderAdminCategories();
@@ -3020,6 +3075,8 @@
     function saveStoreSettings() {
       appState.store.name = document.getElementById('settingStoreName').value.trim() || 'شبكة وصنارة';
       appState.store.subtitle = document.getElementById('settingStoreSubtitle').value.trim();
+      appState.store.address = document.getElementById('settingStoreAddress').value.trim();
+      appState.store.phone = document.getElementById('settingStorePhone').value.trim();
       saveState();
       applyStoreBranding();
       showToast('تم حفظ بيانات النشاط بنجاح', 'success');
@@ -3039,6 +3096,11 @@
           <td class="py-2.5 px-3">
             <span class="px-2.5 py-0.5 rounded-full text-xs font-black ${roleBadgeClass}">
               ${getRoleArabicLabel(s.role)}
+            </span>
+          </td>
+          <td class="py-2.5 px-3">
+            <span class="px-2.5 py-0.5 rounded-lg bg-marine-50 text-marine-900 border border-marine-200 text-xs font-black">
+              ${escapeHtml(getShiftLabel(s.shift))}
             </span>
           </td>
           <td class="py-2.5 px-3 font-mono font-black text-marine-900">${escapeHtml(s.pin)}</td>
@@ -3068,64 +3130,39 @@
       if (staffId) {
         const s = appState.staff.find(x => x.id === staffId);
         if (s) {
-          document.getElementById('staffModalTitle').textContent = 'تعديل الحساب ورمز PIN والصلاحيات';
+          document.getElementById('staffModalTitle').textContent = 'تعديل الحساب ورمز PIN والشفت والصلاحيات';
           document.getElementById('staffEditId').value = s.id;
           document.getElementById('staffNameInput').value = s.name;
           document.getElementById('staffRoleInput').value = s.role;
+          document.getElementById('staffShiftInput').value = getShiftLabel(s.shift);
           document.getElementById('staffPinInput').value = s.pin;
           document.getElementById('staffCanExpenseInput').checked = Boolean(s.canExpense || s.role === 'admin' || s.role === 'supervisor');
         }
+      } else {
+        document.getElementById('staffShiftInput').value = 'شفت صباحي';
       }
       openModal('staffModal');
     }
 
-    function saveStaffMember(e) {
-      e.preventDefault();
-      if (!isAdminUser()) return;
-      const editId = document.getElementById('staffEditId').value;
-      const name = document.getElementById('staffNameInput').value.trim();
-      const role = document.getElementById('staffRoleInput').value;
-      const pin = document.getElementById('staffPinInput').value.trim();
-      const canExpense = (role === 'admin' || role === 'supervisor') ? true : document.getElementById('staffCanExpenseInput').checked;
-
-      if (!name || !pin) return;
-
-      if (editId) {
-        const idx = appState.staff.findIndex(s => s.id === editId);
-        if (idx !== -1) {
-          appState.staff[idx] = { ...appState.staff[idx], name, role, pin, canExpense };
-          if (appState.currentUser && appState.currentUser.id === editId) {
-            appState.currentUser = { ...appState.staff[idx] };
-          }
-          showToast('تم تحديث بيانات الحساب ورمز PIN', 'success');
-        }
-      } else {
-        appState.staff.push({ id: 'st-' + Date.now(), name, role, pin, canExpense });
-        showToast('تم إضافة الحساب الجديد', 'success');
+    function deleteStaffMember(staffId) {
+      if (!isAdminUser()) {
+        showToast('حذف الحسابات متاح لصلاحية الإدارة فقط', 'error');
+        return;
       }
-
-      saveState();
-      closeModal('staffModal');
-      populateGateSelects();
-      renderStaffTable();
-    }
-
-    function deleteStaffMember(id) {
-      if (!isAdminUser()) return;
       if (appState.staff.length <= 1) {
         showToast('يجب الإبقاء على حساب واحد على الأقل', 'warning');
         return;
       }
-      appState.staff = appState.staff.filter(s => String(s.id) !== String(id));
+      appState.staff = appState.staff.filter(s => String(s.id) !== String(staffId));
       saveState();
       populateGateSelects();
       renderStaffTable();
-      showToast('تم حذف الحساب', 'info');
+      showToast('تم حذف الحساب بنجاح', 'info');
     }
 
     function addMainCategory() {
       if (!isAdminUser()) {
-        showToast('إدارة الفئات متاحة للإدارة فقط', 'error');
+        showToast('إدارة الفئات متاحة لصلاحية الإدارة فقط', 'error');
         return;
       }
       const inp = document.getElementById('newCategoryNameInput');
@@ -3141,10 +3178,26 @@
         visibleToCashier: true,
         subcategories: []
       });
-      inp.value = '';
+      if (inp) inp.value = '';
       saveState();
       renderAllViews();
-      showToast('تم إضافة الفئة الرئيسية', 'success');
+      showToast('تم إضافة الفئة الرئيسية بنجاح', 'success');
+    }
+
+    function addSubcategoryToCat(catId) {
+      if (!isAdminUser()) return;
+      const cat = appState.categories.find(c => String(c.id) === String(catId));
+      const inp = document.getElementById(`subcat-input-${catId}`);
+      const subName = (inp?.value || '').trim();
+      if (!cat || !subName) return;
+      if (!Array.isArray(cat.subcategories)) cat.subcategories = [];
+      if (!cat.subcategories.includes(subName)) {
+        cat.subcategories.push(subName);
+        if (inp) inp.value = '';
+        saveState();
+        renderAllViews();
+        showToast('تم إضافة الفئة الفرعية', 'success');
+      }
     }
 
     function toggleCategoryCashierVisibility(catId) {
@@ -3154,22 +3207,43 @@
       cat.visibleToCashier = cat.visibleToCashier === false ? true : false;
       saveState();
       renderAllViews();
+      showToast(cat.visibleToCashier ? 'تم إظهار الفئة للكاشير' : 'تم إخفاء الفئة عن الكاشير', 'info');
     }
 
-    function addSubcategoryToCat(catId) {
+    function saveStaffMember(e) {
+      e.preventDefault();
       if (!isAdminUser()) return;
-      const inp = document.getElementById(`subcat-input-${catId}`);
-      const subName = (inp?.value || '').trim();
-      if (!subName) return;
-      const cat = appState.categories.find(c => String(c.id) === String(catId));
-      if (!cat) return;
-      if (!Array.isArray(cat.subcategories)) cat.subcategories = [];
-      if (!cat.subcategories.includes(subName)) {
-        cat.subcategories.push(subName);
-        inp.value = '';
-        saveState();
-        renderAllViews();
-        showToast('تم إضافة التصنيف الفرعي', 'success');
+      const editId = document.getElementById('staffEditId').value;
+      const name = document.getElementById('staffNameInput').value.trim();
+      const role = document.getElementById('staffRoleInput').value;
+      const shift = getShiftLabel(document.getElementById('staffShiftInput')?.value);
+      const pin = document.getElementById('staffPinInput').value.trim();
+      const canExpense = (role === 'admin' || role === 'supervisor') ? true : document.getElementById('staffCanExpenseInput').checked;
+
+      if (!name || !pin) return;
+
+      if (editId) {
+        const idx = appState.staff.findIndex(s => s.id === editId);
+        if (idx !== -1) {
+          appState.staff[idx] = { ...appState.staff[idx], name, role, shift, pin, canExpense };
+          if (appState.currentUser && appState.currentUser.id === editId) {
+            appState.currentUser = { ...appState.staff[idx] };
+            appState.activeShift.shiftName = shift;
+          }
+          showToast('تم تحديث بيانات الحساب والشفت ورمز PIN', 'success');
+        }
+      } else {
+        appState.staff.push({ id: 'st-' + Date.now(), name, role, shift, pin, canExpense });
+        showToast('تم إضافة الحساب الجديد', 'success');
+      }
+
+      saveState();
+      closeModal('staffModal');
+      populateGateSelects();
+      renderStaffTable();
+      if (appState.currentUser) {
+        const userShiftEl = document.getElementById('headerUserShift');
+        if (userShiftEl) userShiftEl.textContent = getShiftLabel(appState.currentUser.shift);
       }
     }
 
