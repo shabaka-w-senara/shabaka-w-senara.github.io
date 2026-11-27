@@ -10,9 +10,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="application-name" content="شبكة وصنارة" />
   <meta name="apple-mobile-web-app-title" content="شبكة وصنارة" />
-  <link id="dynamic-manifest" rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22%D8%B4%D8%A8%D9%83%D8%A9%20%D9%88%D8%B5%D9%86%D8%A7%D8%B1%D8%A9%22%2C%22short_name%22%3A%22%D8%B4%D8%A8%D9%83%D8%A9%20%D9%88%D8%B5%D9%86%D8%A7%D8%B1%D8%A9%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230B192C%22%2C%22theme_color%22%3A%22%230B192C%22%7D" />
-  <link id="dynamic-apple-icon" rel="apple-touch-icon" href="" />
-  <link id="dynamic-favicon" rel="icon" type="image/png" href="" />
+  <link id="dynamic-manifest" rel="manifest" href="./manifest.json" />
+  <link id="dynamic-apple-icon" rel="apple-touch-icon" href="./icon-192.png" />
+  <link id="dynamic-favicon" rel="icon" type="image/png" href="./icon-192.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
@@ -125,6 +125,7 @@
           <div class="flex items-center gap-1.5 flex-wrap">
             <h1 id="headerStoreName" class="text-sm sm:text-base font-black text-gold leading-tight truncate">شبكة وصنارة</h1>
             <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">شيفت نشط</span>
+            <span id="networkStatusBadge" class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-sky-500/20 text-sky-200 border border-sky-400/40">🟢 متصل</span>
           </div>
           <p class="text-[10px] sm:text-[11px] text-slate-300 truncate">
             <strong id="headerUserName" class="text-white">—</strong> •
@@ -807,8 +808,9 @@
 
       <!-- أدوات النسخ الاحتياطي والاستعادة -->
       <div class="bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200 space-y-2.5">
-        <h2 class="text-sm sm:text-base font-black text-slate-900">🛠️ أدوات النسخ الاحتياطي والاستعادة ومسح السجلات</h2>
+        <h2 class="text-sm sm:text-base font-black text-slate-900">🛠️ أدوات النسخ الاحتياطي والاستعادة وتجهيز ملفات الـ APK</h2>
         <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="downloadPwaBuildFiles()" class="px-3.5 py-2 rounded-lg bg-navy text-gold border border-gold text-xs font-black shadow">📲 تحميل ملفات الـ APK (manifest.json + sw.js)</button>
           <button type="button" onclick="exportBackupJSON()" class="px-3.5 py-2 rounded-lg bg-emerald-600 text-white text-xs font-extrabold">💾 تصدير نسخة احتياطية JSON</button>
           <label class="px-3.5 py-2 rounded-lg bg-sky-600 text-white text-xs font-extrabold cursor-pointer">
             📂 استعادة من ملف JSON
@@ -1395,42 +1397,124 @@
         const favIcon = document.getElementById('dynamic-favicon');
         if (appleIcon) appleIcon.href = png192;
         if (favIcon) favIcon.href = png192;
-
-        const baseUrl = window.location.href.split('#')[0].split('?')[0];
-        const scopeUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-        const manifestObj = {
-          id: scopeUrl || './',
-          name: name,
-          short_name: name,
-          start_url: baseUrl || './',
-          scope: scopeUrl || './',
-          display: 'standalone',
-          orientation: 'portrait',
-          background_color: '#0B192C',
-          theme_color: '#0B192C',
-          icons: [
-            { src: png192, sizes: '192x192', type: 'image/png', purpose: 'any' },
-            { src: png192, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-          ]
-        };
-        const manifestLink = document.getElementById('dynamic-manifest');
-        if (manifestLink) {
-          manifestLink.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifestObj));
-        }
       });
 
       if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-        const swCode = `
-          self.addEventListener('install', (e) => { self.skipWaiting(); });
-          self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
-          self.addEventListener('fetch', (e) => {
-            if (e.request.method !== 'GET') return;
-            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
+          reg.update().catch(() => {});
+          setInterval(() => { reg.update().catch(() => {}); }, 30000);
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                showToast('🔄 تم تحديث النظام من الموقع لحظياً!');
+              }
+            });
           });
-        `;
-        const swBlob = new Blob([swCode], { type: 'application/javascript' });
-        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+        }).catch(() => {});
       }
+      updateNetworkStatusIndicator();
+    }
+
+    function updateNetworkStatusIndicator() {
+      const badge = document.getElementById('networkStatusBadge');
+      if (!badge) return;
+      if (navigator.onLine) {
+        badge.textContent = '🟢 متصل • تحديث لحظي';
+        badge.className = 'px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/20 text-emerald-200 border border-emerald-400/40';
+      } else {
+        badge.textContent = '🟠 وضع الأوفلاين (بدون نت)';
+        badge.className = 'px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-500/20 text-amber-200 border border-amber-400/40';
+      }
+    }
+
+    window.addEventListener('online', () => {
+      updateNetworkStatusIndicator();
+      showToast('🟢 عاد الاتصال بالإنترنت — جاري فحص التحديثات اللحظية');
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(r => r && r.update().catch(() => {}));
+      }
+    });
+    window.addEventListener('offline', () => {
+      updateNetworkStatusIndicator();
+      showToast('🟠 انقطع الإنترنت — التطبيق يعمل أوفلاين وبياناتك محفوظة بأمان');
+    });
+
+    function downloadPwaBuildFiles() {
+      const manifestContent = JSON.stringify({
+        name: state.store.name || 'شبكة وصنارة',
+        short_name: state.store.name || 'شبكة وصنارة',
+        description: state.store.tagline || 'نظام نقاط البيع والمحاسبة المتكامل',
+        start_url: './index.html',
+        scope: './',
+        display: 'standalone',
+        orientation: 'portrait',
+        background_color: '#0B192C',
+        theme_color: '#0B192C',
+        icons: [
+          { src: './icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: './icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        ]
+      }, null, 2);
+
+      const swContent = `const CACHE_NAME = 'shabaka-senara-apk-v1';
+const ASSETS = ['./', './index.html', './manifest.json'];
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).catch(() => {})
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(event.request)
+      .then((networkRes) => {
+        if (networkRes && networkRes.status === 200) {
+          const clone = networkRes.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return networkRes;
+      })
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
+  );
+});`;
+
+      const downloadBlob = (content, filename, type) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([content], { type }));
+        a.download = filename;
+        a.click();
+      };
+
+      downloadBlob(manifestContent, 'manifest.json', 'application/json');
+      setTimeout(() => downloadBlob(swContent, 'sw.js', 'application/javascript'), 400);
+
+      generatePngAppIconDataUrl(192, state.store.logo, (png192) => {
+        const a1 = document.createElement('a');
+        a1.href = png192;
+        a1.download = 'icon-192.png';
+        setTimeout(() => a1.click(), 800);
+      });
+      generatePngAppIconDataUrl(512, state.store.logo, (png512) => {
+        const a2 = document.createElement('a');
+        a2.href = png512;
+        a2.download = 'icon-512.png';
+        setTimeout(() => a2.click(), 1200);
+      });
+
+      showToast('📲 تم تحميل 4 ملفات (manifest.json, sw.js, icon-192.png, icon-512.png) ارفعها بجانب index.html');
     }
 
     function syncGateOpeningCashForSelectedCashier() {
