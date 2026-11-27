@@ -236,6 +236,11 @@
             💾 نسخة احتياطية
           </button>
 
+          <button type="button" onclick="triggerImportBackupJson()" class="px-3 py-1.5 rounded-xl bg-marine-800 hover:bg-marine-700 text-gold-300 border border-marine-600 font-bold text-xs transition">
+            📂 استعادة
+          </button>
+          <input type="file" id="importBackupFileInput" accept=".json,application/json" onchange="handleImportBackupJson(event)" class="hidden" />
+
           <button type="button" onclick="logoutToGate()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-600 font-extrabold text-xs transition">
             🚪 خروج
           </button>
@@ -673,6 +678,23 @@
           <div class="flex justify-end">
             <button type="button" onclick="saveStoreSettings()" class="px-5 py-2.5 rounded-xl bg-marine-900 text-gold-400 font-black text-xs shadow">حفظ بيانات النشاط</button>
           </div>
+        </div>
+
+        <!-- إدارة الحذف والمسح والنسخ الاحتياطي داخل النظام -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div class="border-b pb-2">
+            <h3 class="font-black text-base text-marine-900">🧹 أدوات الحذف والمسح والنسخ الاحتياطي</h3>
+            <p class="text-xs text-slate-500">حذف السجلات أو إعادة ضبط البيانات المحلية بسهولة دون الاعتماد على نوافذ المتصفح المقيدة</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="clearSalesAndShiftHistory()" class="px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-black text-xs transition">
+              🗑️ مسح سجل الفواتير وإقفال الشيفتات
+            </button>
+            <button type="button" onclick="resetAllSystemData()" class="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-black text-xs transition">
+              ⚠️ إعادة ضبط المصنع للبيانات الافتراضية
+            </button>
+          </div>
+          <p id="adminDataActionNotice" class="text-xs font-bold text-rose-700 hidden"></p>
         </div>
 
         <!-- 2. إدارة الكاشير والموظفين ورموز PIN والصلاحيات -->
@@ -2074,453 +2096,18 @@
         showToast('حذف المنتجات متاح لصلاحية الإدارة فقط', 'error');
         return;
       }
-      appState.products = appState.products.filter(p => p.id !== id);
-      cart = cart.filter(i => i.productId !== id);
-      saveState();
-      renderAllViews();
-      showToast('تم حذف المنتج', 'info');
-    }
-
-    function renderInventoryTable() {
-      const tbody = document.getElementById('inventoryTableBody');
-      if (!tbody) return;
-      const q = (document.getElementById('inventorySearchInput')?.value || '').trim().toLowerCase();
-      const showCost = isAdminUser();
-
-      const rows = appState.products.filter(p => {
-        if (!q) return true;
-        return `${p.name} ${p.brand || ''} ${p.category || ''} ${p.subcategory || ''} ${p.unit || ''}`.toLowerCase().includes(q);
-      });
-
-      if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400 font-bold">لا توجد أصناف مسجلة</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = rows.map(p => `
-        <tr class="hover:bg-slate-50">
-          <td class="py-2.5 px-3 font-black text-slate-900">${escapeHtml(p.name)}</td>
-          <td class="py-2.5 px-3 text-xs">
-            <div class="font-bold text-marine-900">${escapeHtml(p.category || '-')}</div>
-            ${p.subcategory ? `<div class="text-slate-500">${escapeHtml(p.subcategory)}</div>` : ''}
-          </td>
-          <td class="py-2.5 px-3 text-xs font-bold text-slate-600">${escapeHtml(p.brand || '-')}</td>
-          <td class="py-2.5 px-3"><span class="px-2.5 py-1 rounded-lg bg-marine-100 text-marine-900 text-xs font-black">${escapeHtml(p.unit || 'الكمية')}</span></td>
-          <td class="py-2.5 px-3 font-mono font-black ${Number(p.stock) <= 3 ? 'text-rose-600' : 'text-emerald-700'}">${fmtQty(p.stock)}</td>
-          <td class="py-2.5 px-3 font-mono cost-col ${showCost ? '' : 'hidden'}">${fmtMoney(p.cost)}</td>
-          <td class="py-2.5 px-3 font-mono font-black text-marine-900">${fmtMoney(p.price)}</td>
-          <td class="py-2.5 px-3 whitespace-nowrap">
-            <button type="button" onclick="openProductModal('${p.id}')" class="px-2.5 py-1 rounded-lg bg-marine-100 hover:bg-marine-200 text-marine-900 text-xs font-bold ml-1">تعديل</button>
-            ${showCost ? `<button type="button" onclick="deleteProduct('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">حذف</button>` : ''}
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function exportInventoryExcel() {
-      if (typeof XLSX === 'undefined') {
-        showToast('مكتبة التصدير غير متاحة حالياً', 'warning');
-        return;
-      }
-      const data = appState.products.map(p => ({
-        'المنتج': p.name,
-        'الماركة': p.brand || '',
-        'الفئة': p.category || '',
-        'الفئة الفرعية': p.subcategory || '',
-        'الوحدة': p.unit || 'الكمية',
-        'الرصيد': Number(p.stock),
-        ...(isAdminUser() ? { 'سعر الشراء': Number(p.cost) } : {}),
-        'سعر البيع': Number(p.price)
-      }));
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'المخزون');
-      XLSX.writeFile(wb, 'مخزون_شبكة_وصنارة.xlsx');
-    }
-
-    // =========================================================================
-    // 8. المرتجعات
-    // =========================================================================
-    function openPosReturnModal() {
-      const sel = document.getElementById('returnProductSelect');
-      if (sel) {
-        sel.innerHTML = appState.products.map(p =>
-          `<option value="${p.id}">${escapeHtml(p.name)} (${escapeHtml(p.unit)} - سعر: ${fmtMoney(p.price)})</option>`
-        ).join('');
-      }
-      document.getElementById('returnInvoiceRef').value = '';
-      document.getElementById('returnQtyInput').value = '1';
-      document.getElementById('returnError').classList.add('hidden');
-      updateReturnEstimate();
-      openModal('posReturnModal');
-    }
-
-    function updateReturnEstimate() {
-      const prodId = document.getElementById('returnProductSelect')?.value;
-      const qty = Math.max(0, Number(document.getElementById('returnQtyInput')?.value || 0));
-      const prod = appState.products.find(p => p.id === prodId);
-      const est = prod ? Number((qty * Number(prod.price)).toFixed(2)) : 0;
-      const el = document.getElementById('returnRefundEstimate');
-      if (el) el.textContent = fmtMoney(est);
-    }
-
-    function submitReturnTransaction() {
-      const invRef = document.getElementById('returnInvoiceRef').value.trim();
-      const prodId = document.getElementById('returnProductSelect').value;
-      const qty = Number(document.getElementById('returnQtyInput').value || 0);
-      const errEl = document.getElementById('returnError');
-      errEl.classList.add('hidden');
-
-      const prod = appState.products.find(p => p.id === prodId);
-      if (!prod || qty <= 0) {
-        errEl.textContent = 'يرجى اختيار منتج وإدخال كمية صحيحة أكبر من صفر.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-
-      const refundAmount = Number((qty * Number(prod.price)).toFixed(2));
-      prod.stock = Number((Number(prod.stock) + qty).toFixed(4));
-
-      const retRecord = {
-        id: 'RET-' + (100 + appState.returns.length + 1),
-        date: new Date().toISOString(),
-        invoiceRef: invRef || 'مرتجع مباشر',
-        productId: prod.id,
-        productName: prod.name,
-        unit: prod.unit || 'الكمية',
-        qty,
-        refundAmount,
-        by: appState.currentUser?.name || 'كاشير'
-      };
-
-      appState.returns.unshift(retRecord);
-      appState.activeShift.transactions.push({
-        id: 'TRX-' + Date.now(),
-        time: retRecord.date,
-        type: 'return',
-        description: `مرتجع ${retRecord.id}: ${prod.name} (${fmtQty(qty)} ${prod.unit})`,
-        amount: refundAmount,
-        by: retRecord.by
-      });
-
-      saveState();
-      closeModal('posReturnModal');
-      renderAllViews();
-      showToast(`تم تسجيل المرتجع ${retRecord.id} وإعادة الكمية للمخزون`, 'success');
-    }
-
-    function renderReturnsTable() {
-      const tbody = document.getElementById('returnsTableBody');
-      if (!tbody) return;
-      if (!appState.returns.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 font-bold">لا توجد مرتجعات مسجلة</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = appState.returns.map(r => `
-        <tr class="hover:bg-slate-50">
-          <td class="py-2.5 px-3 font-mono font-black text-amber-800">${r.id}</td>
-          <td class="py-2.5 px-3 text-xs">${formatDateTime(r.date)}</td>
-          <td class="py-2.5 px-3 font-mono text-xs">${escapeHtml(r.invoiceRef)}</td>
-          <td class="py-2.5 px-3 font-bold">${escapeHtml(r.productName)} <span class="text-xs text-slate-500">(${escapeHtml(r.unit)})</span></td>
-          <td class="py-2.5 px-3 font-mono font-bold">${fmtQty(r.qty)}</td>
-          <td class="py-2.5 px-3 font-mono font-black text-rose-700">${fmtMoney(r.refundAmount)}</td>
-          <td class="py-2.5 px-3 text-xs font-bold">${escapeHtml(r.by)}</td>
-        </tr>
-      `).join('');
-    }
-
-    // =========================================================================
-    // 9. المصروفات وصلاحية الكاشير لإخراج المصروفات من الدرج
-    // =========================================================================
-    function openExpenseModal() {
-      if (!canUserExpense()) {
-        showToast('ليس لديك صلاحية إخراج المصروفات من الدرج', 'error');
-        return;
-      }
-      document.getElementById('expenseTitleInput').value = '';
-      document.getElementById('expenseAmountInput').value = '';
-      document.getElementById('expenseError').classList.add('hidden');
-      openModal('expenseModal');
-    }
-
-    function submitDrawerExpense() {
-      if (!canUserExpense()) {
-        showToast('غير مسموح بإخراج المصروفات لهذا الحساب', 'error');
-        return;
-      }
-      const title = document.getElementById('expenseTitleInput').value.trim();
-      const amount = Number(document.getElementById('expenseAmountInput').value || 0);
-      const errEl = document.getElementById('expenseError');
-      errEl.classList.add('hidden');
-
-      if (!title || amount <= 0) {
-        errEl.textContent = 'يرجى إدخال بيان المصروف ومبلغ أكبر من صفر.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-
-      const expRecord = {
-        id: 'EXP-' + (100 + appState.expenses.length + 1),
-        date: new Date().toISOString(),
-        title,
-        amount: Number(amount.toFixed(2)),
-        by: appState.currentUser?.name || 'كاشير'
-      };
-
-      appState.expenses.unshift(expRecord);
-      appState.activeShift.transactions.push({
-        id: 'TRX-' + Date.now(),
-        time: expRecord.date,
-        type: 'expense',
-        description: `مصروف درج: ${title}`,
-        amount: expRecord.amount,
-        by: expRecord.by
-      });
-
-      saveState();
-      closeModal('expenseModal');
-      renderAllViews();
-      showToast(`تم خصم مصروف (${fmtMoney(expRecord.amount)}) من الدرج`, 'success');
-    }
-
-    function deleteExpense(id) {
-      if (!isAdminUser()) {
-        showToast('حذف المصروفات متاح للإدارة فقط', 'error');
-        return;
-      }
-      appState.expenses = appState.expenses.filter(e => e.id !== id);
-      saveState();
-      renderAllViews();
-    }
-
-    function renderExpensesTable() {
-      const tbody = document.getElementById('expensesTableBody');
-      if (!tbody) return;
-      if (!appState.expenses.length) {
-        tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400 font-bold">لا توجد مصروفات مسجلة</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = appState.expenses.map(e => `
-        <tr class="hover:bg-slate-50">
-          <td class="py-2.5 px-3 text-xs">${formatDateTime(e.date)}</td>
-          <td class="py-2.5 px-3 font-bold">${escapeHtml(e.title)}</td>
-          <td class="py-2.5 px-3 font-mono font-black text-rose-700">${fmtMoney(e.amount)}</td>
-          <td class="py-2.5 px-3 text-xs font-bold">${escapeHtml(e.by)}</td>
-          <td class="py-2.5 px-3">
-            ${isAdminUser() ? `<button type="button" onclick="deleteExpense('${e.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 text-xs font-bold">حذف</button>` : '<span class="text-xs text-slate-400">-</span>'}
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    // =========================================================================
-    // 10. العملاء والموردون والمشتريات
-    // =========================================================================
-    function openCustomerModal() {
-      document.getElementById('partnerModalTitle').textContent = 'إضافة عميل جديد';
-      document.getElementById('partnerModalBody').innerHTML = `
-        <div>
-          <label class="block text-xs font-bold mb-1">اسم العميل *</label>
-          <input type="text" id="newCustName" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
-        </div>
-        <div>
-          <label class="block text-xs font-bold mb-1">رقم الهاتف</label>
-          <input type="text" id="newCustPhone" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal('partnerModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">إلغاء</button>
-          <button type="button" onclick="saveNewCustomer()" class="px-4 py-2 rounded-xl bg-marine-900 text-gold-400 text-xs font-black">حفظ</button>
-        </div>
-      `;
-      openModal('partnerModal');
-    }
-
-    function saveNewCustomer() {
-      const name = document.getElementById('newCustName').value.trim();
-      const phone = document.getElementById('newCustPhone').value.trim();
-      if (!name) return;
-      appState.customers.push({ id: 'cust-' + Date.now(), name, phone: phone || '-', balance: 0 });
-      saveState();
-      closeModal('partnerModal');
-      renderAllViews();
-      showToast('تم إضافة العميل', 'success');
-    }
-
-    function collectCustomerPayment(custId) {
-      const cust = appState.customers.find(c => c.id === custId);
-      if (!cust) return;
-      document.getElementById('partnerModalTitle').textContent = `تحصيل دفعة من: ${cust.name}`;
-      document.getElementById('partnerModalBody').innerHTML = `
-        <div class="text-xs font-bold text-slate-600">الرصيد المستحق حالياً: <span class="font-mono text-rose-700 text-sm">${fmtMoney(cust.balance)}</span></div>
-        <div>
-          <label class="block text-xs font-bold mb-1">المبلغ المحصّل *</label>
-          <input type="number" id="collectAmountInput" step="0.01" min="0.01" max="${cust.balance}" value="${cust.balance}" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-mono font-black" />
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal('partnerModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">إلغاء</button>
-          <button type="button" onclick="confirmCustomerCollection('${cust.id}')" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">تأكيد التحصيل</button>
-        </div>
-      `;
-      openModal('partnerModal');
-    }
-
-    function confirmCustomerCollection(custId) {
-      const amt = Number(document.getElementById('collectAmountInput').value || 0);
-      const cust = appState.customers.find(c => c.id === custId);
-      if (!cust || amt <= 0) return;
-      cust.balance = Math.max(0, Number((Number(cust.balance) - amt).toFixed(2)));
-      appState.activeShift.transactions.push({
-        id: 'TRX-' + Date.now(),
-        time: new Date().toISOString(),
-        type: 'collection',
-        description: `تحصيل دفعة آجل من ${cust.name}`,
-        amount: amt,
-        by: appState.currentUser?.name || 'كاشير'
-      });
-      saveState();
-      closeModal('partnerModal');
-      renderAllViews();
-      showToast('تم تسجيل تحصيل الدفعة بنجاح', 'success');
-    }
-
-    function renderCustomersTable() {
-      const tbody = document.getElementById('customersTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = appState.customers.map(c => `
-        <tr class="hover:bg-slate-50">
-          <td class="py-2.5 px-3 font-black">${escapeHtml(c.name)}</td>
-          <td class="py-2.5 px-3 font-mono text-xs">${escapeHtml(c.phone || '-')}</td>
-          <td class="py-2.5 px-3 font-mono font-black ${Number(c.balance) > 0 ? 'text-rose-700' : 'text-emerald-700'}">${fmtMoney(c.balance)}</td>
-          <td class="py-2.5 px-3">
-            ${Number(c.balance) > 0
-              ? `<button type="button" onclick="collectCustomerPayment('${c.id}')" class="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold">تحصيل دفعة</button>`
-              : '<span class="text-xs text-slate-400">خالص</span>'}
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function openSupplierModal() {
-      document.getElementById('partnerModalTitle').textContent = 'إضافة مورد جديد';
-      document.getElementById('partnerModalBody').innerHTML = `
-        <div>
-          <label class="block text-xs font-bold mb-1">اسم المورد *</label>
-          <input type="text" id="newSupName" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
-        </div>
-        <div>
-          <label class="block text-xs font-bold mb-1">رقم الهاتف</label>
-          <input type="text" id="newSupPhone" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal('partnerModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">إلغاء</button>
-          <button type="button" onclick="saveNewSupplier()" class="px-4 py-2 rounded-xl bg-marine-900 text-gold-400 text-xs font-black">حفظ</button>
-        </div>
-      `;
-      openModal('partnerModal');
-    }
-
-    function saveNewSupplier() {
-      const name = document.getElementById('newSupName').value.trim();
-      const phone = document.getElementById('newSupPhone').value.trim();
-      if (!name) return;
-      appState.suppliers.push({ id: 'sup-' + Date.now(), name, phone: phone || '-', balance: 0 });
-      saveState();
-      closeModal('partnerModal');
-      renderAllViews();
-      showToast('تم إضافة المورد', 'success');
-    }
-
-    function openPurchaseModal() {
-      if (!appState.suppliers.length || !appState.products.length) {
-        showToast('تأكد من وجود مورد ومنتج واحد على الأقل', 'warning');
-        return;
-      }
-      document.getElementById('partnerModalTitle').textContent = 'تسجيل فاتورة شراء للمخزون';
-      document.getElementById('partnerModalBody').innerHTML = `
-        <div>
-          <label class="block text-xs font-bold mb-1">المورد</label>
-          <select id="purchSupSelect" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold">
-            ${appState.suppliers.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold mb-1">المنتج</label>
-          <select id="purchProdSelect" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold">
-            ${appState.products.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (${escapeHtml(p.unit)})</option>`).join('')}
-          </select>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs font-bold mb-1">الكمية المشتراة</label>
-            <input type="number" id="purchQtyInput" step="0.001" min="0.001" value="1" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-mono font-bold" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold mb-1">سعر شراء الوحدة</label>
-            <input type="number" id="purchCostInput" step="0.01" min="0" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-mono font-bold" />
-          </div>
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal('partnerModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">إلغاء</button>
-          <button type="button" onclick="savePurchaseInvoice()" class="px-4 py-2 rounded-xl bg-marine-900 text-gold-400 text-xs font-black">ترحيل للمخزون</button>
-        </div>
-      `;
-      openModal('partnerModal');
-    }
-
-    function savePurchaseInvoice() {
-      const supId = document.getElementById('purchSupSelect').value;
-      const prodId = document.getElementById('purchProdSelect').value;
-      const qty = Number(document.getElementById('purchQtyInput').value || 0);
-      const cost = Number(document.getElementById('purchCostInput').value || 0);
-
-      const sup = appState.suppliers.find(s => s.id === supId);
-      const prod = appState.products.find(p => p.id === prodId);
-      if (!sup || !prod || qty <= 0) return;
-
-      prod.stock = Number((Number(prod.stock) + qty).toFixed(4));
-      if (cost > 0) prod.cost = cost;
-
-      const total = Number((qty * (cost > 0 ? cost : Number(prod.cost))).toFixed(2));
-      appState.purchases.unshift({
-        id: 'PUR-' + (100 + appState.purchases.length + 1),
-        date: new Date().toISOString(),
-        supplierName: sup.name,
-        productName: prod.name,
-        unit: prod.unit,
-        qty,
-        total
-      });
-
-      saveState();
-      closeModal('partnerModal');
-      renderAllViews();
-      showToast('تمت إضافة الكمية إلى المخزون بنجاح', 'success');
-    }
-
-    function renderSuppliersAndPurchases() {
-      const sBody = document.getElementById('suppliersTableBody');
-      if (sBody) {
-        sBody.innerHTML = appState.suppliers.map(s => `
-          <tr>
-            <td class="py-2.5 px-3 font-bold">${escapeHtml(s.name)}</td>
-            <td class="py-2.5 px-3 font-mono text-xs">${escapeHtml(s.phone || '-')}</td>
-            <td class="py-2.5 px-3 font-mono font-bold">${fmtMoney(s.balance)}</td>
-          </tr>
-        `).join('');
-      }
-
-      const pBody = document.getElementById('purchasesTableBody');
-      if (pBody) {
-        pBody.innerHTML = appState.purchases.length
-          ? appState.purchases.map(p => `
-              <tr>
-                <td class="py-2.5 px-3 text-xs">${formatDateTime(p.date)}</td>
-                <td class="py-2.5 px-3 font-bold">${escapeHtml(p.supplierName)}</td>
-                <td class="py-2.5 px-3 text-xs">${escapeHtml(p.productName)} (${fmtQty(p.qty)} ${escapeHtml(p.unit)})</td>
-                <td class="py-2.5 px-3 font-mono font-black">${fmtMoney(p.total)}</td>
-              </tr>
-            `).join('')
-          : `<tr><td colspan="4" class="py-6 text-center text-slate-400 text-xs font-bold">لا توجد فواتير شراء</td></tr>`;
+      try {
+        const beforeLen = appState.products.length;
+        appState.products = appState.products.filter(p => String(p.id) !== String(id));
+        cart = cart.filter(i => String(i.productId) !== String(id));
+        if (appState.products.length !== beforeLen) {
+          saveState();
+          renderAllViews();
+          showToast('تم حذف المنتج بنجاح', 'info');
+        }
+      } catch (err) {
+        console.error('Error deleting product:', err);
+        showToast('تعذر حذف المنتج', 'error');
       }
     }
 
@@ -2620,19 +2207,19 @@
 
       if (variance < 0) {
         amtEl.textContent = `عجز: ${fmtMoney(Math.abs(variance))}`;
-        amtEl.className = 'font-mono font-black text-base text-rose-700';
-        pctEl.textContent = `نسبة العجز: ${pct}%`;
-        pctEl.className = 'mr-2 px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-800';
-      } else if (variance > 0) {
-        amtEl.textContent = `زيادة: ${fmtMoney(variance)}`;
-        amtEl.className = 'font-mono font-black text-base text-emerald-700';
-        pctEl.textContent = `نسبة الزيادة: ${pct}%`;
-        pctEl.className = 'mr-2 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800';
-      } else {
-        amtEl.textContent = 'مطابق (0.00)';
-        amtEl.className = 'font-mono font-black text-base text-marine-900';
-        pctEl.textContent = '0.00%';
-        pctEl.className = 'mr-2 px-2.5 py-0.5 rounded-full text-xs font-black bg-slate-200 text-slate-700';
+    function deleteExpense(id) {
+      if (!isAdminUser()) {
+        showToast('حذف المصروفات متاح للإدارة فقط', 'error');
+        return;
+      }
+      try {
+        appState.expenses = appState.expenses.filter(e => String(e.id) !== String(id));
+        saveState();
+        renderAllViews();
+        showToast('تم حذف المصروف', 'info');
+      } catch (err) {
+        console.error('Error deleting expense:', err);
+        showToast('تعذر حذف المصروف', 'error');
       }
     }
 
@@ -3154,95 +2741,15 @@
         showToast('يجب الإبقاء على حساب واحد على الأقل', 'warning');
         return;
       }
-      appState.staff = appState.staff.filter(s => s.id !== id);
-      saveState();
-      populateGateSelects();
-      renderStaffTable();
-      showToast('تم حذف الحساب', 'info');
-    }
-
-    // التحكم في أزرار الفئات للكاشير والفئات الفرعية
-    function addMainCategory() {
-      if (!isAdminUser()) {
-        showToast('إدارة الفئات متاحة للإدارة فقط', 'error');
-        return;
-      }
-      const inp = document.getElementById('newCategoryNameInput');
-      const name = inp.value.trim();
-      if (!name) return;
-      if (appState.categories.some(c => c.name === name)) {
-        showToast('هذه الفئة موجودة بالفعل', 'warning');
-        return;
-      }
-      appState.categories.push({
-        id: 'cat-' + Date.now(),
-        name,
-        visibleToCashier: true,
-        subcategories: []
-      });
-      inp.value = '';
-      saveState();
-      renderAllViews();
-      showToast('تم إضافة الفئة الرئيسية', 'success');
-    }
-
-    function toggleCategoryCashierVisibility(catId) {
-      if (!isAdminUser()) return;
-      const cat = appState.categories.find(c => c.id === catId);
-      if (!cat) return;
-      cat.visibleToCashier = !(cat.visibleToCashier !== false);
-      saveState();
-      renderAllViews();
-    }
-
-    function renameCategory(catId) {
-      if (!isAdminUser()) return;
-      const cat = appState.categories.find(c => c.id === catId);
-      if (!cat) return;
-      const newName = prompt('أدخل الاسم الجديد للفئة:', cat.name);
-      if (!newName || !newName.trim() || newName.trim() === cat.name) return;
-      const oldName = cat.name;
-      cat.name = newName.trim();
-      appState.products.forEach(p => {
-        if (p.category === oldName) p.category = cat.name;
-      });
-      saveState();
-      renderAllViews();
-      showToast('تم تعديل اسم الفئة', 'success');
-    }
-
-    function moveCategoryOrder(index, dir) {
-      if (!isAdminUser()) return;
-      const target = index + dir;
-      if (target < 0 || target >= appState.categories.length) return;
-      const temp = appState.categories[index];
-      appState.categories[index] = appState.categories[target];
-      appState.categories[target] = temp;
-      saveState();
-      renderAllViews();
-    }
-
-    function deleteCategory(catId) {
-      if (!isAdminUser()) return;
-      appState.categories = appState.categories.filter(c => c.id !== catId);
-      saveState();
-      renderAllViews();
-      showToast('تم حذف الفئة', 'info');
-    }
-
-    function addSubcategoryToCat(catId) {
-      if (!isAdminUser()) return;
-      const inp = document.getElementById(`subInp-${catId}`);
-      const subName = inp?.value.trim();
-      if (!subName) return;
-      const cat = appState.categories.find(c => c.id === catId);
-      if (!cat) return;
-      if (!Array.isArray(cat.subcategories)) cat.subcategories = [];
-      if (!cat.subcategories.includes(subName)) {
-        cat.subcategories.push(subName);
-        inp.value = '';
+      try {
+        appState.staff = appState.staff.filter(s => String(s.id) !== String(id));
         saveState();
-        renderAllViews();
+        populateGateSelects();
+        renderStaffTable();
+        showToast('تم حذف الحساب', 'info');
+      } catch (err) {
+        console.error('Error deleting staff:', err);
+        showToast('تعذر حذف الحساب', 'error');
       }
     }
 
@@ -3261,70 +2768,70 @@
 
       container.innerHTML = appState.categories.map((cat, idx) => {
         const isVis = cat.visibleToCashier !== false;
-        const subsHtml = (cat.subcategories || []).map(sub => `
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-marine-50 text-marine-900 border border-marine-200 text-xs font-bold">
-            ${escapeHtml(sub)}
-            <button type="button" onclick="removeSubcategoryFromCat('${cat.id}', '${escapeAttr(sub)}')" class="text-rose-600 font-black hover:text-rose-800">×</button>
-          </span>
-        `).join('');
-
-        return `
-          <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="flex items-center gap-2">
-                <span class="font-black text-sm text-marine-900">${escapeHtml(cat.name)}</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${isVis ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}">
-                  ${isVis ? 'ظاهر للكاشير' : 'مخفي عن الكاشير'}
-                </span>
-              </div>
-              <div class="flex items-center gap-1">
-                <button type="button" onclick="moveCategoryOrder(${idx}, -1)" class="px-2 py-1 rounded bg-white border text-xs font-bold">▲</button>
-                <button type="button" onclick="moveCategoryOrder(${idx}, 1)" class="px-2 py-1 rounded bg-white border text-xs font-bold">▼</button>
-                <button type="button" onclick="toggleCategoryCashierVisibility('${cat.id}')" class="px-2.5 py-1 rounded bg-white border text-xs font-bold text-marine-900">
-                  ${isVis ? 'إخفاء' : 'إظهار'}
-                </button>
-                <button type="button" onclick="renameCategory('${cat.id}')" class="px-2.5 py-1 rounded bg-white border text-xs font-bold text-amber-700">تعديل</button>
-                <button type="button" onclick="deleteCategory('${cat.id}')" class="px-2.5 py-1 rounded bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">حذف</button>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap gap-1.5">${subsHtml || '<span class="text-xs text-slate-400">لا توجد فئات فرعية</span>'}</div>
-
-            <div class="flex gap-2">
-              <input type="text" id="subInp-${cat.id}" placeholder="إضافة فئة فرعية..." class="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold" />
-              <button type="button" onclick="addSubcategoryToCat('${cat.id}')" class="px-3 py-1.5 rounded-xl bg-marine-800 text-white text-xs font-bold">+ فرعي</button>
-            </div>
-          </div>
-        `;
-      }).join('');
+    function renameCategory(catId) {
+      if (!isAdminUser()) return;
+      const cat = appState.categories.find(c => String(c.id) === String(catId));
+      if (!cat) return;
+      openModal('partnerModal');
+      document.getElementById('partnerModalTitle').textContent = 'تعديل اسم الفئة';
+      document.getElementById('partnerModalBody').innerHTML = `
+        <div>
+          <label class="block text-xs font-bold mb-1">الاسم الجديد للفئة *</label>
+          <input type="text" id="renameCatInput" value="${escapeHtml(cat.name)}" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('partnerModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">إلغاء</button>
+          <button type="button" onclick="confirmRenameCategory('${cat.id}')" class="px-4 py-2 rounded-xl bg-marine-900 text-gold-400 text-xs font-black">حفظ الاسم</button>
+        </div>
+      `;
     }
 
-    // إدارة طرق الدفع والمحافظ الإلكترونية
-    function renderPaymentSettings() {
-      const pmList = document.getElementById('adminPaymentMethodsList');
-      if (pmList) {
-        pmList.innerHTML = appState.paymentMethods.map((m, idx) => `
-          <div class="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold">
-            <span>${escapeHtml(m)}</span>
-            <div class="flex gap-1.5">
-              <button type="button" onclick="editPaymentMethod(${idx})" class="text-amber-700 font-extrabold">تعديل</button>
-              ${appState.paymentMethods.length > 1 ? `<button type="button" onclick="deletePaymentMethod(${idx})" class="text-rose-600 font-extrabold">حذف</button>` : ''}
-            </div>
-          </div>
-        `).join('');
+    function confirmRenameCategory(catId) {
+      if (!isAdminUser()) return;
+      const cat = appState.categories.find(c => String(c.id) === String(catId));
+      const newName = (document.getElementById('renameCatInput')?.value || '').trim();
+      if (!cat || !newName || newName === cat.name) {
+        closeModal('partnerModal');
+        return;
       }
+      const oldName = cat.name;
+      cat.name = newName;
+      appState.products.forEach(p => {
+        if (p.category === oldName) p.category = newName;
+      });
+      if (selectedCategory === oldName) selectedCategory = newName;
+      saveState();
+      closeModal('partnerModal');
+      renderAllViews();
+      showToast('تم تعديل اسم الفئة', 'success');
+    }
 
-      const ewList = document.getElementById('adminEWalletsList');
-      if (ewList) {
-        ewList.innerHTML = appState.eWallets.map((w, idx) => `
-          <div class="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold">
-            <span>${escapeHtml(w)}</span>
-            <div class="flex gap-1.5">
-              <button type="button" onclick="editEWallet(${idx})" class="text-amber-700 font-extrabold">تعديل</button>
-              <button type="button" onclick="deleteEWallet(${idx})" class="text-rose-600 font-extrabold">حذف</button>
-            </div>
-          </div>
-        `).join('');
+    function moveCategoryOrder(index, dir) {
+      if (!isAdminUser()) return;
+      const target = index + dir;
+      if (target < 0 || target >= appState.categories.length) return;
+      const temp = appState.categories[index];
+      appState.categories[index] = appState.categories[target];
+      appState.categories[target] = temp;
+      saveState();
+      renderAllViews();
+    }
+
+    function deleteCategory(catId) {
+      if (!isAdminUser()) return;
+      try {
+        const targetCat = appState.categories.find(c => String(c.id) === String(catId));
+        appState.categories = appState.categories.filter(c => String(c.id) !== String(catId));
+        if (targetCat && selectedCategory === targetCat.name) {
+          selectedCategory = 'ALL';
+          selectedSubcategory = 'ALL';
+        }
+        saveState();
+        renderAllViews();
+        showToast('تم حذف الفئة بنجاح', 'info');
+      } catch (err) {
+        console.error('Error deleting category:', err);
+        showToast('تعذر حذف الفئة', 'error');
       }
     }
 
@@ -3342,18 +2849,43 @@
 
     function editPaymentMethod(idx) {
       if (!isAdminUser()) return;
-      const next = prompt('تعديل اسم طريقة الدفع:', appState.paymentMethods[idx]);
-      if (!next || !next.trim()) return;
-      appState.paymentMethods[idx] = next.trim();
+      const currentName = appState.paymentMethods[idx];
+      if (typeof currentName === 'undefined') return;
+      openModal('partnerModal');
+      document.getElementById('partnerModalTitle').textContent = 'تعديل طريقة الدفع';
+      document.getElementById('partnerModalBody').innerHTML = `
+        <div>
+          <label class="block text-xs font-bold mb-1">اسم طريقة الدفع *</label>
+          <input type="text" id="editPayMethodInput" value="${escapeHtml(currentName)}" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('partnerModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">إلغاء</button>
+          <button type="button" onclick="confirmEditPaymentMethod(${idx})" class="px-4 py-2 rounded-xl bg-marine-900 text-gold-400 text-xs font-black">حفظ</button>
+        </div>
+      `;
+    }
+
+    function confirmEditPaymentMethod(idx) {
+      if (!isAdminUser()) return;
+      const next = (document.getElementById('editPayMethodInput')?.value || '').trim();
+      if (!next) return;
+      appState.paymentMethods[idx] = next;
       saveState();
+      closeModal('partnerModal');
       renderAllViews();
+      showToast('تم تحديث طريقة الدفع', 'success');
     }
 
     function deletePaymentMethod(idx) {
       if (!isAdminUser()) return;
+      if (appState.paymentMethods.length <= 1) {
+        showToast('يجب الإبقاء على طريقة دفع واحدة على الأقل', 'warning');
+        return;
+      }
       appState.paymentMethods.splice(idx, 1);
       saveState();
       renderAllViews();
+      showToast('تم حذف طريقة الدفع', 'info');
     }
 
     function addEWallet() {
@@ -3370,11 +2902,31 @@
 
     function editEWallet(idx) {
       if (!isAdminUser()) return;
-      const next = prompt('تعديل اسم المحفظة الإلكترونية:', appState.eWallets[idx]);
-      if (!next || !next.trim()) return;
-      appState.eWallets[idx] = next.trim();
+      const currentWallet = appState.eWallets[idx];
+      if (typeof currentWallet === 'undefined') return;
+      openModal('partnerModal');
+      document.getElementById('partnerModalTitle').textContent = 'تعديل المحفظة الإلكترونية';
+      document.getElementById('partnerModalBody').innerHTML = `
+        <div>
+          <label class="block text-xs font-bold mb-1">اسم المحفظة الإلكترونية *</label>
+          <input type="text" id="editEWalletInput" value="${escapeHtml(currentWallet)}" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('partnerModal')" class="px-4 py-2 rounded-xl bg-slate-100 text-xs font-bold">إلغاء</button>
+          <button type="button" onclick="confirmEditEWallet(${idx})" class="px-4 py-2 rounded-xl bg-marine-900 text-gold-400 text-xs font-black">حفظ</button>
+        </div>
+      `;
+    }
+
+    function confirmEditEWallet(idx) {
+      if (!isAdminUser()) return;
+      const next = (document.getElementById('editEWalletInput')?.value || '').trim();
+      if (!next) return;
+      appState.eWallets[idx] = next;
       saveState();
+      closeModal('partnerModal');
       renderAllViews();
+      showToast('تم تحديث المحفظة الإلكترونية', 'success');
     }
 
     function deleteEWallet(idx) {
@@ -3382,6 +2934,89 @@
       appState.eWallets.splice(idx, 1);
       saveState();
       renderAllViews();
+      showToast('تم حذف المحفظة الإلكترونية', 'info');
+    }
+
+    // استيراد نسخة احتياطية JSON
+    function triggerImportBackupJson() {
+      const inp = document.getElementById('importBackupFileInput');
+      if (inp) {
+        inp.value = '';
+        inp.click();
+      }
+    }
+
+    function handleImportBackupJson(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(String(reader.result || '{}'));
+          if (!imported || typeof imported !== 'object') {
+            showToast('ملف النسخة الاحتياطية غير صالح', 'error');
+            return;
+          }
+          const def = getDefaultState();
+          const activeUserKeep = appState.currentUser;
+          appState = {
+            ...def,
+            ...imported,
+            store: { ...def.store, ...(imported.store || {}) },
+            activeShift: {
+              ...def.activeShift,
+              ...(imported.activeShift || {}),
+              transactions: Array.isArray(imported.activeShift?.transactions) ? imported.activeShift.transactions : []
+            },
+            currentUser: activeUserKeep
+          };
+          saveState();
+          renderAllViews();
+          showToast('تم استعادة النسخة الاحتياطية بنجاح', 'success');
+        } catch (err) {
+          console.error('Import JSON error:', err);
+          showToast('تعذر قراءة ملف النسخة الاحتياطية', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function clearSalesAndShiftHistory() {
+      if (!isAdminUser()) {
+        showToast('مسح السجلات متاح لصلاحية الإدارة فقط', 'error');
+        return;
+      }
+      appState.invoices = [];
+      appState.returns = [];
+      appState.expenses = [];
+      appState.zReports = [];
+      appState.activeShift = {
+        id: 'SHF-' + Date.now(),
+        startedAt: new Date().toISOString(),
+        openedBy: appState.currentUser?.name || 'إدارة',
+        openingCash: 0,
+        transactions: []
+      };
+      saveState();
+      renderAllViews();
+      showToast('تم مسح سجل الفواتير وإقفال الشيفتات بنجاح', 'info');
+    }
+
+    function resetAllSystemData() {
+      if (!isAdminUser()) {
+        showToast('إعادة الضبط متاحة لصلاحية الإدارة فقط', 'error');
+        return;
+      }
+      const currentUserKeep = appState.currentUser;
+      const fresh = getDefaultState();
+      fresh.currentUser = currentUserKeep;
+      appState = fresh;
+      cart = [];
+      selectedCategory = 'ALL';
+      selectedSubcategory = 'ALL';
+      saveState();
+      renderAllViews();
+      showToast('تمت إعادة ضبط النظام للبيانات الافتراضية', 'success');
     }
 
     // تصدير نسخة احتياطية JSON
