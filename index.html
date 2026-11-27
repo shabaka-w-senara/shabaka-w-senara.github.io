@@ -7,6 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link id="pwa-manifest-link" rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22%D8%B4%D8%A8%D9%83%D8%A9%20%D9%88%D8%B5%D9%86%D8%A7%D8%B1%D8%A9%22%2C%22short_name%22%3A%22%D8%B4%D8%A8%D9%83%D8%A9%20%D9%88%D8%B5%D9%86%D8%A7%D8%B1%D8%A9%22%2C%22start_url%22%3A%22.%2F%22%2C%22scope%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b2239%22%2C%22theme_color%22%3A%22%230b2239%22%2C%22dir%22%3A%22rtl%22%2C%22lang%22%3A%22ar%22%7D" />
   <title>شبكة وصنارة — نظام نقاط البيع والمحاسبة</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -171,6 +172,13 @@
             دخول لوحة الإدارة والنظام
           </button>
         </form>
+
+        <!-- زر تثبيت التطبيق مباشرة على شاشة الهاتف -->
+        <div id="pwa-install-banner" class="hidden pt-2 border-t border-slate-100">
+          <button type="button" onclick="triggerPwaInstall()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-extrabold shadow flex items-center justify-center gap-2 transition">
+            <span>تثبيت التطبيق على شاشة الهاتف الرئيسية</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1284,7 +1292,33 @@
     }
 
     /* ================= PWA Manifest + Service Worker ================= */
-    function createPngIconDataUrl(size) {
+    let deferredInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.classList.remove('hidden');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.classList.add('hidden');
+      showToast('تم تثبيت التطبيق على شاشة الهاتف بنجاح', 'success');
+    });
+
+    async function triggerPwaInstall() {
+      if (!deferredInstallPrompt) {
+        showToast('افتح قائمة المتصفح (⋮) واختر "الإضافة إلى الشاشة الرئيسية"', 'info');
+        return;
+      }
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+    }
+
+    function createCompactPngIcon(size) {
       return new Promise((resolve) => {
         try {
           const canvas = document.createElement('canvas');
@@ -1295,43 +1329,22 @@
 
           const drawFallback = () => {
             ctx.fillStyle = '#0b2239';
-            ctx.beginPath();
-            if (typeof ctx.roundRect === 'function') {
-              ctx.roundRect(0, 0, size, size, Math.round(size * 0.22));
-            } else {
-              ctx.rect(0, 0, size, size);
-            }
-            ctx.fill();
-
+            ctx.fillRect(0, 0, size, size);
             ctx.strokeStyle = '#d49b27';
-            ctx.lineWidth = Math.max(4, Math.round(size * 0.04));
-            ctx.beginPath();
-            if (typeof ctx.roundRect === 'function') {
-              ctx.roundRect(
-                Math.round(size * 0.06),
-                Math.round(size * 0.06),
-                size - Math.round(size * 0.12),
-                size - Math.round(size * 0.12),
-                Math.round(size * 0.18)
-              );
-            } else {
-              ctx.rect(
-                Math.round(size * 0.06),
-                Math.round(size * 0.06),
-                size - Math.round(size * 0.12),
-                size - Math.round(size * 0.12)
-              );
-            }
-            ctx.stroke();
-
+            ctx.lineWidth = Math.max(4, Math.round(size * 0.05));
+            ctx.strokeRect(
+              Math.round(size * 0.05),
+              Math.round(size * 0.05),
+              size - Math.round(size * 0.1),
+              size - Math.round(size * 0.1)
+            );
             ctx.fillStyle = '#f0be4d';
-            ctx.font = `bold ${Math.round(size * 0.28)}px Tahoma, Arial, sans-serif`;
+            ctx.font = `bold ${Math.round(size * 0.34)}px Tahoma, Arial, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const initials = String(state?.store?.name || 'شبكة وصنارة').trim().slice(0, 2) || 'SW';
             ctx.fillText(initials, size / 2, size / 2);
-
-            resolve(canvas.toDataURL('image/png'));
+            resolve(canvas.toDataURL('image/png', 0.85));
           };
 
           const customLogo = state?.store?.logo;
@@ -1343,7 +1356,20 @@
                 ctx.fillStyle = '#0b2239';
                 ctx.fillRect(0, 0, size, size);
                 ctx.drawImage(img, 0, 0, size, size);
-                resolve(canvas.toDataURL('image/png'));
+                // ضغط الصورة بصيغة JPEG خفيفة داخل الحاوية أو PNG صغير لتجنب تجاوز حد طول الـ Manifest في WebAPK
+                const pngUrl = canvas.toDataURL('image/png');
+                if (pngUrl.length > 45000) {
+                  const smallCanvas = document.createElement('canvas');
+                  smallCanvas.width = 144;
+                  smallCanvas.height = 144;
+                  const sCtx = smallCanvas.getContext('2d');
+                  sCtx.fillStyle = '#0b2239';
+                  sCtx.fillRect(0, 0, 144, 144);
+                  sCtx.drawImage(img, 0, 0, 144, 144);
+                  resolve(smallCanvas.toDataURL('image/png'));
+                } else {
+                  resolve(pngUrl);
+                }
               } catch (err) {
                 drawFallback();
               }
@@ -1360,15 +1386,12 @@
     }
 
     async function setupPwaManifestAndWorker() {
-      const [icon192, icon512] = await Promise.all([
-        createPngIconDataUrl(192),
-        createPngIconDataUrl(512)
-      ]);
+      const icon192 = await createCompactPngIcon(192);
       const icons = [];
-      if (icon192) icons.push({ src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' });
-      if (icon512) icons.push({ src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' });
-
       if (icon192) {
+        icons.push({ src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any' });
+        icons.push({ src: icon192, sizes: '512x512', type: 'image/png', purpose: 'any' });
+
         let appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
         if (!appleIcon) {
           appleIcon = document.createElement('link');
@@ -1386,15 +1409,15 @@
         favIcon.href = icon192;
       }
 
-      const pageUrl = window.location.href.split('#')[0].split('?')[0];
-      const scopeUrl = pageUrl.substring(0, pageUrl.lastIndexOf('/') + 1) || pageUrl;
+      const currentUrl = new URL(window.location.href);
+      const startUrl = currentUrl.origin + currentUrl.pathname;
+      const scopeUrl = currentUrl.origin + currentUrl.pathname.substring(0, currentUrl.pathname.lastIndexOf('/') + 1);
 
       const manifestObj = {
-        id: pageUrl,
         name: state?.store?.name || 'شبكة وصنارة',
-        short_name: (state?.store?.name || 'شبكة وصنارة').slice(0, 14),
+        short_name: (state?.store?.name || 'شبكة وصنارة').slice(0, 12),
         description: state?.store?.desc || 'نظام نقاط البيع والمحاسبة',
-        start_url: pageUrl,
+        start_url: startUrl,
         scope: scopeUrl,
         display: 'standalone',
         orientation: 'portrait',
@@ -1408,28 +1431,19 @@
       try {
         const manifestJson = JSON.stringify(manifestObj);
         const manifestDataUrl = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(manifestJson);
-        let link = document.querySelector('link[rel="manifest"]');
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = 'manifest';
-          document.head.appendChild(link);
+        const link = document.getElementById('pwa-manifest-link') || document.querySelector('link[rel="manifest"]');
+        if (link) {
+          link.setAttribute('href', manifestDataUrl);
         }
-        link.href = manifestDataUrl;
       } catch (e) {}
 
       if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
         const swCode = `
-          self.addEventListener('install', event => {
-            self.skipWaiting();
-          });
-          self.addEventListener('activate', event => {
-            event.waitUntil(self.clients.claim());
-          });
+          self.addEventListener('install', event => { self.skipWaiting(); });
+          self.addEventListener('activate', event => { event.waitUntil(self.clients.claim()); });
           self.addEventListener('fetch', event => {
             if (event.request.method !== 'GET') return;
-            event.respondWith(
-              fetch(event.request).catch(() => caches.match(event.request))
-            );
+            event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
           });
         `;
         try {
