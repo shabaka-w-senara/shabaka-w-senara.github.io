@@ -139,14 +139,21 @@
         <div id="gateCashierPanel" class="space-y-4">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">اختر حساب الكاشير</label>
-            <select id="gateCashierSelect" class="w-full px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-marine-700"></select>
+            <select id="gateCashierSelect" onchange="applySavedPinForSelected('cashier')" class="w-full px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-marine-700"></select>
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">رمز PIN للكاشير</label>
-            <input type="password" id="gateCashierPin" inputmode="numeric" maxlength="10" placeholder="أدخل رمز PIN (الافتراضي: 1111)"
+            <input type="password" id="gateCashierPin" inputmode="numeric" maxlength="10" placeholder="أدخل رمز PIN"
               class="w-full px-4 py-3 rounded-xl border border-slate-300 text-center text-lg font-black tracking-widest focus:outline-none focus:ring-2 focus:ring-marine-700"
               onkeydown="if(event.key==='Enter') loginAsCashier()" />
           </div>
+          <label class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <span class="flex items-center gap-2 text-xs font-bold text-slate-700">
+              <input type="checkbox" id="rememberCashierPinCheck" class="w-4 h-4 accent-marine-900" />
+              <span>حفظ رمز PIN لهذا الجهاز</span>
+            </span>
+            <button type="button" onclick="forgetSavedPin('cashier')" class="text-[11px] font-bold text-rose-600 hover:underline">نسيان</button>
+          </label>
           <p id="gateCashierError" class="text-xs font-bold text-rose-600 hidden"></p>
           <button type="button" onclick="loginAsCashier()" class="w-full py-3.5 rounded-2xl bg-marine-900 hover:bg-marine-800 text-gold-400 font-black text-base shadow-lg transition flex items-center justify-center gap-2">
             <span>بدء الشيفت والدخول لنقطة البيع</span>
@@ -158,14 +165,21 @@
         <div id="gateAdminPanel" class="space-y-4 hidden">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">اختر حساب الإدارة / الموظف</label>
-            <select id="gateAdminSelect" class="w-full px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-gold-500"></select>
+            <select id="gateAdminSelect" onchange="applySavedPinForSelected('admin')" class="w-full px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-gold-500"></select>
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">رمز PIN الخاص بالحساب</label>
-            <input type="password" id="gateAdminPin" inputmode="numeric" maxlength="10" placeholder="أدخل رمز PIN (الإدارة: 2025)"
+            <input type="password" id="gateAdminPin" inputmode="numeric" maxlength="10" placeholder="أدخل رمز PIN"
               class="w-full px-4 py-3 rounded-xl border border-slate-300 text-center text-lg font-black tracking-widest focus:outline-none focus:ring-2 focus:ring-gold-500"
               onkeydown="if(event.key==='Enter') loginAsAdmin()" />
           </div>
+          <label class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer">
+            <span class="flex items-center gap-2 text-xs font-bold text-slate-700">
+              <input type="checkbox" id="rememberAdminPinCheck" class="w-4 h-4 accent-gold-600" />
+              <span>حفظ رمز PIN لهذا الجهاز</span>
+            </span>
+            <button type="button" onclick="forgetSavedPin('admin')" class="text-[11px] font-bold text-rose-600 hover:underline">نسيان</button>
+          </label>
           <p id="gateAdminError" class="text-xs font-bold text-rose-600 hidden"></p>
           <button type="button" onclick="loginAsAdmin()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-gold-600 to-gold-500 hover:from-gold-500 hover:to-gold-400 text-marine-950 font-black text-base shadow-lg transition flex items-center justify-center gap-2">
             <span>دخول لوحة التحكم</span>
@@ -226,11 +240,11 @@
             <span>إقفال الدرج / الشيفت</span>
           </button>
 
-          <button type="button" onclick="exportBackupJson()" class="px-3 py-1.5 rounded-xl bg-marine-800 hover:bg-marine-700 text-marine-100 border border-marine-600 font-bold text-xs transition">
+          <button type="button" id="headerBackupBtn" onclick="exportBackupJson()" class="px-3 py-1.5 rounded-xl bg-marine-800 hover:bg-marine-700 text-marine-100 border border-marine-600 font-bold text-xs transition">
             💾 نسخة احتياطية
           </button>
 
-          <button type="button" onclick="triggerImportBackupJson()" class="px-3 py-1.5 rounded-xl bg-marine-800 hover:bg-marine-700 text-gold-300 border border-marine-600 font-bold text-xs transition">
+          <button type="button" id="headerRestoreBtn" onclick="triggerImportBackupJson()" class="px-3 py-1.5 rounded-xl bg-marine-800 hover:bg-marine-700 text-gold-300 border border-marine-600 font-bold text-xs transition">
             📂 استعادة
           </button>
           <input type="file" id="importBackupFileInput" accept=".json,application/json" onchange="handleImportBackupJson(event)" class="hidden" />
@@ -301,7 +315,7 @@
           <div id="posProductsGrid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[65vh] overflow-y-auto pr-0.5"></div>
         </div>
 
-        <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4 sticky top-24">
+        <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4 lg:sticky lg:top-24">
           <div class="flex items-center justify-between border-b border-slate-200 pb-3">
             <div>
               <h2 class="font-black text-base text-marine-900">🧾 سلة الفاتورة</h2>
@@ -405,10 +419,10 @@
           <div class="flex flex-wrap items-center gap-2">
             <input type="text" id="inventorySearchInput" oninput="renderInventoryTable()" placeholder="بحث في المخزون..."
               class="px-3.5 py-2 rounded-xl border border-slate-300 bg-slate-50 text-xs font-bold" />
-            <button type="button" onclick="exportInventoryExcel()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition">
+            <button type="button" id="inventoryExportExcelBtn" onclick="exportInventoryExcel()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition">
               📥 تصدير Excel
             </button>
-            <button type="button" onclick="openProductModal()" class="px-4 py-2 rounded-xl bg-marine-900 hover:bg-marine-800 text-gold-400 font-black text-xs transition shadow">
+            <button type="button" id="inventoryAddProductBtn" onclick="openProductModal()" class="px-4 py-2 rounded-xl bg-marine-900 hover:bg-marine-800 text-gold-400 font-black text-xs transition shadow">
               + إضافة منتج جديد
             </button>
           </div>
@@ -604,7 +618,7 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <h3 class="font-black text-base text-marine-900">🧾 سجل فواتير المبيعات</h3>
-            <button type="button" onclick="exportInvoicesExcel()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs">
+            <button type="button" id="reportsExportInvoicesBtn" onclick="exportInvoicesExcel()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs">
               📥 تصدير الفواتير Excel
             </button>
           </div>
@@ -765,24 +779,23 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block text-xs font-bold mb-1">الدور / الصلاحية *</label>
-            <select id="staffRoleInput" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold">
-              <option value="cashier">كاشير</option>
-              <option value="supervisor">مشرف</option>
-              <option value="admin">إدارة (كامل الصلاحيات)</option>
-            </select>
+            <label class="block text-xs font-bold mb-1">الفئة الرئيسية *</label>
+            <select id="prodCategory" onchange="populateSubcategorySelect()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold"></select>
           </div>
           <div>
-            <label class="block text-xs font-bold mb-1">تحديد الشفت *</label>
-            <select id="staffShiftInput" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold">
-              <option value="شفت صباحي">شفت صباحي</option>
-              <option value="شفت مسائي">شفت مسائي</option>
-              <option value="شفت بتوين">شفت بتوين</option>
-            </select>
+            <label class="block text-xs font-bold mb-1">الفئة الفرعية</label>
+            <select id="prodSubcategory" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold"></select>
           </div>
           <div>
-            <label class="block text-xs font-bold mb-1">رمز PIN *</label>
-            <input type="text" id="staffPinInput" required maxlength="10" placeholder="مثال: 1234" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono font-black" />
+            <label class="block text-xs font-bold mb-1">الوحدة الحسابية *</label>
+            <select id="prodUnit" onchange="updateUnitHints()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold">
+              <option value="الكمية">الكمية (قطعة / عدد)</option>
+              <option value="المتر">المتر (م)</option>
+              <option value="الكيلو">الكيلو (كجم)</option>
+              <option value="الجرام">الجرام (جم)</option>
+              <option value="مللي">مللي (مل)</option>
+              <option value="وزن">وزن</option>
+            </select>
           </div>
         </div>
         <p id="prodUnitHint" class="text-[11px] font-bold text-marine-900 bg-marine-50 border border-marine-200 rounded-xl p-2.5"></p>
@@ -937,18 +950,26 @@
           <label class="block text-xs font-bold mb-1">اسم الموظف / الكاشير *</label>
           <input type="text" id="staffNameInput" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label class="block text-xs font-bold mb-1">الدور / الصلاحية *</label>
-            <select id="staffRoleInput" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold">
+            <select id="staffRoleInput" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold">
               <option value="cashier">كاشير</option>
               <option value="supervisor">مشرف</option>
               <option value="admin">إدارة (كامل الصلاحيات)</option>
             </select>
           </div>
           <div>
+            <label class="block text-xs font-bold mb-1">تحديد الشفت *</label>
+            <select id="staffShiftInput" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold">
+              <option value="شفت صباحي">شفت صباحي</option>
+              <option value="شفت مسائي">شفت مسائي</option>
+              <option value="شفت بتوين">شفت بتوين</option>
+            </select>
+          </div>
+          <div>
             <label class="block text-xs font-bold mb-1">رمز PIN *</label>
-            <input type="text" id="staffPinInput" required maxlength="10" placeholder="مثال: 1234" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-mono font-black" />
+            <input type="text" id="staffPinInput" required maxlength="10" placeholder="مثال: 1234" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono font-black" />
           </div>
         </div>
         <label class="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 cursor-pointer">
@@ -1012,6 +1033,7 @@
   <!-- ==================== 4. الكود البرمجي الكامل للنظام ==================== -->
   <script>
     const STORAGE_KEY = 'shabaka_wa_sannara_pos_v3';
+    const SAVED_PINS_KEY = 'shabaka_wa_sannara_saved_pins_v1';
     let deferredInstallPrompt = null;
 
     (function setupDynamicManifest() {
@@ -1063,6 +1085,88 @@
       } else if (hint) {
         hint.textContent = 'لتثبيت الأيقونة يدوياً: افتح قائمة المتصفح (⋮ أو المشاركة) واختر "إضافة إلى الشاشة الرئيسية" أو "تثبيت التطبيق".';
         hint.classList.remove('hidden');
+      }
+    }
+
+    function loadSavedPinsMap() {
+      try {
+        const raw = localStorage.getItem(SAVED_PINS_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function persistSavedPin(staffId, pin) {
+      try {
+        const map = loadSavedPinsMap();
+        map[String(staffId)] = String(pin);
+        localStorage.setItem(SAVED_PINS_KEY, JSON.stringify(map));
+      } catch (err) {
+        console.warn('Failed to save PIN:', err);
+      }
+    }
+
+    function removeSavedPin(staffId) {
+      try {
+        const map = loadSavedPinsMap();
+        delete map[String(staffId)];
+        localStorage.setItem(SAVED_PINS_KEY, JSON.stringify(map));
+      } catch (err) {
+        console.warn('Failed to remove saved PIN:', err);
+      }
+    }
+
+    function applySavedPinForSelected(mode) {
+      const map = loadSavedPinsMap();
+      if (mode === 'cashier') {
+        const sel = document.getElementById('gateCashierSelect');
+        const pinInp = document.getElementById('gateCashierPin');
+        const chk = document.getElementById('rememberCashierPinCheck');
+        if (!sel || !pinInp) return;
+        const saved = map[String(sel.value)];
+        if (saved) {
+          pinInp.value = saved;
+          if (chk) chk.checked = true;
+        } else {
+          pinInp.value = '';
+          if (chk) chk.checked = false;
+        }
+      } else {
+        const sel = document.getElementById('gateAdminSelect');
+        const pinInp = document.getElementById('gateAdminPin');
+        const chk = document.getElementById('rememberAdminPinCheck');
+        if (!sel || !pinInp) return;
+        const saved = map[String(sel.value)];
+        if (saved) {
+          pinInp.value = saved;
+          if (chk) chk.checked = true;
+        } else {
+          pinInp.value = '';
+          if (chk) chk.checked = false;
+        }
+      }
+    }
+
+    function forgetSavedPin(mode) {
+      if (mode === 'cashier') {
+        const sel = document.getElementById('gateCashierSelect');
+        const pinInp = document.getElementById('gateCashierPin');
+        const chk = document.getElementById('rememberCashierPinCheck');
+        if (sel?.value) removeSavedPin(sel.value);
+        if (pinInp) pinInp.value = '';
+        if (chk) chk.checked = false;
+        showToast('تم إزالة رمز PIN المحفوظ للكاشير على هذا الجهاز', 'info');
+      } else {
+        const sel = document.getElementById('gateAdminSelect');
+        const pinInp = document.getElementById('gateAdminPin');
+        const chk = document.getElementById('rememberAdminPinCheck');
+        if (sel?.value) removeSavedPin(sel.value);
+        if (pinInp) pinInp.value = '';
+        if (chk) chk.checked = false;
+        showToast('تم إزالة رمز PIN المحفوظ على هذا الجهاز', 'info');
       }
     }
 
@@ -1278,24 +1382,30 @@
       }
     }
 
+    function isElevatedUser() {
+      return Boolean(appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'supervisor'));
+    }
+
     function isAdminUser() {
-      return appState.currentUser && (appState.currentUser.role === 'admin' || appState.currentUser.role === 'supervisor');
+      return Boolean(appState.currentUser && appState.currentUser.role === 'admin');
     }
 
     function canUserExpense() {
       if (!appState.currentUser) return false;
-      if (appState.currentUser.role === 'admin' || appState.currentUser.role === 'supervisor') return true;
+      if (isElevatedUser()) return true;
       return Boolean(appState.currentUser.canExpense);
     }
 
     // =========================================================================
-    // بوابة الدخول والصلاحيات
+    // بوابة الدخول والصلاحيات وحفظ رمز PIN
     // =========================================================================
     function initGateUI() {
       applyStoreBranding();
       populateGateSelects();
-      const mode = (appState.currentUser && appState.currentUser.role === 'admin') ? 'admin' : 'cashier';
+      const mode = (appState.currentUser && appState.currentUser.role !== 'cashier') ? 'admin' : 'cashier';
       switchGateMode(mode);
+      applySavedPinForSelected('cashier');
+      applySavedPinForSelected('admin');
     }
 
     function applyStoreBranding() {
@@ -1334,19 +1444,19 @@
 
     function populateGateSelects() {
       const cashiers = appState.staff.filter(s => s.role === 'cashier');
-      const adminsAndStaff = appState.staff;
+      const elevatedAndAll = appState.staff;
 
       const cSel = document.getElementById('gateCashierSelect');
       if (cSel) {
         cSel.innerHTML = cashiers.length
           ? cashiers.map(c => `<option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(getShiftLabel(c.shift))}</option>`).join('')
-          : adminsAndStaff.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${getRoleArabicLabel(c.role)} - ${escapeHtml(getShiftLabel(c.shift))})</option>`).join('');
+          : elevatedAndAll.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${getRoleArabicLabel(c.role)} - ${escapeHtml(getShiftLabel(c.shift))})</option>`).join('');
       }
 
       const aSel = document.getElementById('gateAdminSelect');
       if (aSel) {
-        aSel.innerHTML = adminsAndStaff.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${getRoleArabicLabel(s.role)} - ${escapeHtml(getShiftLabel(s.shift))})</option>`).join('');
-        const firstAdmin = adminsAndStaff.find(s => s.role === 'admin');
+        aSel.innerHTML = elevatedAndAll.map(s => `<option value="${s.id}">${escapeHtml(s.name)} (${getRoleArabicLabel(s.role)} - ${escapeHtml(getShiftLabel(s.shift))})</option>`).join('');
+        const firstAdmin = elevatedAndAll.find(s => s.role === 'admin');
         if (firstAdmin) aSel.value = firstAdmin.id;
       }
     }
@@ -1362,17 +1472,20 @@
         btnC.className = 'py-2.5 rounded-xl text-sm font-extrabold transition text-slate-600 hover:text-marine-900';
         panA.classList.remove('hidden');
         panC.classList.add('hidden');
+        applySavedPinForSelected('admin');
       } else {
         btnC.className = 'py-2.5 rounded-xl text-sm font-extrabold transition bg-marine-900 text-gold-400 shadow';
         btnA.className = 'py-2.5 rounded-xl text-sm font-extrabold transition text-slate-600 hover:text-marine-900';
         panC.classList.remove('hidden');
         panA.classList.add('hidden');
+        applySavedPinForSelected('cashier');
       }
     }
 
     function loginAsCashier() {
       const selId = document.getElementById('gateCashierSelect').value;
       const pin = document.getElementById('gateCashierPin').value.trim();
+      const remember = Boolean(document.getElementById('rememberCashierPinCheck')?.checked);
       const errEl = document.getElementById('gateCashierError');
       errEl.classList.add('hidden');
 
@@ -1382,6 +1495,9 @@
         errEl.classList.remove('hidden');
         return;
       }
+
+      if (remember) persistSavedPin(member.id, pin);
+      else removeSavedPin(member.id);
 
       appState.currentUser = { ...member, shift: getShiftLabel(member.shift) };
       if (!appState.activeShift.openedBy || appState.activeShift.openedBy === 'النظام') {
@@ -1395,6 +1511,7 @@
     function loginAsAdmin() {
       const selId = document.getElementById('gateAdminSelect').value;
       const pin = document.getElementById('gateAdminPin').value.trim();
+      const remember = Boolean(document.getElementById('rememberAdminPinCheck')?.checked);
       const errEl = document.getElementById('gateAdminError');
       errEl.classList.add('hidden');
 
@@ -1404,6 +1521,9 @@
         errEl.classList.remove('hidden');
         return;
       }
+
+      if (remember) persistSavedPin(member.id, pin);
+      else removeSavedPin(member.id);
 
       appState.currentUser = { ...member, shift: getShiftLabel(member.shift) };
       appState.activeShift.shiftName = getShiftLabel(member.shift);
@@ -1416,29 +1536,60 @@
       saveState();
       document.getElementById('mainAppShell').classList.add('hidden');
       document.getElementById('loginGate').classList.remove('hidden');
-      document.getElementById('gateCashierPin').value = '';
-      document.getElementById('gateAdminPin').value = '';
       initGateUI();
     }
 
-    function enterMainApp() {
-      document.getElementById('loginGate').classList.add('hidden');
-      document.getElementById('mainAppShell').classList.remove('hidden');
+    function applyRolePermissionsUI() {
+      const elevated = isElevatedUser();
+      const adminOnly = isAdminUser();
+      const userName = appState.currentUser?.name || '';
+      const userShift = getShiftLabel(appState.currentUser?.shift);
 
-      document.getElementById('headerUserName').textContent = appState.currentUser.name;
-      document.getElementById('headerUserRole').textContent = isAdminUser() ? `صلاحية ${getRoleArabicLabel(appState.currentUser.role)}` : 'كاشير';
+      document.getElementById('headerUserName').textContent = userName || '-';
+      document.getElementById('headerUserRole').textContent = adminOnly
+        ? 'صلاحية إدارة'
+        : (appState.currentUser?.role === 'supervisor' ? 'صلاحية مشرف' : 'كاشير');
       const userShiftEl = document.getElementById('headerUserShift');
-      if (userShiftEl) userShiftEl.textContent = getShiftLabel(appState.currentUser.shift);
+      if (userShiftEl) userShiftEl.textContent = userShift;
+
       const expBtn = document.getElementById('headerExpenseBtn');
       const expTabBtn = document.getElementById('expensesTabAddBtn');
       const allowExp = canUserExpense();
       if (expBtn) expBtn.classList.toggle('hidden', !allowExp);
       if (expTabBtn) expTabBtn.classList.toggle('hidden', !allowExp);
 
-      document.querySelectorAll('.cost-col').forEach(el => {
-        el.classList.toggle('hidden', !isAdminUser());
+      const backupBtn = document.getElementById('headerBackupBtn');
+      const restoreBtn = document.getElementById('headerRestoreBtn');
+      if (backupBtn) backupBtn.classList.toggle('hidden', !elevated);
+      if (restoreBtn) restoreBtn.classList.toggle('hidden', !elevated);
+
+      const invAddBtn = document.getElementById('inventoryAddProductBtn');
+      const invExpBtn = document.getElementById('inventoryExportExcelBtn');
+      const repExpBtn = document.getElementById('reportsExportInvoicesBtn');
+      if (invAddBtn) invAddBtn.classList.toggle('hidden', !elevated);
+      if (invExpBtn) invExpBtn.classList.toggle('hidden', !elevated);
+      if (repExpBtn) repExpBtn.classList.toggle('hidden', !elevated);
+
+      const hiddenForCashierTabs = ['customers', 'suppliers', 'settings'];
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        const nav = btn.dataset.nav;
+        if (!elevated && hiddenForCashierTabs.includes(nav)) {
+          btn.classList.add('hidden');
+        } else {
+          btn.classList.remove('hidden');
+        }
       });
 
+      document.querySelectorAll('.cost-col').forEach(el => {
+        el.classList.toggle('hidden', !elevated);
+      });
+    }
+
+    function enterMainApp() {
+      document.getElementById('loginGate').classList.add('hidden');
+      document.getElementById('mainAppShell').classList.remove('hidden');
+
+      applyRolePermissionsUI();
       switchTab('pos');
       renderAllViews();
       showToast(`مرحباً بك ${appState.currentUser.name}`, 'success');
@@ -1452,6 +1603,12 @@
     }, 1000);
 
     function switchTab(tabName) {
+      const cashierBlocked = ['customers', 'suppliers', 'settings'];
+      if (!isElevatedUser() && cashierBlocked.includes(tabName)) {
+        showToast('هذا القسم متاح للإدارة والمشرف فقط', 'error');
+        tabName = 'pos';
+      }
+
       activeTab = tabName;
       document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('hidden'));
       const target = document.getElementById(`tab-${tabName}`);
@@ -1459,9 +1616,11 @@
 
       document.querySelectorAll('.nav-tab-btn').forEach(btn => {
         const isActive = btn.dataset.nav === tabName;
+        const isHidden = !isElevatedUser() && cashierBlocked.includes(btn.dataset.nav);
         btn.className = isActive
           ? 'nav-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition bg-gold-500 text-marine-950 shadow'
           : 'nav-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition text-marine-100 hover:bg-marine-800';
+        if (isHidden) btn.classList.add('hidden');
       });
 
       renderAllViews();
@@ -1469,6 +1628,7 @@
 
     function renderAllViews() {
       applyStoreBranding();
+      applyRolePermissionsUI();
       renderPosCategoriesAndSubcategories();
       renderPosProducts();
       populatePosSelectors();
@@ -1476,10 +1636,12 @@
       renderInventoryTable();
       renderReturnsTable();
       renderExpensesTable();
-      renderCustomersTable();
-      renderSuppliersAndPurchases();
+      if (isElevatedUser()) {
+        renderCustomersTable();
+        renderSuppliersAndPurchases();
+        renderSettingsView();
+      }
       renderReportsView();
-      renderSettingsView();
     }
 
     // =========================================================================
@@ -1491,7 +1653,7 @@
       const subContainer = document.getElementById('posSubcategoryButtons');
       if (!catContainer) return;
 
-      const visibleCats = isAdminUser()
+      const visibleCats = isElevatedUser()
         ? appState.categories
         : appState.categories.filter(c => c.visibleToCashier !== false);
 
@@ -1540,12 +1702,12 @@
       if (!grid) return;
 
       const q = (document.getElementById('posSearchInput')?.value || '').trim().toLowerCase();
-      const visibleCatNames = isAdminUser()
+      const visibleCatNames = isElevatedUser()
         ? appState.categories.map(c => c.name)
         : appState.categories.filter(c => c.visibleToCashier !== false).map(c => c.name);
 
       const filtered = appState.products.filter(p => {
-        if (!isAdminUser() && p.category && !visibleCatNames.includes(p.category)) return false;
+        if (!isElevatedUser() && p.category && !visibleCatNames.includes(p.category)) return false;
         if (selectedCategory !== 'ALL' && p.category !== selectedCategory) return false;
         if (selectedSubcategory !== 'ALL' && p.subcategory !== selectedSubcategory) return false;
         if (q) {
@@ -1596,10 +1758,14 @@
       const paySel = document.getElementById('posPaymentMethodSelect');
       if (paySel) {
         const prevPay = paySel.value;
-        paySel.innerHTML = appState.paymentMethods.map(m =>
+        const allowedMethods = isElevatedUser()
+          ? appState.paymentMethods
+          : appState.paymentMethods.filter(m => !m.includes('آجل'));
+        const listToUse = allowedMethods.length ? allowedMethods : ['نقدي', 'المحافظ الإلكترونية'];
+        paySel.innerHTML = listToUse.map(m =>
           `<option value="${escapeAttr(m)}">${escapeHtml(m)}</option>`
         ).join('');
-        if (prevPay && appState.paymentMethods.includes(prevPay)) {
+        if (prevPay && listToUse.includes(prevPay)) {
           paySel.value = prevPay;
         }
       }
@@ -1863,9 +2029,12 @@
       }
 
       const { subtotal, discount, total, hasPaidInput, paid } = getCartSummary();
-      const custId = document.getElementById('posCustomerSelect').value;
+      const custId = isElevatedUser() ? document.getElementById('posCustomerSelect').value : 'cust-walkin';
       const customer = appState.customers.find(c => c.id === custId) || { id: 'cust-walkin', name: 'عميل نقدي عام' };
-      const paymentMethod = document.getElementById('posPaymentMethodSelect').value || 'نقدي';
+      let paymentMethod = document.getElementById('posPaymentMethodSelect').value || 'نقدي';
+      if (!isElevatedUser() && paymentMethod.includes('آجل')) {
+        paymentMethod = 'نقدي';
+      }
       const isCredit = paymentMethod.includes('آجل');
       const isWallet = paymentMethod.includes('محفظ') || paymentMethod.includes('إلكترون');
       const walletName = isWallet ? (selectedEWallet || appState.eWallets[0] || '') : '';
@@ -1898,6 +2067,7 @@
       const invoice = {
         id: 'INV-' + (1000 + appState.invoices.length + 1),
         date: new Date().toISOString(),
+        cashierId: appState.currentUser?.id || '',
         cashierName: appState.currentUser?.name || 'كاشير',
         shiftName,
         customerId: customer.id,
@@ -1985,6 +2155,10 @@
     }
 
     function openProductModal(productId = null) {
+      if (!isElevatedUser()) {
+        showToast('إضافة وتعديل المخزون متاح للإدارة والمشرف فقط', 'error');
+        return;
+      }
       populateCategorySelectsForProduct();
       const form = document.getElementById('productForm');
       form.reset();
@@ -2032,6 +2206,7 @@
 
     function saveProductFromForm(e) {
       e.preventDefault();
+      if (!isElevatedUser()) return;
       const editId = document.getElementById('prodEditId').value;
       const name = document.getElementById('prodName').value.trim();
       const brand = document.getElementById('prodBrand').value.trim();
@@ -2065,8 +2240,8 @@
     }
 
     function deleteProduct(id) {
-      if (!isAdminUser()) {
-        showToast('حذف المنتجات متاح لصلاحية الإدارة فقط', 'error');
+      if (!isElevatedUser()) {
+        showToast('حذف المنتجات متاح للإدارة والمشرف فقط', 'error');
         return;
       }
       appState.products = appState.products.filter(p => String(p.id) !== String(id));
@@ -2080,7 +2255,7 @@
       const tbody = document.getElementById('inventoryTableBody');
       if (!tbody) return;
       const q = (document.getElementById('inventorySearchInput')?.value || '').trim().toLowerCase();
-      const showCost = isAdminUser();
+      const canEditInv = isElevatedUser();
 
       const rows = appState.products.filter(p => {
         if (!q) return true;
@@ -2105,18 +2280,20 @@
           <td class="py-2.5 px-3 text-xs font-bold text-slate-700">${escapeHtml(p.brand || '-')}</td>
           <td class="py-2.5 px-3"><span class="px-2.5 py-0.5 rounded-lg bg-marine-100 text-marine-900 text-xs font-black">${escapeHtml(p.unit || 'الكمية')}</span></td>
           <td class="py-2.5 px-3 font-mono font-black ${Number(p.stock) <= 0 ? 'text-rose-600' : 'text-emerald-700'}">${fmtQty(p.stock)}</td>
-          <td class="py-2.5 px-3 font-mono text-xs text-slate-600 cost-col ${showCost ? '' : 'hidden'}">${fmtMoney(p.cost)}</td>
+          <td class="py-2.5 px-3 font-mono text-xs text-slate-600 cost-col ${canEditInv ? '' : 'hidden'}">${fmtMoney(p.cost)}</td>
           <td class="py-2.5 px-3 font-mono font-black text-marine-900">${fmtMoney(p.price)}</td>
           <td class="py-2.5 px-3 whitespace-nowrap">
-            <button type="button" onclick="openProductModal('${p.id}')" class="px-2.5 py-1 rounded-lg bg-marine-100 hover:bg-marine-200 text-marine-900 text-xs font-bold ml-1">تعديل</button>
-            ${showCost ? `<button type="button" onclick="deleteProduct('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">حذف</button>` : ''}
+            ${canEditInv
+              ? `<button type="button" onclick="openProductModal('${p.id}')" class="px-2.5 py-1 rounded-lg bg-marine-100 hover:bg-marine-200 text-marine-900 text-xs font-bold ml-1">تعديل</button>
+                 <button type="button" onclick="deleteProduct('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">حذف</button>`
+              : `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[11px] font-bold">عرض فقط</span>`}
           </td>
         </tr>
       `).join('');
     }
 
     function exportInventoryExcel() {
-      if (typeof XLSX === 'undefined') return;
+      if (!isElevatedUser() || typeof XLSX === 'undefined') return;
       const rows = appState.products.map(p => ({
         'المنتج': p.name,
         'الماركة': p.brand || '',
@@ -2124,7 +2301,7 @@
         'الفئة الفرعية': p.subcategory || '',
         'الوحدة الحسابية': p.unit || 'الكمية',
         'الرصيد': Number(p.stock),
-        ...(isAdminUser() ? { 'سعر الشراء': Number(p.cost) } : {}),
+        'سعر الشراء': Number(p.cost),
         'سعر البيع': Number(p.price)
       }));
       const ws = XLSX.utils.json_to_sheet(rows);
@@ -2185,6 +2362,7 @@
         qty,
         refundAmount,
         shiftName: getShiftLabel(appState.currentUser?.shift || appState.activeShift?.shiftName),
+        byId: appState.currentUser?.id || '',
         by: appState.currentUser?.name || 'كاشير'
       };
 
@@ -2208,11 +2386,18 @@
     function renderReturnsTable() {
       const tbody = document.getElementById('returnsTableBody');
       if (!tbody) return;
-      if (!appState.returns.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 font-bold">لا توجد مرتجعات مسجلة</td></tr>`;
+      const rows = isElevatedUser()
+        ? appState.returns
+        : appState.returns.filter(r =>
+            (appState.currentUser?.id && r.byId === appState.currentUser.id) ||
+            r.by === appState.currentUser?.name
+          );
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 font-bold">لا توجد مرتجعات مسجلة في شيفتك</td></tr>`;
         return;
       }
-      tbody.innerHTML = appState.returns.map(r => `
+      tbody.innerHTML = rows.map(r => `
         <tr class="hover:bg-slate-50">
           <td class="py-2.5 px-3 font-mono font-black text-amber-800">${r.id}</td>
           <td class="py-2.5 px-3 text-xs">${formatDateTime(r.date)}</td>
@@ -2258,6 +2443,7 @@
         title,
         amount: Number(amount.toFixed(2)),
         shiftName: getShiftLabel(appState.currentUser?.shift || appState.activeShift?.shiftName),
+        byId: appState.currentUser?.id || '',
         by: appState.currentUser?.name || 'كاشير'
       };
 
@@ -2281,26 +2467,33 @@
     function renderExpensesTable() {
       const tbody = document.getElementById('expensesTableBody');
       if (!tbody) return;
-      if (!appState.expenses.length) {
+      const rows = isElevatedUser()
+        ? appState.expenses
+        : appState.expenses.filter(e =>
+            (appState.currentUser?.id && e.byId === appState.currentUser.id) ||
+            e.by === appState.currentUser?.name
+          );
+
+      if (!rows.length) {
         tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400 font-bold">لا توجد مصروفات مسجلة</td></tr>`;
         return;
       }
-      tbody.innerHTML = appState.expenses.map(e => `
+      tbody.innerHTML = rows.map(e => `
         <tr class="hover:bg-slate-50">
           <td class="py-2.5 px-3 text-xs">${formatDateTime(e.date)}</td>
           <td class="py-2.5 px-3 font-bold text-slate-900">${escapeHtml(e.title)}</td>
           <td class="py-2.5 px-3 font-mono font-black text-rose-700">${fmtMoney(e.amount)}</td>
           <td class="py-2.5 px-3 text-xs font-bold">${escapeHtml(e.by)}</td>
           <td class="py-2.5 px-3">
-            ${isAdminUser() ? `<button type="button" onclick="deleteExpense('${e.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 text-xs font-bold">حذف</button>` : '<span class="text-xs text-slate-400">-</span>'}
+            ${isElevatedUser() ? `<button type="button" onclick="deleteExpense('${e.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 text-xs font-bold">حذف</button>` : '<span class="text-xs text-slate-400">-</span>'}
           </td>
         </tr>
       `).join('');
     }
 
     function deleteExpense(id) {
-      if (!isAdminUser()) {
-        showToast('حذف المصروفات متاح للإدارة فقط', 'error');
+      if (!isElevatedUser()) {
+        showToast('حذف المصروفات متاح للإدارة والمشرف فقط', 'error');
         return;
       }
       appState.expenses = appState.expenses.filter(e => String(e.id) !== String(id));
@@ -2310,9 +2503,10 @@
     }
 
     // =========================================================================
-    // العملاء والموردون والمشتريات
+    // العملاء والموردون والمشتريات (للإدارة والمشرف)
     // =========================================================================
     function openCustomerModal() {
+      if (!isElevatedUser()) return;
       openModal('partnerModal');
       document.getElementById('partnerModalTitle').textContent = 'إضافة عميل جديد';
       document.getElementById('partnerModalBody').innerHTML = `
@@ -2332,6 +2526,7 @@
     }
 
     function saveNewCustomer() {
+      if (!isElevatedUser()) return;
       const name = (document.getElementById('newCustName')?.value || '').trim();
       const phone = (document.getElementById('newCustPhone')?.value || '').trim() || '-';
       if (!name) return;
@@ -2343,6 +2538,7 @@
     }
 
     function openCollectCustomerModal(custId) {
+      if (!isElevatedUser()) return;
       const cust = appState.customers.find(c => c.id === custId);
       if (!cust) return;
       openModal('partnerModal');
@@ -2361,6 +2557,7 @@
     }
 
     function confirmCollectCustomer(custId) {
+      if (!isElevatedUser()) return;
       const cust = appState.customers.find(c => c.id === custId);
       const amt = Number(document.getElementById('collectAmtInput')?.value || 0);
       if (!cust || isNaN(amt) || amt <= 0) return;
@@ -2372,7 +2569,7 @@
         type: 'collection',
         description: `تحصيل آجل من العميل: ${cust.name}`,
         amount: collected,
-        by: appState.currentUser?.name || 'كاشير'
+        by: appState.currentUser?.name || 'إدارة'
       });
       saveState();
       closeModal('partnerModal');
@@ -2396,6 +2593,7 @@
     }
 
     function openSupplierModal() {
+      if (!isElevatedUser()) return;
       openModal('partnerModal');
       document.getElementById('partnerModalTitle').textContent = 'إضافة مورد جديد';
       document.getElementById('partnerModalBody').innerHTML = `
@@ -2415,6 +2613,7 @@
     }
 
     function saveNewSupplier() {
+      if (!isElevatedUser()) return;
       const name = (document.getElementById('newSupName')?.value || '').trim();
       const phone = (document.getElementById('newSupPhone')?.value || '').trim() || '-';
       if (!name) return;
@@ -2426,7 +2625,7 @@
     }
 
     function openPurchaseModal() {
-      if (!appState.products.length) return;
+      if (!isElevatedUser() || !appState.products.length) return;
       openModal('partnerModal');
       document.getElementById('partnerModalTitle').textContent = 'تسجيل فاتورة شراء للمخزون';
       document.getElementById('partnerModalBody').innerHTML = `
@@ -2460,6 +2659,7 @@
     }
 
     function savePurchaseInvoice() {
+      if (!isElevatedUser()) return;
       const supId = document.getElementById('purSupSelect')?.value;
       const prodId = document.getElementById('purProdSelect')?.value;
       const qty = Number(document.getElementById('purQtyInput')?.value || 0);
@@ -2641,6 +2841,7 @@
       const report = {
         id: 'Z-' + (100 + appState.zReports.length + 1),
         closedAt: new Date().toISOString(),
+        cashierId: appState.currentUser?.id || '',
         cashierName: appState.currentUser?.name || appState.activeShift.openedBy || 'كاشير',
         shiftName,
         cashSales: sum.cashSales,
@@ -2677,24 +2878,53 @@
     }
 
     function renderReportsView() {
+      const elevated = isElevatedUser();
+      const visibleInvoices = elevated
+        ? appState.invoices
+        : appState.invoices.filter(i =>
+            (appState.currentUser?.id && i.cashierId === appState.currentUser.id) ||
+            i.cashierName === appState.currentUser?.name
+          );
+
+      const visibleReturns = elevated
+        ? appState.returns
+        : appState.returns.filter(r =>
+            (appState.currentUser?.id && r.byId === appState.currentUser.id) ||
+            r.by === appState.currentUser?.name
+          );
+
+      const visibleExpenses = elevated
+        ? appState.expenses
+        : appState.expenses.filter(e =>
+            (appState.currentUser?.id && e.byId === appState.currentUser.id) ||
+            e.by === appState.currentUser?.name
+          );
+
+      const visibleZReports = elevated
+        ? appState.zReports
+        : appState.zReports.filter(z =>
+            (appState.currentUser?.id && z.cashierId === appState.currentUser.id) ||
+            z.cashierName === appState.currentUser?.name
+          );
+
       const cardsEl = document.getElementById('reportsSummaryCards');
-      const totalSales = appState.invoices.reduce((s, i) => s + Number(i.total || 0), 0);
-      const totalReturns = appState.returns.reduce((s, r) => s + Number(r.refundAmount || 0), 0);
-      const totalExpenses = appState.expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+      const totalSales = visibleInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+      const totalReturns = visibleReturns.reduce((s, r) => s + Number(r.refundAmount || 0), 0);
+      const totalExpenses = visibleExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
       const netRevenue = Number((totalSales - totalReturns - totalExpenses).toFixed(2));
 
       if (cardsEl) {
         cardsEl.innerHTML = `
           <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
-            <div class="text-xs font-bold text-slate-500">إجمالي المبيعات</div>
+            <div class="text-xs font-bold text-slate-500">${elevated ? 'إجمالي المبيعات' : 'مبيعات شفتك'}</div>
             <div class="font-mono font-black text-xl text-marine-900 mt-1">${fmtMoney(totalSales)}</div>
           </div>
           <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
-            <div class="text-xs font-bold text-slate-500">إجمالي المرتجعات</div>
+            <div class="text-xs font-bold text-slate-500">${elevated ? 'إجمالي المرتجعات' : 'مرتجعات شفتك'}</div>
             <div class="font-mono font-black text-xl text-amber-700 mt-1">${fmtMoney(totalReturns)}</div>
           </div>
           <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
-            <div class="text-xs font-bold text-slate-500">إجمالي المصروفات</div>
+            <div class="text-xs font-bold text-slate-500">${elevated ? 'إجمالي المصروفات' : 'مصروفات درجك'}</div>
             <div class="font-mono font-black text-xl text-rose-700 mt-1">${fmtMoney(totalExpenses)}</div>
           </div>
           <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
@@ -2706,10 +2936,10 @@
 
       const zBody = document.getElementById('zReportsTableBody');
       if (zBody) {
-        if (!appState.zReports.length) {
+        if (!visibleZReports.length) {
           zBody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-slate-400 font-bold">لم يتم إقفال أي درج بعد — اضغط "إقفال الدرج الحالي الآن" لتسجيل أول تقرير</td></tr>`;
         } else {
-          zBody.innerHTML = appState.zReports.map(z => {
+          zBody.innerHTML = visibleZReports.map(z => {
             let diffBadge = `<span class="px-2 py-0.5 rounded-full text-xs font-black bg-slate-100 text-slate-700">مطابق (0.00)</span>`;
             if (z.variance < 0) {
               diffBadge = `<span class="px-2 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-800">عجز ${fmtMoney(Math.abs(z.variance))}</span>`;
@@ -2744,10 +2974,10 @@
 
       const invBody = document.getElementById('invoicesTableBody');
       if (invBody) {
-        if (!appState.invoices.length) {
+        if (!visibleInvoices.length) {
           invBody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 font-bold">لا توجد فواتير مبيعات بعد</td></tr>`;
         } else {
-          invBody.innerHTML = appState.invoices.map(inv => `
+          invBody.innerHTML = visibleInvoices.map(inv => `
             <tr class="hover:bg-slate-50">
               <td class="py-2.5 px-3 font-mono font-black text-marine-900">${inv.id}</td>
               <td class="py-2.5 px-3 text-xs">${formatDateTime(inv.date)}</td>
@@ -2778,7 +3008,7 @@
     }
 
     function exportInvoicesExcel() {
-      if (typeof XLSX === 'undefined') return;
+      if (!isElevatedUser() || typeof XLSX === 'undefined') return;
       const rows = appState.invoices.map(i => ({
         'رقم الفاتورة': i.id,
         'التاريخ': formatDateTime(i.date),
@@ -3053,6 +3283,7 @@
     }
 
     function handleLogoUpload(event) {
+      if (!isElevatedUser()) return;
       const file = event.target.files?.[0];
       if (!file) return;
       const reader = new FileReader();
@@ -3066,6 +3297,7 @@
     }
 
     function clearCustomLogo() {
+      if (!isElevatedUser()) return;
       appState.store.logo = '';
       saveState();
       applyStoreBranding();
@@ -3073,6 +3305,7 @@
     }
 
     function saveStoreSettings() {
+      if (!isElevatedUser()) return;
       appState.store.name = document.getElementById('settingStoreName').value.trim() || 'شبكة وصنارة';
       appState.store.subtitle = document.getElementById('settingStoreSubtitle').value.trim();
       appState.store.address = document.getElementById('settingStoreAddress').value.trim();
@@ -3119,8 +3352,8 @@
     }
 
     function openStaffModal(staffId = null) {
-      if (!isAdminUser()) {
-        showToast('إدارة الحسابات ورموز PIN متاحة لصلاحية الإدارة فقط', 'error');
+      if (!isElevatedUser()) {
+        showToast('إدارة الحسابات ورموز PIN متاحة لصلاحية الإدارة والمشرف فقط', 'error');
         return;
       }
       document.getElementById('staffForm').reset();
@@ -3145,8 +3378,8 @@
     }
 
     function deleteStaffMember(staffId) {
-      if (!isAdminUser()) {
-        showToast('حذف الحسابات متاح لصلاحية الإدارة فقط', 'error');
+      if (!isElevatedUser()) {
+        showToast('حذف الحسابات متاح لصلاحية الإدارة والمشرف فقط', 'error');
         return;
       }
       if (appState.staff.length <= 1) {
@@ -3161,8 +3394,8 @@
     }
 
     function addMainCategory() {
-      if (!isAdminUser()) {
-        showToast('إدارة الفئات متاحة لصلاحية الإدارة فقط', 'error');
+      if (!isElevatedUser()) {
+        showToast('إدارة الفئات متاحة لصلاحية الإدارة والمشرف فقط', 'error');
         return;
       }
       const inp = document.getElementById('newCategoryNameInput');
@@ -3185,7 +3418,7 @@
     }
 
     function addSubcategoryToCat(catId) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const cat = appState.categories.find(c => String(c.id) === String(catId));
       const inp = document.getElementById(`subcat-input-${catId}`);
       const subName = (inp?.value || '').trim();
@@ -3201,7 +3434,7 @@
     }
 
     function toggleCategoryCashierVisibility(catId) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const cat = appState.categories.find(c => String(c.id) === String(catId));
       if (!cat) return;
       cat.visibleToCashier = cat.visibleToCashier === false ? true : false;
@@ -3212,7 +3445,7 @@
 
     function saveStaffMember(e) {
       e.preventDefault();
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const editId = document.getElementById('staffEditId').value;
       const name = document.getElementById('staffNameInput').value.trim();
       const role = document.getElementById('staffRoleInput').value;
@@ -3241,14 +3474,11 @@
       closeModal('staffModal');
       populateGateSelects();
       renderStaffTable();
-      if (appState.currentUser) {
-        const userShiftEl = document.getElementById('headerUserShift');
-        if (userShiftEl) userShiftEl.textContent = getShiftLabel(appState.currentUser.shift);
-      }
+      applyRolePermissionsUI();
     }
 
     function removeSubcategoryFromCat(catId, subName) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const cat = appState.categories.find(c => String(c.id) === String(catId));
       if (!cat) return;
       cat.subcategories = (cat.subcategories || []).filter(s => s !== subName);
@@ -3299,7 +3529,7 @@
     }
 
     function renameCategory(catId) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const cat = appState.categories.find(c => String(c.id) === String(catId));
       if (!cat) return;
       openModal('partnerModal');
@@ -3317,7 +3547,7 @@
     }
 
     function confirmRenameCategory(catId) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const cat = appState.categories.find(c => String(c.id) === String(catId));
       const newName = (document.getElementById('renameCatInput')?.value || '').trim();
       if (!cat || !newName || newName === cat.name) {
@@ -3337,7 +3567,7 @@
     }
 
     function moveCategoryOrder(index, dir) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const target = index + dir;
       if (target < 0 || target >= appState.categories.length) return;
       const temp = appState.categories[index];
@@ -3348,7 +3578,7 @@
     }
 
     function deleteCategory(catId) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const targetCat = appState.categories.find(c => String(c.id) === String(catId));
       appState.categories = appState.categories.filter(c => String(c.id) !== String(catId));
       if (targetCat && selectedCategory === targetCat.name) {
@@ -3391,7 +3621,7 @@
     }
 
     function addPaymentMethod() {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const inp = document.getElementById('newPaymentMethodInput');
       const val = inp.value.trim();
       if (!val || appState.paymentMethods.includes(val)) return;
@@ -3403,7 +3633,7 @@
     }
 
     function editPaymentMethod(idx) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const currentName = appState.paymentMethods[idx];
       if (typeof currentName === 'undefined') return;
       openModal('partnerModal');
@@ -3421,7 +3651,7 @@
     }
 
     function confirmEditPaymentMethod(idx) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const next = (document.getElementById('editPayMethodInput')?.value || '').trim();
       if (!next) return;
       appState.paymentMethods[idx] = next;
@@ -3432,7 +3662,7 @@
     }
 
     function deletePaymentMethod(idx) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       if (appState.paymentMethods.length <= 1) {
         showToast('يجب الإبقاء على طريقة دفع واحدة على الأقل', 'warning');
         return;
@@ -3444,7 +3674,7 @@
     }
 
     function addEWallet() {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const inp = document.getElementById('newEWalletInput');
       const val = inp.value.trim();
       if (!val || appState.eWallets.includes(val)) return;
@@ -3456,7 +3686,7 @@
     }
 
     function editEWallet(idx) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const currentWallet = appState.eWallets[idx];
       if (typeof currentWallet === 'undefined') return;
       openModal('partnerModal');
@@ -3474,7 +3704,7 @@
     }
 
     function confirmEditEWallet(idx) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       const next = (document.getElementById('editEWalletInput')?.value || '').trim();
       if (!next) return;
       appState.eWallets[idx] = next;
@@ -3485,7 +3715,7 @@
     }
 
     function deleteEWallet(idx) {
-      if (!isAdminUser()) return;
+      if (!isElevatedUser()) return;
       appState.eWallets.splice(idx, 1);
       saveState();
       renderAllViews();
@@ -3493,6 +3723,10 @@
     }
 
     function triggerImportBackupJson() {
+      if (!isElevatedUser()) {
+        showToast('استعادة النسخة الاحتياطية متاحة للإدارة والمشرف فقط', 'error');
+        return;
+      }
       const inp = document.getElementById('importBackupFileInput');
       if (inp) {
         inp.value = '';
@@ -3501,6 +3735,7 @@
     }
 
     function handleImportBackupJson(event) {
+      if (!isElevatedUser()) return;
       const file = event.target.files?.[0];
       if (!file) return;
       const reader = new FileReader();
@@ -3536,8 +3771,8 @@
     }
 
     function clearSalesAndShiftHistory() {
-      if (!isAdminUser()) {
-        showToast('مسح السجلات متاح لصلاحية الإدارة فقط', 'error');
+      if (!isElevatedUser()) {
+        showToast('مسح السجلات متاح لصلاحية الإدارة والمشرف فقط', 'error');
         return;
       }
       appState.invoices = [];
@@ -3557,8 +3792,8 @@
     }
 
     function resetAllSystemData() {
-      if (!isAdminUser()) {
-        showToast('إعادة الضبط متاحة لصلاحية الإدارة فقط', 'error');
+      if (!isElevatedUser()) {
+        showToast('إعادة الضبط متاحة لصلاحية الإدارة والمشرف فقط', 'error');
         return;
       }
       const currentUserKeep = appState.currentUser;
@@ -3574,6 +3809,10 @@
     }
 
     function exportBackupJson() {
+      if (!isElevatedUser()) {
+        showToast('النسخة الاحتياطية متاحة للإدارة والمشرف فقط', 'error');
+        return;
+      }
       const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
