@@ -327,6 +327,28 @@
               </div>
             </div>
 
+            <!-- أزرار فئات النقدية السريعة للكاشير (5 إلى 500 ج.م) مع الإضافة والإزالة -->
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-extrabold text-marine-900">فئات النقدية السريعة (اضغط للإضافة للمدفوع):</span>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" onclick="toggleQuickCashEditor()" class="text-[11px] font-extrabold text-marine-700 hover:underline">
+                    + / - فئات
+                  </button>
+                  <button type="button" onclick="resetPaidAmountInput()" class="text-[11px] font-bold text-rose-600 hover:underline">
+                    تصفير
+                  </button>
+                </div>
+              </div>
+              <div id="cart-quick-cash-buttons" class="flex flex-wrap gap-1.5"></div>
+              <div id="cart-quick-cash-editor" class="hidden pt-2 border-t border-slate-200 flex items-center gap-2">
+                <input id="new-quick-cash-input" type="number" min="1" step="1" placeholder="قيمة الفئة (مثال: 250)" class="flex-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold" />
+                <button type="button" onclick="addQuickCashDenomination()" class="px-3 py-1 rounded-lg bg-marine-800 hover:bg-marine-900 text-white text-xs font-extrabold">
+                  إضافة
+                </button>
+              </div>
+            </div>
+
             <div class="bg-marine-900 text-white rounded-2xl p-3.5 space-y-1.5">
               <div class="flex justify-between text-xs text-slate-300">
                 <span>الإجمالي الفرعي</span>
@@ -700,6 +722,18 @@
           <div id="wallets-list" class="flex flex-wrap gap-2"></div>
         </div>
 
+        <!-- التحكم في فئات النقدية السريعة للكاشير -->
+        <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+          <h2 class="text-lg font-black text-marine-900 border-b border-slate-100 pb-2">التحكم في أزرار فئات النقدية السريعة للكاشير (ج.م)</h2>
+          <form onsubmit="addQuickCashFromAdmin(event)" class="flex flex-col sm:flex-row gap-2.5">
+            <input id="admin-new-cash-denom" type="number" min="1" step="1" required placeholder="أدخل قيمة الفئة النقدية (مثال: 5، 10، 20، 50، 100، 200، 500)..." class="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm font-bold" />
+            <button type="submit" class="px-4 py-2 rounded-xl bg-marine-800 hover:bg-marine-900 text-white text-xs sm:text-sm font-extrabold shrink-0">
+              + إضافة فئة نقدية
+            </button>
+          </form>
+          <div id="admin-cash-denoms-list" class="flex flex-wrap gap-2"></div>
+        </div>
+
         <!-- التحكم في أزرار الفئات للكاشير والفئات الفرعية -->
         <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-200 space-y-4">
           <h2 class="text-lg font-black text-marine-900 border-b border-slate-100 pb-2">التحكم في أزرار الفئات للكاشير والفئات الفرعية</h2>
@@ -1007,6 +1041,49 @@
     </div>
   </div>
 
+  <!-- ================= نافذة تعديل فئة رئيسية ================= -->
+  <div id="editCategoryModal" class="no-print hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-black text-marine-900">تعديل اسم الفئة الرئيسية</h3>
+        <button type="button" onclick="closeModal('editCategoryModal')" class="text-slate-400 hover:text-slate-700 font-black text-xl">✕</button>
+      </div>
+      <form onsubmit="saveEditedCategory(event)" class="space-y-3">
+        <input id="editCatIdInput" type="hidden" />
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">اسم الفئة *</label>
+          <input id="editCatNameInput" type="text" required class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm font-bold" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('editCategoryModal')" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">إلغاء</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-marine-800 hover:bg-marine-900 text-white text-xs font-extrabold">حفظ التعديل</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= نافذة تعديل فئة فرعية ================= -->
+  <div id="editSubCategoryModal" class="no-print hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-black text-marine-900">تعديل اسم الفئة الفرعية</h3>
+        <button type="button" onclick="closeModal('editSubCategoryModal')" class="text-slate-400 hover:text-slate-700 font-black text-xl">✕</button>
+      </div>
+      <form onsubmit="saveEditedSubCategory(event)" class="space-y-3">
+        <input id="editSubCatIdInput" type="hidden" />
+        <input id="editSubCatIndexInput" type="hidden" />
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">اسم الفئة الفرعية *</label>
+          <input id="editSubCatNameInput" type="text" required class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2 text-sm font-bold" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('editSubCategoryModal')" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">إلغاء</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-marine-800 hover:bg-marine-900 text-white text-xs font-extrabold">حفظ التعديل</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY = 'shabaka_sennara_pos_v1';
     const SAVED_PIN_KEY = 'shabaka_sennara_saved_pins_v1';
@@ -1037,6 +1114,7 @@
           { id: 'st-cashier', name: 'كاشير الفرع', role: 'cashier', shift: 'شفت صباحي', pin: '1111', canExpense: true }
         ],
         wallets: ['فودافون كاش', 'اتصالات كاش', 'وي كاش', 'اورانج كاش'],
+        cashDenominations: [5, 10, 20, 50, 100, 200, 500],
         categories: [
           { id: 'cat-rods', name: 'أعواد صيد الأسماك', hiddenForCashier: false, subCategories: ['أعواد صيد المياه العذبة', 'أعواد صيد المياه المالحة'] },
           { id: 'cat-reels', name: 'ماكينات الصيد', hiddenForCashier: false, subCategories: ['ماكينات سبيننج', 'ماكينات ترولنج'] },
@@ -1168,6 +1246,7 @@
             store: { ...def.store, ...(parsed.store || {}) },
             staff: Array.isArray(parsed.staff) && parsed.staff.length ? parsed.staff : def.staff,
             wallets: Array.isArray(parsed.wallets) && parsed.wallets.length ? parsed.wallets : def.wallets,
+            cashDenominations: Array.isArray(parsed.cashDenominations) && parsed.cashDenominations.length ? parsed.cashDenominations : def.cashDenominations,
             categories: Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : def.categories,
             products: Array.isArray(parsed.products) ? parsed.products : def.products,
             customers: Array.isArray(parsed.customers) ? parsed.customers : def.customers,
@@ -1587,6 +1666,7 @@
         renderPosGrid();
         renderCartCustomerSelect();
         renderWalletSelect();
+        renderQuickCashButtons();
         updateCartSummary();
       } else if (tabName === 'returns') {
         renderReturnsTable();
@@ -1602,6 +1682,7 @@
         applyBranding();
         renderStaffTable();
         renderWalletsList();
+        renderAdminCashDenoms();
         renderAdminCategories();
       }
     }
@@ -1612,6 +1693,7 @@
       renderPosGrid();
       renderCartCustomerSelect();
       renderWalletSelect();
+      renderQuickCashButtons();
       renderCartItems();
       updateCartSummary();
       renderInventory();
@@ -1621,6 +1703,7 @@
       renderReports();
       renderStaffTable();
       renderWalletsList();
+      renderAdminCashDenoms();
       renderAdminCategories();
     }
 
@@ -1849,1239 +1932,113 @@
       updateCartSummary();
     }
 
-    function updateCartSummary() {
-      const subtotal = cart.reduce((sum, i) => sum + Number(i.price || 0) * Number(i.qty || 0), 0);
-      const rawDiscount = Math.max(0, Number(document.getElementById('cart-discount-input')?.value || 0));
-      const discount = Math.min(rawDiscount, subtotal);
-      const total = Math.max(0, subtotal - discount);
+    /* ================= أزرار فئات النقدية السريعة (5 - 500 ج.م) ================= */
+    let quickCashEditOpen = false;
 
-      const method = document.getElementById('cart-payment-method')?.value;
-      const paidRaw = document.getElementById('cart-paid-input')?.value;
-      const paid = paidRaw === '' ? (method === 'آجل / ذمم' ? 0 : total) : Math.max(0, Number(paidRaw));
-      const change = Math.max(0, paid - total);
-
-      document.getElementById('cart-subtotal').textContent = fmt(subtotal);
-      document.getElementById('cart-discount-view').textContent = fmt(discount);
-      document.getElementById('cart-total').textContent = fmt(total);
-      document.getElementById('cart-change-display').textContent = fmt(change);
+    function toggleQuickCashEditor() {
+      quickCashEditOpen = !quickCashEditOpen;
+      const ed = document.getElementById('cart-quick-cash-editor');
+      if (ed) ed.classList.toggle('hidden', !quickCashEditOpen);
+      renderQuickCashButtons();
     }
 
-    function checkoutSale() {
-      if (!cart.length) {
-        showToast('السلة فارغة، أضف منتجات أولاً', 'error');
-        return;
-      }
-
-      const subtotal = cart.reduce((sum, i) => sum + Number(i.price || 0) * Number(i.qty || 0), 0);
-      const rawDiscount = Math.max(0, Number(document.getElementById('cart-discount-input')?.value || 0));
-      const discount = Math.min(rawDiscount, subtotal);
-      const total = Math.max(0, subtotal - discount);
-      const totalCost = cart.reduce((sum, i) => sum + Number(i.cost || 0) * Number(i.qty || 0), 0);
-
-      const method = document.getElementById('cart-payment-method').value;
-      const walletName = method === 'محفظة إلكترونية' ? (document.getElementById('cart-wallet-select').value || 'محفظة إلكترونية') : '';
-      const paymentLabel = method === 'محفظة إلكترونية' ? `${method} (${walletName})` : method;
-
-      const paidRaw = document.getElementById('cart-paid-input').value;
-      const paidAmount = paidRaw === '' ? (method === 'آجل / ذمم' ? 0 : total) : Math.max(0, Number(paidRaw));
-      const changeAmount = Math.max(0, paidAmount - total);
-
-      const custId = document.getElementById('cart-customer-select').value;
-      const cust = state.customers.find(c => c.id === custId);
-
-      if (method === 'آجل / ذمم' && !cust) {
-        showToast('اختر عميلاً مسجلاً لإتمام البيع الآجل', 'error');
-        return;
-      }
-
-      // خصم المخزون
-      for (const item of cart) {
-        const prod = state.products.find(p => p.id === item.id);
-        if (!prod || Number(prod.stock || 0) + 1e-6 < Number(item.qty || 0)) {
-          showToast(`الرصيد غير كافٍ للصنف: ${item.name}`, 'error');
-          return;
-        }
-      }
-      for (const item of cart) {
-        const prod = state.products.find(p => p.id === item.id);
-        prod.stock = Math.max(0, Number((Number(prod.stock || 0) - Number(item.qty || 0)).toFixed(3)));
-      }
-
-      if (cust) {
-        cust.totalPurchases = Number(cust.totalPurchases || 0) + total;
-        if (method === 'آجل / ذمم') {
-          const remaining = Math.max(0, total - paidAmount);
-          cust.balanceDue = Number(cust.balanceDue || 0) + remaining;
-        }
-      }
-
-      state.lastInvoiceSeq = Number(state.lastInvoiceSeq || 1000) + 1;
-      const invoiceId = `INV-${state.lastInvoiceSeq}`;
-
-      const saleRecord = {
-        id: invoiceId,
-        date: new Date().toLocaleString('ar-EG'),
-        dateISO: new Date().toISOString(),
-        cashier: session.name,
-        cashierId: session.userId,
-        shift: session.shift,
-        customerId: cust ? cust.id : '',
-        customerName: cust ? cust.name : 'عميل نقدي',
-        customerPhone: cust ? cust.phone : '',
-        paymentMethod: method,
-        walletName,
-        paymentLabel,
-        items: cart.map(i => ({ ...i })),
-        subtotal,
-        discount,
-        total,
-        cost: totalCost,
-        profit: total - totalCost,
-        paidAmount,
-        changeAmount
-      };
-
-      state.sales.unshift(saleRecord);
-      saveState();
-      clearCart();
-      renderPosGrid();
-      renderInventory();
-      renderCustomers();
-      renderReports();
-      openInvoiceModal(saleRecord.id);
-      showToast(`تم إصدار الفاتورة ${saleRecord.id}`, 'success');
-    }
-
-    /* ================= المرتجع المرتبط برقم الفاتورة ================= */
-    function loadInvoiceForReturn() {
-      const ref = (document.getElementById('ret-invoice-input')?.value || '').trim();
-      const summaryBox = document.getElementById('ret-invoice-summary');
-      const itemsBox = document.getElementById('ret-invoice-items-box');
-      const itemsList = document.getElementById('ret-invoice-items-list');
-      const selectEl = document.getElementById('ret-product-select');
-
-      if (!ref) {
-        summaryBox.classList.add('hidden');
-        itemsBox.classList.add('hidden');
-        selectEl.innerHTML = '<option value="">-- أدخل رقم الفاتورة أولاً --</option>';
-        updateReturnPreview();
-        return;
-      }
-
-      const inv = state.sales.find(s => String(s.id || '').trim().toLowerCase() === ref.toLowerCase());
-      if (!inv || !Array.isArray(inv.items) || !inv.items.length) {
-        summaryBox.classList.remove('hidden');
-        summaryBox.className = 'rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs font-bold text-rose-800';
-        summaryBox.textContent = 'لم يتم العثور على فاتورة مسجلة بهذا الرقم أو لا تحتوي على أصناف متبقية.';
-        itemsBox.classList.add('hidden');
-        selectEl.innerHTML = '<option value="">-- لا توجد أصناف متاحة --</option>';
-        updateReturnPreview();
-        return;
-      }
-
-      summaryBox.classList.remove('hidden');
-      summaryBox.className = 'rounded-2xl bg-marine-50 border border-marine-200 p-3.5 text-xs text-marine-900 flex flex-wrap items-center justify-between gap-2 font-bold';
-      summaryBox.innerHTML = `
-        <span>رقم الفاتورة: <strong class="text-marine-900">${escapeHtml(inv.id)}</strong></span>
-        <span>التاريخ: ${escapeHtml(inv.date)}</span>
-        <span>الكاشير / الشيفت: ${escapeHtml(inv.cashier)} (${escapeHtml(inv.shift)})</span>
-        <span>الدفع: ${escapeHtml(inv.paymentLabel || inv.paymentMethod)}</span>
-        <span>إجمالي الفاتورة: <strong>${fmt(inv.total)}</strong></span>
-      `;
-
-      // تجميع الأصناف الموجودة في الفاتورة فقط
-      const grouped = [];
-      for (const it of inv.items) {
-        const g = grouped.find(x => String(x.id) === String(it.id));
-        if (g) {
-          g.qty = Number((g.qty + Number(it.qty || 0)).toFixed(3));
-          g.lineTotal += Number(it.price || 0) * Number(it.qty || 0);
-        } else {
-          grouped.push({
-            id: it.id,
-            name: it.name,
-            unit: it.unit || 'قطعة',
-            qty: Number(Number(it.qty || 0).toFixed(3)),
-            price: Number(it.price || 0),
-            lineTotal: Number(it.price || 0) * Number(it.qty || 0)
-          });
-        }
-      }
-
-      selectEl.innerHTML = grouped.map(g => `<option value="${g.id}">${escapeHtml(g.name)} (متاح: ${fmtQty(g.qty)} ${escapeHtml(g.unit)})</option>`).join('');
-      itemsBox.classList.remove('hidden');
-      itemsList.innerHTML = grouped.map(g => `
-        <button type="button" onclick="selectReturnProduct('${g.id}')" class="text-right p-3 rounded-xl border border-slate-200 hover:border-marine-700 bg-slate-50 transition">
-          <div class="text-xs font-black text-slate-800">${escapeHtml(g.name)}</div>
-          <div class="text-[11px] font-bold text-emerald-700 mt-1">المتاح: ${fmtQty(g.qty)} ${escapeHtml(g.unit)} • سعر الوحدة: ${fmt(g.price)}</div>
-        </button>
-      `).join('');
-
-      updateReturnPreview();
-    }
-
-    function selectReturnProduct(prodId) {
-      const sel = document.getElementById('ret-product-select');
-      if (sel) {
-        sel.value = prodId;
-        updateReturnPreview();
-      }
-    }
-
-    function getInvoiceUnitPrice(inv, prodId, fallbackPrice) {
-      if (!inv || !Array.isArray(inv.items)) return Number(fallbackPrice || 0);
-      const matched = inv.items.filter(it => String(it.id) === String(prodId));
-      if (!matched.length) return Number(fallbackPrice || 0);
-      const soldQty = matched.reduce((sum, it) => sum + Number(it.qty || 0), 0);
-      const rawLineTotal = matched.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0);
-      const sub = Number(inv.subtotal || 0);
-      const disc = Number(inv.discount || 0);
-      const factor = sub > 0 ? Math.max(0, (sub - disc) / sub) : 1;
-      return soldQty > 0 ? (rawLineTotal * factor) / soldQty : Number(fallbackPrice || 0);
-    }
-
-    function updateReturnPreview() {
-      const invoiceRef = (document.getElementById('ret-invoice-input')?.value || '').trim();
-      const pid = document.getElementById('ret-product-select')?.value;
-      const qty = Math.max(0.001, Number(document.getElementById('ret-qty-input')?.value) || 1);
-
-      const inv = invoiceRef
-        ? state.sales.find(s => String(s.id || '').trim().toLowerCase() === invoiceRef.toLowerCase())
-        : null;
-      const prod = state.products.find(p => String(p.id) === String(pid));
-
-      const unitPrice = inv && prod ? getInvoiceUnitPrice(inv, pid, prod.price) : Number(prod?.price || 0);
-      document.getElementById('ret-unit-price-view').value = fmt(unitPrice);
-      document.getElementById('ret-amount-preview').textContent = fmt(unitPrice * qty);
-    }
-
-    function submitReturnItem(e) {
-      e.preventDefault();
-      const invoiceRef = (document.getElementById('ret-invoice-input')?.value || '').trim();
-      const pid = document.getElementById('ret-product-select')?.value;
-      const qty = Math.max(0.001, Number(Number(document.getElementById('ret-qty-input')?.value || 1).toFixed(3)));
-
-      const inv = state.sales.find(s => String(s.id || '').trim().toLowerCase() === invoiceRef.toLowerCase());
-      if (!inv || !Array.isArray(inv.items)) {
-        showToast('يجب إدخال رقم فاتورة مبيعات صحيح ومسجل في التقارير', 'error');
-        return;
-      }
-
-      const availableQty = Number(inv.items
-        .filter(it => String(it.id) === String(pid))
-        .reduce((sum, it) => sum + Number(it.qty || 0), 0).toFixed(3));
-
-      if (availableQty <= 0) {
-        showToast('هذا الصنف غير موجود ضمن أصناف الفاتورة المحددة', 'error');
-        return;
-      }
-      if (qty > availableQty + 1e-6) {
-        showToast(`الكمية المرتجعة (${fmtQty(qty)}) أكبر من المتاح في الفاتورة (${fmtQty(availableQty)})`, 'error');
-        return;
-      }
-
-      const prod = state.products.find(p => String(p.id) === String(pid));
-      const unitPrice = getInvoiceUnitPrice(inv, pid, prod?.price || 0);
-      const matchedItems = inv.items.filter(it => String(it.id) === String(pid));
-      const soldQty = matchedItems.reduce((sum, it) => sum + Number(it.qty || 0), 0) || 1;
-      const unitCost = matchedItems.reduce((sum, it) => sum + Number(it.cost ?? prod?.cost ?? 0) * Number(it.qty || 0), 0) / soldQty;
-
-      // خصم الكمية من الفاتورة وتحديث إجمالياتها
-      let leftToDeduct = qty;
-      for (let i = inv.items.length - 1; i >= 0 && leftToDeduct > 1e-6; i--) {
-        const it = inv.items[i];
-        if (it && String(it.id) === String(pid)) {
-          const curQty = Number(it.qty || 0);
-          const deduct = Math.min(curQty, leftToDeduct);
-          leftToDeduct = Number((leftToDeduct - deduct).toFixed(3));
-          const rem = Number((curQty - deduct).toFixed(3));
-          if (rem <= 0) {
-            inv.items.splice(i, 1);
-          } else {
-            it.qty = rem;
-          }
-        }
-      }
-
-      const newSubtotal = inv.items.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0);
-      const newCost = inv.items.reduce((sum, it) => sum + Number(it.cost ?? prod?.cost ?? 0) * Number(it.qty || 0), 0);
-      inv.subtotal = newSubtotal;
-      inv.discount = Math.min(Number(inv.discount || 0), newSubtotal);
-      inv.total = Math.max(0, newSubtotal - inv.discount);
-      inv.cost = newCost;
-      inv.profit = inv.total - newCost;
-
-      // إعادة الرصيد للمخزون
-      if (prod) {
-        prod.stock = Number((Number(prod.stock || 0) + qty).toFixed(3));
-      }
-
-      const refundAmount = unitPrice * qty;
-      const refundCost = unitCost * qty;
-
-      state.returns.unshift({
-        id: 'RET-' + Date.now().toString().slice(-6),
-        date: new Date().toLocaleString('ar-EG'),
-        invoiceRef: inv.id,
-        productId: pid,
-        productName: prod ? prod.name : (matchedItems[0]?.name || 'صنف'),
-        unit: prod ? (prod.unit || 'قطعة') : (matchedItems[0]?.unit || 'قطعة'),
-        qty,
-        amount: refundAmount,
-        profitDeduction: refundAmount - refundCost,
-        cashier: session.name,
-        shift: session.shift
-      });
-
-      saveState();
-      document.getElementById('ret-qty-input').value = 1;
-      loadInvoiceForReturn();
-      renderReturnsTable();
-      renderPosGrid();
-      renderInventory();
-      renderReports();
-      showToast(`تم تسجيل مرتجع الفاتورة ${inv.id} وإعادة الصنف للمخزون`, 'success');
-    }
-
-    function renderReturnsTable() {
-      const tbody = document.getElementById('returns-table-body');
-      if (!tbody) return;
-      const rows = isCashier()
-        ? state.returns.filter(r => r.shift === session.shift && r.cashier === session.name)
-        : state.returns;
-
-      if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400">لا توجد مرتجعات مسجلة</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = rows.map(r => `
-        <tr>
-          <td class="py-2.5 px-3 whitespace-nowrap">${escapeHtml(r.date)}</td>
-          <td class="py-2.5 px-3 font-bold">${escapeHtml(r.id)}</td>
-          <td class="py-2.5 px-3 font-extrabold text-marine-800">${escapeHtml(r.invoiceRef)}</td>
-          <td class="py-2.5 px-3 font-bold">${escapeHtml(r.productName)}</td>
-          <td class="py-2.5 px-3">${fmtQty(r.qty)} ${escapeHtml(r.unit || 'قطعة')}</td>
-          <td class="py-2.5 px-3 font-extrabold text-rose-700">${fmt(r.amount)}</td>
-          <td class="py-2.5 px-3 whitespace-nowrap">${escapeHtml(r.cashier)} • ${escapeHtml(r.shift)}</td>
-        </tr>
-      `).join('');
-    }
-
-    /* ================= المخزون ================= */
-    function renderInventory() {
-      const tbody = document.getElementById('inventory-table-body');
-      if (!tbody) return;
-      const q = (document.getElementById('inv-search-input')?.value || '').trim().toLowerCase();
-      const cashierMode = isCashier();
-
-      const list = state.products.filter(p => {
-        if (!q) return true;
-        return String(p.name || '').toLowerCase().includes(q)
-          || String(p.barcode || '').toLowerCase().includes(q)
-          || String(p.category || '').toLowerCase().includes(q);
-      });
-
-      if (!list.length) {
-        tbody.innerHTML = `<tr><td colspan="${cashierMode ? 7 : 8}" class="py-6 text-center text-slate-400">لا توجد أصناف</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = list.map(p => `
-        <tr>
-          <td class="py-2.5 px-3 font-mono text-xs">${escapeHtml(p.barcode || '-')}</td>
-          <td class="py-2.5 px-3 font-black text-slate-800">${escapeHtml(p.name)}</td>
-          <td class="py-2.5 px-3 text-xs">${escapeHtml(p.category || '')}${p.subCategory ? ` / ${escapeHtml(p.subCategory)}` : ''}</td>
-          <td class="py-2.5 px-3 text-xs font-bold text-marine-800">${escapeHtml(p.unit || 'قطعة')}</td>
-          <td class="py-2.5 px-3 font-extrabold ${Number(p.stock || 0) <= 2 ? 'text-rose-600' : 'text-marine-900'}">${fmtQty(p.stock)}</td>
-          <td class="py-2.5 px-3 font-extrabold text-emerald-700">${fmt(p.price)}</td>
-          ${cashierMode ? '' : `<td class="py-2.5 px-3 inv-cost-col">${fmt(p.cost)}</td>`}
-          <td class="py-2.5 px-3 text-center whitespace-nowrap">
-            ${cashierMode
-              ? '<span class="text-xs font-bold text-slate-400">مشاهدة فقط</span>'
-              : `<button type="button" onclick="openProductForm('${p.id}')" class="px-2.5 py-1 rounded-lg bg-marine-50 hover:bg-marine-800 hover:text-white text-marine-900 text-xs font-bold ml-1">تعديل</button>
-                 <button type="button" onclick="deleteProduct('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-bold">حذف</button>`
-            }
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function openProductForm(prodId = null) {
-      if (isCashier()) {
-        showToast('تعديل المخزون متاح للإدارة والمشرف فقط', 'error');
-        return;
-      }
-      const catSel = document.getElementById('prodCategoryInput');
-      catSel.innerHTML = state.categories.map(c => `<option value="${escapeAttr(c.name)}">${escapeHtml(c.name)}</option>`).join('');
-
-      if (prodId) {
-        const p = state.products.find(x => x.id === prodId);
-        if (!p) return;
-        document.getElementById('productModalTitle').textContent = 'تعديل صنف';
-        document.getElementById('prodEditId').value = p.id;
-        document.getElementById('prodNameInput').value = p.name;
-        catSel.value = p.category || (state.categories[0]?.name || '');
-        populateProdSubcategories(p.subCategory || '');
-        document.getElementById('prodUnitInput').value = p.unit || 'قطعة';
-        document.getElementById('prodPriceInput').value = p.price;
-        document.getElementById('prodCostInput').value = p.cost;
-        document.getElementById('prodStockInput').value = p.stock;
-        document.getElementById('prodBarcodeInput').value = p.barcode || '';
-      } else {
-        document.getElementById('productModalTitle').textContent = 'إضافة منتج جديد';
-        document.getElementById('prodEditId').value = '';
-        document.getElementById('prodNameInput').value = '';
-        catSel.value = state.categories[0]?.name || '';
-        populateProdSubcategories('');
-        document.getElementById('prodUnitInput').value = 'قطعة';
-        document.getElementById('prodPriceInput').value = '';
-        document.getElementById('prodCostInput').value = '';
-        document.getElementById('prodStockInput').value = '1';
-        document.getElementById('prodBarcodeInput').value = '';
-      }
-      openModal('productModal');
-    }
-
-    function populateProdSubcategories(selectedSub = '') {
-      const catName = document.getElementById('prodCategoryInput')?.value;
-      const subSel = document.getElementById('prodSubcategoryInput');
-      if (!subSel) return;
-      const catObj = state.categories.find(c => c.name === catName);
-      const subs = Array.isArray(catObj?.subCategories) ? catObj.subCategories : [];
-      subSel.innerHTML = '<option value="">-- بدون فئة فرعية --</option>' +
-        subs.map(s => `<option value="${escapeAttr(s)}">${escapeHtml(s)}</option>`).join('');
-      subSel.value = selectedSub || '';
-    }
-
-    function saveProductForm(e) {
-      e.preventDefault();
-      if (isCashier()) return;
-      const editId = document.getElementById('prodEditId').value;
-      const name = document.getElementById('prodNameInput').value.trim();
-      const category = document.getElementById('prodCategoryInput').value;
-      const subCategory = document.getElementById('prodSubcategoryInput').value;
-      const unit = document.getElementById('prodUnitInput').value || 'قطعة';
-      const price = Math.max(0, Number(document.getElementById('prodPriceInput').value || 0));
-      const cost = Math.max(0, Number(document.getElementById('prodCostInput').value || 0));
-      const stock = Math.max(0, Number(Number(document.getElementById('prodStockInput').value || 0).toFixed(3)));
-      const barcode = document.getElementById('prodBarcodeInput').value.trim();
-
-      if (!name) return;
-
-      if (editId) {
-        const p = state.products.find(x => x.id === editId);
-        if (p) {
-          p.name = name;
-          p.category = category;
-          p.subCategory = subCategory;
-          p.unit = unit;
-          p.price = price;
-          p.cost = cost;
-          p.stock = stock;
-          p.barcode = barcode;
-        }
-      } else {
-        state.products.unshift({
-          id: 'p-' + Date.now().toString(36),
-          name,
-          category,
-          subCategory,
-          unit,
-          price,
-          cost,
-          stock,
-          barcode
-        });
-      }
-
-      saveState();
-      closeModal('productModal');
-      renderInventory();
-      renderPosGrid();
-      renderSuppliersAndPurchases();
-      showToast('تم حفظ بيانات الصنف', 'success');
-    }
-
-    function deleteProduct(prodId) {
-      if (!isAdminOrSupervisor()) {
-        showToast('الحذف متاح للإدارة والمشرف فقط', 'error');
-        return;
-      }
-      askConfirm('حذف الصنف', 'هل أنت متأكد من حذف هذا الصنف من المخزون؟', () => {
-        state.products = state.products.filter(p => p.id !== prodId);
-        saveState();
-        renderInventory();
-        renderPosGrid();
-        showToast('تم حذف الصنف', 'success');
-      });
-    }
-
-    /* ================= العملاء والآجل ================= */
-    function openCustomerModal() {
-      document.getElementById('cust-name-input').value = '';
-      document.getElementById('cust-phone-input').value = '';
-      openModal('customerModal');
-    }
-
-    function saveCustomerForm(e) {
-      e.preventDefault();
-      const name = document.getElementById('cust-name-input').value.trim();
-      const phone = document.getElementById('cust-phone-input').value.trim();
-      if (!name) return;
-      state.customers.push({
-        id: 'cust-' + Date.now().toString(36),
-        name,
-        phone,
-        totalPurchases: 0,
-        balanceDue: 0
-      });
-      saveState();
-      closeModal('customerModal');
-      renderCustomers();
-      renderCartCustomerSelect();
-      showToast('تم إضافة العميل', 'success');
-    }
-
-    function collectCustomerPayment(custId) {
-      const cust = state.customers.find(c => c.id === custId);
-      if (!cust || Number(cust.balanceDue || 0) <= 0) return;
-      askConfirm(
-        'تحصيل دفعة من الذمم',
-        `تحصيل كامل الذمة المتبقية (${fmt(cust.balanceDue)}) من العميل ${cust.name}؟`,
-        () => {
-          cust.balanceDue = 0;
-          saveState();
-          renderCustomers();
-          renderCartCustomerSelect();
-          showToast('تم تحصيل الذمة وتصفية رصيد العميل', 'success');
-        }
-      );
-    }
-
-    function renderCustomers() {
-      const tbody = document.getElementById('customers-table-body');
-      if (!tbody) return;
-      if (!state.customers.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">لا يوجد عملاء مسجلون</td></tr>';
-        return;
-      }
-      tbody.innerHTML = state.customers.map(c => `
-        <tr>
-          <td class="py-2.5 px-3 font-black text-slate-800">${escapeHtml(c.name)}</td>
-          <td class="py-2.5 px-3 font-mono text-xs">${escapeHtml(c.phone || '-')}</td>
-          <td class="py-2.5 px-3 font-bold">${fmt(c.totalPurchases)}</td>
-          <td class="py-2.5 px-3 font-black ${Number(c.balanceDue || 0) > 0 ? 'text-rose-600' : 'text-emerald-700'}">${fmt(c.balanceDue)}</td>
-          <td class="py-2.5 px-3 text-center">
-            ${Number(c.balanceDue || 0) > 0
-              ? `<button type="button" onclick="collectCustomerPayment('${c.id}')" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold">تحصيل الذمة</button>`
-              : '<span class="text-xs text-slate-400">خالص</span>'}
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    /* ================= الموردون والمشتريات ================= */
-    function addSupplier(e) {
-      e.preventDefault();
-      const name = document.getElementById('sup-name-input').value.trim();
-      const phone = document.getElementById('sup-phone-input').value.trim();
-      if (!name) return;
-      state.suppliers.push({ id: 'sup-' + Date.now().toString(36), name, phone });
-      document.getElementById('sup-name-input').value = '';
-      document.getElementById('sup-phone-input').value = '';
-      saveState();
-      renderSuppliersAndPurchases();
-      showToast('تم حفظ المورد', 'success');
-    }
-
-    function recordPurchaseInvoice(e) {
-      e.preventDefault();
-      const supId = document.getElementById('pur-supplier-select').value;
-      const prodId = document.getElementById('pur-product-select').value;
-      const qty = Math.max(1, parseInt(document.getElementById('pur-qty-input').value, 10) || 1);
-      const newCost = Math.max(0, Number(document.getElementById('pur-cost-input').value || 0));
-
-      const prod = state.products.find(p => p.id === prodId);
-      if (!supId || !prod) {
-        showToast('اختر المورد والصنف', 'error');
-        return;
-      }
-
-      const oldStock = Math.max(0, Number(prod.stock || 0));
-      const oldCost = Math.max(0, Number(prod.cost || 0));
-      const totalStock = oldStock + qty;
-      const weightedCost = totalStock > 0 ? ((oldStock * oldCost) + (qty * newCost)) / totalStock : newCost;
-
-      prod.stock = totalStock;
-      prod.cost = Number(weightedCost.toFixed(2));
-      document.getElementById('pur-qty-input').value = 1;
-      document.getElementById('pur-cost-input').value = '';
-
-      saveState();
-      renderInventory();
-      renderPosGrid();
-      renderSuppliersAndPurchases();
-      showToast('تم ترحيل المشتريات وتحديث متوسط التكلفة والمخزون', 'success');
-    }
-
-    function renderSuppliersAndPurchases() {
-      const supSel = document.getElementById('pur-supplier-select');
-      const prodSel = document.getElementById('pur-product-select');
-      const supList = document.getElementById('suppliers-list');
-
-      if (supSel) {
-        supSel.innerHTML = '<option value="">-- اختر المورد --</option>' +
-          state.suppliers.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
-      }
-      if (prodSel) {
-        prodSel.innerHTML = '<option value="">-- اختر الصنف --</option>' +
-          state.products.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (رصيد: ${p.stock} • تكلفة: ${p.cost})</option>`).join('');
-      }
-      if (supList) {
-        supList.innerHTML = state.suppliers.length
-          ? state.suppliers.map(s => `<div class="py-2 flex justify-between"><span class="font-bold">${escapeHtml(s.name)}</span><span class="text-slate-500 font-mono text-xs">${escapeHtml(s.phone || '-')}</span></div>`).join('')
-          : '<p class="text-xs text-slate-400 py-3">لا يوجد موردون</p>';
-      }
-    }
-
-    /* ================= المصروفات وإقفال الدرج ================= */
-    function openExpenseModal() {
-      if (!session || !session.canExpense) {
-        showToast('ليس لديك صلاحية إخراج المصروفات من الدرج', 'error');
-        return;
-      }
-      document.getElementById('exp-title-input').value = '';
-      document.getElementById('exp-amount-input').value = '';
-      openModal('expenseModal');
-    }
-
-    function submitExpense(e) {
-      e.preventDefault();
-      if (!session || !session.canExpense) return;
-      const title = document.getElementById('exp-title-input').value.trim();
-      const amount = Math.max(0.01, Number(document.getElementById('exp-amount-input').value || 0));
-      if (!title || amount <= 0) return;
-
-      state.expenses.unshift({
-        id: 'EXP-' + Date.now().toString().slice(-6),
-        date: new Date().toLocaleString('ar-EG'),
-        title,
-        amount,
-        cashier: session.name,
-        shift: session.shift
-      });
-      saveState();
-      closeModal('expenseModal');
-      renderReports();
-      showToast('تم تسجيل المصروف من الدرج', 'success');
-    }
-
-    function getShiftDrawerMetrics(userName, shiftLabel) {
-      const shiftSales = state.sales.filter(s => s.shift === shiftLabel && (!isCashier() || s.cashier === userName));
-      const cashSales = shiftSales
-        .filter(s => s.paymentMethod === 'كاش')
-        .reduce((sum, s) => sum + Number(s.total || 0), 0);
-      const walletSales = shiftSales
-        .filter(s => s.paymentMethod === 'محفظة إلكترونية')
-        .reduce((sum, s) => sum + Number(s.total || 0), 0);
-      const instapaySales = shiftSales
-        .filter(s => s.paymentMethod === 'إنستاباي')
-        .reduce((sum, s) => sum + Number(s.total || 0), 0);
-      const creditSales = shiftSales
-        .filter(s => s.paymentMethod === 'آجل / ذمم')
-        .reduce((sum, s) => sum + Number(s.total || 0), 0);
-
-      const shiftExpenses = state.expenses
-        .filter(e => e.shift === shiftLabel && (!isCashier() || e.cashier === userName))
-        .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-
-      const shiftReturns = state.returns
-        .filter(r => r.shift === shiftLabel && (!isCashier() || r.cashier === userName))
-        .reduce((sum, r) => sum + Number(r.amount || 0), 0);
-
-      const expectedCash = Math.max(0, cashSales - shiftExpenses - shiftReturns);
-      return {
-        totalSales: shiftSales.reduce((sum, s) => sum + Number(s.total || 0), 0),
-        cashSales,
-        walletSales,
-        instapaySales,
-        creditSales,
-        shiftExpenses,
-        shiftReturns,
-        expectedCash
-      };
-    }
-
-    function openShiftCloseModal() {
-      const m = getShiftDrawerMetrics(session.name, session.shift);
-      const logoSrc = state.store.logo || 'https://placehold.co/72x72/0b2239/f0be4d?text=SW';
-      document.getElementById('shift-doc-logo').src = logoSrc;
-      document.getElementById('shift-doc-name').textContent = state.store.name || 'شبكة وصنارة';
-      document.getElementById('shift-doc-meta').textContent = [state.store.address, state.store.phone].filter(Boolean).join(' • ');
-
-      document.getElementById('shift-close-summary').innerHTML = `
-        <div class="flex justify-between"><span>المستخدم / الشيفت:</span><strong>${escapeHtml(session.name)} (${escapeHtml(session.shift)})</strong></div>
-        <div class="flex justify-between"><span>إجمالي المبيعات بالشيفت:</span><strong>${fmt(m.totalSales)}</strong></div>
-        <div class="flex justify-between text-emerald-700"><span>مبيعات الكاش:</span><strong>${fmt(m.cashSales)}</strong></div>
-        <div class="flex justify-between text-sky-700"><span>مبيعات المحافظ الإلكترونية:</span><strong>${fmt(m.walletSales)}</strong></div>
-        <div class="flex justify-between text-indigo-700"><span>مبيعات إنستاباي:</span><strong>${fmt(m.instapaySales)}</strong></div>
-        <div class="flex justify-between text-amber-800"><span>مبيعات الآجل / الذمم:</span><strong>${fmt(m.creditSales)}</strong></div>
-        <div class="flex justify-between text-rose-700"><span>مصروفات الدرج:</span><strong>-${fmt(m.shiftExpenses)}</strong></div>
-        <div class="flex justify-between text-rose-700"><span>المرتجعات:</span><strong>-${fmt(m.shiftReturns)}</strong></div>
-        <div class="flex justify-between border-t border-slate-200 pt-2 text-sm sm:text-base font-black text-marine-900">
-          <span>النقدي المتوقع بالدرج:</span>
-          <span>${fmt(m.expectedCash)}</span>
-        </div>
-      `;
-      document.getElementById('shift-actual-cash-input').value = '';
-      updateShiftVariancePreview();
-      openModal('shiftCloseModal');
-    }
-
-    function printShiftCloseSheet() {
-      const invModal = document.getElementById('invoiceModal');
-      if (invModal) invModal.classList.add('hidden');
-      window.print();
-    }
-
-    function printCurrentReport() {
-      const invModal = document.getElementById('invoiceModal');
-      if (invModal) invModal.classList.add('hidden');
-      const shiftModal = document.getElementById('shiftCloseModal');
-      if (shiftModal) shiftModal.classList.add('hidden');
-      window.print();
-    }
-
-    function updateShiftVariancePreview() {
-      const m = getShiftDrawerMetrics(session.name, session.shift);
-      const actual = Number(document.getElementById('shift-actual-cash-input')?.value || 0);
-      const diff = actual - m.expectedCash;
-      const box = document.getElementById('shift-variance-preview');
-      if (Math.abs(diff) < 0.005) {
-        box.className = 'rounded-xl p-3 text-xs sm:text-sm font-black bg-emerald-50 text-emerald-800 border border-emerald-200';
-        box.textContent = 'الدرج متطابق تماماً (لا يوجد عجز أو زيادة)';
-      } else if (diff < 0) {
-        box.className = 'rounded-xl p-3 text-xs sm:text-sm font-black bg-rose-50 text-rose-800 border border-rose-200';
-        box.textContent = `يوجد عجز بالدرج قدره: ${fmt(Math.abs(diff))}`;
-      } else {
-        box.className = 'rounded-xl p-3 text-xs sm:text-sm font-black bg-amber-50 text-amber-900 border border-amber-200';
-        box.textContent = `توجد زيادة بالدرج قدرها: ${fmt(diff)}`;
-      }
-    }
-
-    function confirmCloseShift(e) {
-      e.preventDefault();
-      const m = getShiftDrawerMetrics(session.name, session.shift);
-      const actualCash = Math.max(0, Number(document.getElementById('shift-actual-cash-input').value || 0));
-      const variance = actualCash - m.expectedCash;
-
-      state.shiftClosures.unshift({
-        id: 'SHF-' + Date.now().toString().slice(-6),
-        date: new Date().toLocaleString('ar-EG'),
-        cashier: session.name,
-        shift: session.shift,
-        expectedCash: m.expectedCash,
-        actualCash,
-        variance
-      });
-
-      saveState();
-      closeModal('shiftCloseModal');
-      renderReports();
-      showToast('تم اعتماد إقفال الشيفت وتسجيله في التقارير', 'success');
-    }
-
-    /* ================= التقارير والفاتورة A4 والواتساب ================= */
-    function renderReports() {
-      const cashierMode = isCashier();
-      const shiftFilter = document.getElementById('rep-shift-filter')?.value || 'ALL';
-
-      const salesRows = state.sales.filter(s => {
-        if (cashierMode && s.cashier !== session.name) return false;
-        if (shiftFilter !== 'ALL' && s.shift !== shiftFilter) return false;
-        return true;
-      });
-
-      const expRows = state.expenses.filter(ex => {
-        if (cashierMode && ex.cashier !== session.name) return false;
-        if (shiftFilter !== 'ALL' && ex.shift !== shiftFilter) return false;
-        return true;
-      });
-
-      const shiftRows = state.shiftClosures.filter(sh => {
-        if (cashierMode && sh.cashier !== session.name) return false;
-        if (shiftFilter !== 'ALL' && sh.shift !== shiftFilter) return false;
-        return true;
-      });
-
-      const totalSales = salesRows.reduce((sum, s) => sum + Number(s.total || 0), 0);
-      const totalExpenses = expRows.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-      const totalProfit = salesRows.reduce((sum, s) => sum + Number(s.profit || 0), 0) - totalExpenses;
-      const latestVariance = shiftRows.length ? Number(shiftRows[0].variance || 0) : 0;
-
-      const kpiGrid = document.getElementById('reports-kpi-grid');
-      if (cashierMode) {
-        kpiGrid.innerHTML = `
-          <div class="bg-white rounded-2xl p-4 border border-slate-200"><div class="text-xs text-slate-500 font-bold">مبيعات شفتي</div><div class="text-lg font-black text-marine-900 mt-1">${fmt(totalSales)}</div></div>
-          <div class="bg-white rounded-2xl p-4 border border-slate-200"><div class="text-xs text-slate-500 font-bold">مصروفات الدرج</div><div class="text-lg font-black text-rose-700 mt-1">${fmt(totalExpenses)}</div></div>
-          <div class="bg-white rounded-2xl p-4 border border-slate-200"><div class="text-xs text-slate-500 font-bold">عدد فواتيري</div><div class="text-lg font-black text-emerald-700 mt-1">${salesRows.length}</div></div>
-          <div class="bg-white rounded-2xl p-4 border border-slate-200"><div class="text-xs text-slate-500 font-bold">آخر عجز / زيادة</div><div class="text-lg font-black ${latestVariance < 0 ? 'text-rose-700' : 'text-amber-700'} mt-1">${fmt(latestVariance)}</div></div>
-        `;
-      } else {
-        kpiGrid.innerHTML = `
-          <div class="bg-white rounded-2xl p-4 border border-slate-200"><div class="text-xs text-slate-500 font-bold">إجمالي المبيعات</div><div class="text-lg font-black text-marine-900 mt-1">${fmt(totalSales)}</div></div>
-          <div class="bg-white rounded-2xl p-4 border border-slate-200"><div class="text-xs text-slate-500 font-bold">مصروفات الدرج</div><div class="text-lg font-black text-rose-700 mt-1">${fmt(totalExpenses)}</div></div>
-          <div class="bg-white rounded-2xl p-4 border border-slate-200"><div class="text-xs text-slate-500 font-bold">صافي الربح التقديري</div><div class="text-lg font-black text-emerald-700 mt-1">${fmt(totalProfit)}</div></div>
-          <div class="bg-white rounded-2xl p-4 border border-slate-200"><div class="text-xs text-slate-500 font-bold">آخر عجز / زيادة درج</div><div class="text-lg font-black ${latestVariance < 0 ? 'text-rose-700' : 'text-amber-700'} mt-1">${fmt(latestVariance)}</div></div>
-        `;
-      }
-
-      const salesBody = document.getElementById('sales-table-body');
-      salesBody.innerHTML = salesRows.length
-        ? salesRows.map(s => `
-          <tr>
-            <td class="py-2.5 px-3 font-black text-marine-900">${escapeHtml(s.id)}</td>
-            <td class="py-2.5 px-3 text-xs whitespace-nowrap">${escapeHtml(s.date)}</td>
-            <td class="py-2.5 px-3 text-xs whitespace-nowrap">${escapeHtml(s.cashier)} • ${escapeHtml(s.shift)}</td>
-            <td class="py-2.5 px-3 text-xs">${escapeHtml(s.paymentLabel || s.paymentMethod)}</td>
-            <td class="py-2.5 px-3 font-extrabold text-emerald-700">${fmt(s.total)}</td>
-            <td class="no-print py-2.5 px-3 text-center whitespace-nowrap">
-              <div class="inline-flex items-center gap-1.5">
-                <button type="button" onclick="openInvoiceModal('${s.id}')" class="px-2.5 py-1 rounded-lg bg-marine-800 hover:bg-marine-900 text-white text-xs font-extrabold">
-                  قراءة
-                </button>
-                ${cashierMode ? '' : `
-                  <button type="button" onclick="openEditInvoiceModal('${s.id}')" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-marine-900 text-xs font-extrabold">
-                    تعديل
-                  </button>
-                `}
-                <button type="button" onclick="printInvoiceDirect('${s.id}')" class="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-xs font-extrabold">
-                  طباعة
-                </button>
-              </div>
-            </td>
-          </tr>
-        `).join('')
-        : '<tr><td colspan="6" class="py-6 text-center text-slate-400">لا توجد فواتير مسجلة</td></tr>';
-
-      const expBody = document.getElementById('expenses-table-body');
-      expBody.innerHTML = expRows.length
-        ? expRows.map(ex => `
-          <tr>
-            <td class="py-2.5 px-3 text-xs whitespace-nowrap">${escapeHtml(ex.date)}</td>
-            <td class="py-2.5 px-3 font-bold">${escapeHtml(ex.title)}</td>
-            <td class="py-2.5 px-3 font-extrabold text-rose-700">${fmt(ex.amount)}</td>
-            <td class="py-2.5 px-3 text-xs whitespace-nowrap">${escapeHtml(ex.cashier)} • ${escapeHtml(ex.shift)}</td>
-          </tr>
-        `).join('')
-        : '<tr><td colspan="4" class="py-6 text-center text-slate-400">لا توجد مصروفات مسجلة</td></tr>';
-
-      const shiftsBody = document.getElementById('shifts-table-body');
-      shiftsBody.innerHTML = shiftRows.length
-        ? shiftRows.map(sh => {
-          const v = Number(sh.variance || 0);
-          const vText = Math.abs(v) < 0.005 ? 'متطابق (0.00)' : (v < 0 ? `عجز ${fmt(Math.abs(v))}` : `زيادة ${fmt(v)}`);
-          const vCls = Math.abs(v) < 0.005 ? 'text-emerald-700' : (v < 0 ? 'text-rose-700' : 'text-amber-700');
-          return `
-            <tr>
-              <td class="py-2.5 px-3 text-xs whitespace-nowrap">${escapeHtml(sh.date)}</td>
-              <td class="py-2.5 px-3 font-bold whitespace-nowrap">${escapeHtml(sh.cashier)} • ${escapeHtml(sh.shift)}</td>
-              <td class="py-2.5 px-3 font-bold">${fmt(sh.expectedCash)}</td>
-              <td class="py-2.5 px-3 font-extrabold">${fmt(sh.actualCash)}</td>
-              <td class="py-2.5 px-3 font-black ${vCls}">${vText}</td>
-            </tr>
-          `;
-        }).join('')
-        : '<tr><td colspan="5" class="py-6 text-center text-slate-400">لا توجد سجلات إقفال شيفت</td></tr>';
-    }
-
-    function openInvoiceModal(invoiceId) {
-      const inv = state.sales.find(s => s.id === invoiceId);
-      if (!inv) return;
-      activeInvoiceId = inv.id;
-
-      const logoSrc = state.store.logo || 'https://placehold.co/84x84/0b2239/f0be4d?text=SW';
-      document.getElementById('inv-doc-logo').src = logoSrc;
-      document.getElementById('inv-doc-store-name').textContent = state.store.name || 'شبكة وصنارة';
-      document.getElementById('inv-doc-store-desc').textContent = state.store.desc || '';
-      document.getElementById('inv-doc-store-address').textContent = state.store.address ? `العنوان: ${state.store.address}` : '';
-      document.getElementById('inv-doc-store-phone').textContent = state.store.phone ? `تليفون: ${state.store.phone}` : '';
-
-      document.getElementById('inv-doc-meta-grid').innerHTML = `
-        <div><strong>رقم الفاتورة:</strong> ${escapeHtml(inv.id)}</div>
-        <div><strong>التاريخ:</strong> ${escapeHtml(inv.date)}</div>
-        <div><strong>الكاشير / الشيفت:</strong> ${escapeHtml(inv.cashier)} (${escapeHtml(inv.shift)})</div>
-        <div><strong>العميل:</strong> ${escapeHtml(inv.customerName || 'عميل نقدي')}</div>
-        <div><strong>طريقة الدفع:</strong> ${escapeHtml(inv.paymentLabel || inv.paymentMethod)}</div>
-      `;
-
-      document.getElementById('inv-doc-items-body').innerHTML = (inv.items || []).map(it => `
-        <tr>
-          <td class="py-2 px-3 font-bold">${escapeHtml(it.name)}</td>
-          <td class="py-2 px-3 text-xs font-bold text-marine-800">${escapeHtml(it.unit || 'قطعة')}</td>
-          <td class="py-2 px-3">${fmtQty(it.qty)}</td>
-          <td class="py-2 px-3">${fmt(it.price)}</td>
-          <td class="py-2 px-3 font-extrabold">${fmt(Number(it.price || 0) * Number(it.qty || 0))}</td>
-        </tr>
-      `).join('');
-
-      document.getElementById('inv-doc-totals').innerHTML = `
-        <div class="flex justify-between"><span>الإجمالي الفرعي:</span><span>${fmt(inv.subtotal)}</span></div>
-        <div class="flex justify-between"><span>الخصم:</span><span>${fmt(inv.discount)}</span></div>
-        <div class="flex justify-between text-base font-black text-marine-900 border-t border-slate-200 pt-1.5"><span>الإجمالي النهائي:</span><span>${fmt(inv.total)}</span></div>
-        <div class="flex justify-between text-xs text-slate-600"><span>المدفوع:</span><span>${fmt(inv.paidAmount)}</span></div>
-        <div class="flex justify-between text-xs text-emerald-700 font-bold"><span>الباقي:</span><span>${fmt(inv.changeAmount)}</span></div>
-      `;
-
-      openModal('invoiceModal');
-    }
-
-    function printInvoiceDirect(invoiceId) {
-      openInvoiceModal(invoiceId);
-      setTimeout(() => {
-        window.print();
-      }, 120);
-    }
-
-    function openEditInvoiceModal(invoiceId) {
-      if (isCashier()) {
-        showToast('تعديل الفواتير متاح للإدارة والمشرف فقط', 'error');
-        return;
-      }
-      const inv = state.sales.find(s => s.id === invoiceId);
-      if (!inv) return;
-      editingInvoiceId = inv.id;
-      editingInvoiceDraftItems = (inv.items || []).map(it => ({ ...it }));
-      document.getElementById('editInvoiceTitle').textContent = `تعديل الفاتورة (${inv.id})`;
-      document.getElementById('editInvoiceDiscountInput').value = Number(inv.discount || 0);
-      document.getElementById('editInvoicePaymentInput').value = inv.paymentMethod || 'كاش';
-      renderEditInvoiceItems();
-      openModal('editInvoiceModal');
-    }
-
-    function renderEditInvoiceItems() {
-      const box = document.getElementById('editInvoiceItemsList');
+    function renderQuickCashButtons() {
+      const box = document.getElementById('cart-quick-cash-buttons');
       if (!box) return;
-      if (!editingInvoiceDraftItems.length) {
-        box.innerHTML = '<p class="text-xs text-rose-600 font-bold py-4 text-center">لا توجد أصناف متبقية في الفاتورة (سيتم تصفير الفاتورة عند الحفظ)</p>';
-        return;
-      }
-      box.innerHTML = editingInvoiceDraftItems.map((it, idx) => `
-        <div class="flex items-center justify-between gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-          <div class="min-w-0 flex-1">
-            <div class="text-xs font-black text-slate-800">${escapeHtml(it.name)} (${escapeHtml(it.unit || 'قطعة')})</div>
-            <div class="text-[11px] text-slate-500">سعر الوحدة: ${fmt(it.price)}</div>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="number" min="0" step="any" value="${fmtQty(it.qty)}" onchange="updateEditDraftQty(${idx}, this.value)" class="w-20 text-center text-xs font-black rounded-lg border border-slate-300 bg-white py-1.5" />
-            <button type="button" onclick="removeEditDraftItem(${idx})" class="px-2.5 py-1.5 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">حذف</button>
-          </div>
+      const denoms = Array.isArray(state.cashDenominations) && state.cashDenominations.length
+        ? [...state.cashDenominations].sort((a, b) => Number(a) - Number(b))
+        : [5, 10, 20, 50, 100, 200, 500];
+
+      box.innerHTML = denoms.map(val => `
+        <div class="inline-flex items-center rounded-lg overflow-hidden border border-marine-200 bg-white shadow-2xs">
+          <button type="button" onclick="addCashToPaid(${Number(val)})" class="px-2.5 py-1 text-xs font-black text-marine-900 hover:bg-marine-800 hover:text-white transition">
+            +${Number(val)} ج.م
+          </button>
+          ${quickCashEditOpen ? `
+            <button type="button" onclick="removeQuickCashDenomination(${Number(val)})" title="إزالة الفئة" class="px-1.5 py-1 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white text-[11px] font-black border-r border-slate-200">
+              ✕
+            </button>
+          ` : ''}
         </div>
       `).join('');
     }
 
-    function updateEditDraftQty(idx, val) {
-      const q = Number(val);
-      if (!q || q <= 0) {
-        editingInvoiceDraftItems.splice(idx, 1);
-      } else {
-        editingInvoiceDraftItems[idx].qty = Number(q.toFixed(3));
+    function addCashToPaid(amount) {
+      const paidInp = document.getElementById('cart-paid-input');
+      if (!paidInp) return;
+      const current = paidInp.value === '' ? 0 : Math.max(0, Number(paidInp.value) || 0);
+      paidInp.value = Number((current + Number(amount || 0)).toFixed(2));
+      updateCartSummary();
+    }
+
+    function resetPaidAmountInput() {
+      const paidInp = document.getElementById('cart-paid-input');
+      if (paidInp) {
+        paidInp.value = '';
+        updateCartSummary();
       }
-      renderEditInvoiceItems();
     }
 
-    function removeEditDraftItem(idx) {
-      editingInvoiceDraftItems.splice(idx, 1);
-      renderEditInvoiceItems();
-    }
-
-    function saveEditedInvoice() {
-      const inv = state.sales.find(s => s.id === editingInvoiceId);
-      if (!inv) return;
-
-      // إرجاع الكميات القديمة للمخزون مؤقتاً للتحقق
-      for (const oldIt of (inv.items || [])) {
-        const prod = state.products.find(p => String(p.id) === String(oldIt.id));
-        if (prod) {
-          prod.stock = Number((Number(prod.stock || 0) + Number(oldIt.qty || 0)).toFixed(3));
-        }
-      }
-
-      // التحقق من توفر الكميات الجديدة
-      for (const newIt of editingInvoiceDraftItems) {
-        const prod = state.products.find(p => String(p.id) === String(newIt.id));
-        if (prod && Number(newIt.qty || 0) > Number(prod.stock || 0) + 1e-6) {
-          // التراجع عن الإرجاع المؤقت
-          for (const oldIt of (inv.items || [])) {
-            const p2 = state.products.find(p => String(p.id) === String(oldIt.id));
-            if (p2) p2.stock = Number((Number(p2.stock || 0) - Number(oldIt.qty || 0)).toFixed(3));
-          }
-          showToast(`الكمية المدخلة للصنف (${newIt.name}) أكبر من الرصيد المتاح`, 'error');
-          return;
-        }
-      }
-
-      // خصم الكميات الجديدة
-      for (const newIt of editingInvoiceDraftItems) {
-        const prod = state.products.find(p => String(p.id) === String(newIt.id));
-        if (prod) {
-          prod.stock = Math.max(0, Number((Number(prod.stock || 0) - Number(newIt.qty || 0)).toFixed(3)));
-        }
-      }
-
-      const newSubtotal = editingInvoiceDraftItems.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0);
-      const newCost = editingInvoiceDraftItems.reduce((sum, it) => sum + Number(it.cost || 0) * Number(it.qty || 0), 0);
-      const rawDisc = Math.max(0, Number(document.getElementById('editInvoiceDiscountInput').value || 0));
-      const newDiscount = Math.min(rawDisc, newSubtotal);
-      const newTotal = Math.max(0, newSubtotal - newDiscount);
-      const newMethod = document.getElementById('editInvoicePaymentInput').value;
-
-      inv.items = editingInvoiceDraftItems.map(it => ({ ...it }));
-      inv.subtotal = newSubtotal;
-      inv.discount = newDiscount;
-      inv.total = newTotal;
-      inv.cost = newCost;
-      inv.profit = newTotal - newCost;
-      inv.paymentMethod = newMethod;
-      inv.paymentLabel = newMethod === 'محفظة إلكترونية' && inv.walletName ? `${newMethod} (${inv.walletName})` : newMethod;
-
-      saveState();
-      closeModal('editInvoiceModal');
-      renderReports();
-      renderInventory();
-      renderPosGrid();
-      showToast(`تم تعديل الفاتورة ${inv.id} وتحديث المخزون والحسابات`, 'success');
-    }
-
-    function sendActiveInvoiceWhatsapp() {
-      const inv = state.sales.find(s => s.id === activeInvoiceId);
-      if (!inv) return;
-
-      const lines = [
-        `*${state.store.name || 'شبكة وصنارة'}*`,
-        `فاتورة رقم: *${inv.id}*`,
-        `التاريخ: ${inv.date}`,
-        `العميل: ${inv.customerName || 'عميل نقدي'}`,
-        `--- الأصناف ---`,
-        ...(inv.items || []).map(it => `• ${it.name} (${it.qty} × ${Number(it.price).toFixed(2)}) = ${(Number(it.qty) * Number(it.price)).toFixed(2)} ج.م`),
-        `----------------`,
-        `الإجمالي النهائي: *${Number(inv.total).toFixed(2)} ج.م*`,
-        `طريقة الدفع: ${inv.paymentLabel || inv.paymentMethod}`
-      ];
-
-      const rawPhone = String(inv.customerPhone || '').replace(/[^0-9]/g, '');
-      const waPhone = rawPhone ? (rawPhone.startsWith('0') && rawPhone.length === 11 ? '2' + rawPhone : rawPhone) : '';
-      const url = waPhone
-        ? `https://wa.me/${waPhone}?text=${encodeURIComponent(lines.join('\n'))}`
-        : `https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`;
-
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-
-    function exportSalesExcel() {
-      if (isCashier()) return;
-      const rows = [
-        ['رقم الفاتورة', 'التاريخ', 'الكاشير', 'الشيفت', 'العميل', 'طريقة الدفع', 'الإجمالي', 'الربح'],
-        ...state.sales.map(s => [
-          s.id,
-          s.date,
-          s.cashier,
-          s.shift,
-          s.customerName,
-          s.paymentLabel || s.paymentMethod,
-          Number(s.total || 0).toFixed(2),
-          Number(s.profit || 0).toFixed(2)
-        ])
-      ];
-      const csvContent = '\uFEFF' + rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sales_report_${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    /* ================= الإدارة والصلاحيات والفئات ================= */
-    function saveStoreSettings(e) {
-      e.preventDefault();
-      if (!isFullAdmin()) {
-        showToast('تعديل بيانات المتجر متاح للإدارة فقط', 'error');
+    function addQuickCashDenomination() {
+      const inp = document.getElementById('new-quick-cash-input');
+      const val = Number(inp?.value || 0);
+      if (!val || val <= 0) {
+        showToast('أدخل قيمة فئة نقدية صحيحة', 'error');
         return;
       }
-      state.store.name = document.getElementById('store-name-input').value.trim() || 'شبكة وصنارة';
-      state.store.desc = document.getElementById('store-desc-input').value.trim();
-      state.store.address = document.getElementById('store-address-input').value.trim();
-      state.store.phone = document.getElementById('store-phone-input').value.trim();
-      saveState();
-      applyBranding();
-      setupPwaManifestAndWorker();
-      showToast('تم حفظ بيانات المتجر', 'success');
-    }
-
-    function handleStoreLogoUpload(event) {
-      if (!isFullAdmin()) {
-        showToast('تغيير اللوجو متاح للإدارة فقط', 'error');
-        return;
-      }
-      const file = event.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        state.store.logo = String(reader.result || '');
+      if (!Array.isArray(state.cashDenominations)) state.cashDenominations = [];
+      if (!state.cashDenominations.includes(val)) {
+        state.cashDenominations.push(val);
+        state.cashDenominations.sort((a, b) => a - b);
         saveState();
-        applyBranding();
-        document.getElementById('store-logo-status').textContent = 'تم حفظ اللوجو بنجاح';
-        showToast('تم تحديث لوجو المتجر', 'success');
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function renderStaffTable() {
-      const tbody = document.getElementById('staff-table-body');
-      if (!tbody) return;
-      tbody.innerHTML = state.staff.map(s => `
-        <tr>
-          <td class="py-2.5 px-3 font-black text-slate-800">${escapeHtml(s.name)}</td>
-          <td class="py-2.5 px-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-marine-50 text-marine-900">${getRoleLabel(s.role)}</span></td>
-          <td class="py-2.5 px-3"><span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">${escapeHtml(getShiftLabel(s.shift))}</span></td>
-          <td class="py-2.5 px-3 font-mono font-bold">${escapeHtml(s.pin)}</td>
-          <td class="py-2.5 px-3 text-xs font-bold ${s.canExpense || s.role !== 'cashier' ? 'text-emerald-700' : 'text-slate-400'}">
-            ${s.canExpense || s.role !== 'cashier' ? 'مسموح بإخراج المصروفات' : 'غير مسموح'}
-          </td>
-          <td class="py-2.5 px-3 text-center whitespace-nowrap">
-            <button type="button" onclick="openStaffModal('${s.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold ml-1">تعديل / PIN</button>
-            ${state.staff.length > 1 ? `<button type="button" onclick="deleteStaffMember('${s.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-bold">حذف</button>` : ''}
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function openStaffModal(staffId = null) {
-      if (!isFullAdmin()) {
-        showToast('إدارة الحسابات ورموز PIN متاحة لصلاحية الإدارة فقط', 'error');
-        return;
       }
-      document.getElementById('staffForm').reset();
-      document.getElementById('staffEditId').value = '';
-      document.getElementById('staffModalTitle').textContent = 'إضافة كاشير / موظف جديد';
-      const shiftSel = document.getElementById('staffShiftInput');
-
-      if (staffId) {
-        const s = state.staff.find(x => x.id === staffId);
-        if (s) {
-          document.getElementById('staffModalTitle').textContent = 'تعديل الحساب ورمز PIN والشفت والصلاحيات';
-          document.getElementById('staffEditId').value = s.id;
-          document.getElementById('staffNameInput').value = s.name;
-          document.getElementById('staffRoleInput').value = s.role;
-          if (shiftSel) shiftSel.value = getShiftLabel(s.shift);
-          document.getElementById('staffPinInput').value = s.pin;
-          document.getElementById('staffCanExpenseInput').checked = Boolean(s.canExpense || s.role === 'admin' || s.role === 'supervisor');
-        }
-      } else if (shiftSel) {
-        shiftSel.value = 'شفت صباحي';
-      }
-      openModal('staffModal');
+      if (inp) inp.value = '';
+      renderQuickCashButtons();
+      renderAdminCashDenoms();
+      showToast(`تمت إضافة فئة ${val} ج.م`, 'success');
     }
 
-    function onStaffRoleChange() {
-      const role = document.getElementById('staffRoleInput')?.value;
-      const expChk = document.getElementById('staffCanExpenseInput');
-      if (expChk && (role === 'admin' || role === 'supervisor')) {
-        expChk.checked = true;
-      }
-    }
-
-    function saveStaffMember(e) {
+    function addQuickCashFromAdmin(e) {
       e.preventDefault();
-      if (!isFullAdmin()) return;
-
-      const editId = document.getElementById('staffEditId').value;
-      const name = document.getElementById('staffNameInput').value.trim();
-      const role = document.getElementById('staffRoleInput').value;
-      const shift = getShiftLabel(document.getElementById('staffShiftInput').value);
-      const pin = document.getElementById('staffPinInput').value.trim();
-      const canExpense = Boolean(document.getElementById('staffCanExpenseInput').checked || role === 'admin' || role === 'supervisor');
-
-      if (!name || !pin) return;
-
-      if (editId) {
-        const s = state.staff.find(x => x.id === editId);
-        if (s) {
-          s.name = name;
-          s.role = role;
-          s.shift = shift;
-          s.pin = pin;
-          s.canExpense = canExpense;
-        }
-      } else {
-        state.staff.push({
-          id: 'st-' + Date.now().toString(36),
-          name,
-          role,
-          shift,
-          pin,
-          canExpense
-        });
-      }
-
-      saveState();
-      closeModal('staffModal');
-      renderStaffTable();
-      populateGateSelectors();
-      showToast('تم حفظ بيانات الحساب بنجاح', 'success');
-    }
-
-    function deleteStaffMember(staffId) {
-      if (!isFullAdmin() || state.staff.length <= 1) return;
-      askConfirm('حذف الحساب', 'هل أنت متأكد من حذف هذا الحساب؟', () => {
-        state.staff = state.staff.filter(s => s.id !== staffId);
-        saveState();
-        renderStaffTable();
-        populateGateSelectors();
-        showToast('تم حذف الحساب', 'success');
-      });
-    }
-
-    function addWalletMethod(e) {
-      e.preventDefault();
-      if (!isFullAdmin()) return;
-      const name = document.getElementById('new-wallet-input').value.trim();
-      if (!name) return;
-      if (!state.wallets.includes(name)) {
-        state.wallets.push(name);
+      const inp = document.getElementById('admin-new-cash-denom');
+      const val = Number(inp?.value || 0);
+      if (!val || val <= 0) return;
+      if (!Array.isArray(state.cashDenominations)) state.cashDenominations = [];
+      if (!state.cashDenominations.includes(val)) {
+        state.cashDenominations.push(val);
+        state.cashDenominations.sort((a, b) => a - b);
         saveState();
       }
-      document.getElementById('new-wallet-input').value = '';
-      renderWalletsList();
-      renderWalletSelect();
-      showToast('تمت إضافة المحفظة', 'success');
+      inp.value = '';
+      renderQuickCashButtons();
+      renderAdminCashDenoms();
+      showToast(`تمت إضافة فئة ${val} ج.م`, 'success');
     }
 
-    function deleteWalletMethod(walletName) {
-      if (!isFullAdmin()) return;
-      state.wallets = state.wallets.filter(w => w !== walletName);
+    function removeQuickCashDenomination(val) {
+      if (!Array.isArray(state.cashDenominations)) return;
+      state.cashDenominations = state.cashDenominations.filter(x => Number(x) !== Number(val));
       saveState();
-      renderWalletsList();
-      renderWalletSelect();
+      renderQuickCashButtons();
+      renderAdminCashDenoms();
+      showToast(`تمت إزالة فئة ${val} ج.م`, 'info');
     }
 
-    function renderWalletsList() {
-      const box = document.getElementById('wallets-list');
+    function renderAdminCashDenoms() {
+      const box = document.getElementById('admin-cash-denoms-list');
       if (!box) return;
-      box.innerHTML = state.wallets.map(w => `
-        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-extrabold text-slate-800">
-          ${escapeHtml(w)}
-          <button type="button" onclick="deleteWalletMethod('${escapeAttr(w)}')" class="text-rose-600 hover:text-rose-800 font-black">✕</button>
+      const denoms = Array.isArray(state.cashDenominations) ? [...state.cashDenominations].sort((a, b) => a - b) : [];
+      box.innerHTML = denoms.map(val => `
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-extrabold text-marine-900">
+          ${Number(val)} ج.م
+          <button type="button" onclick="removeQuickCashDenomination(${Number(val)})" class="text-rose-600 hover:text-rose-800 font-black">✕</button>
         </span>
       `).join('');
     }
 
     function addMainCategory(e) {
       e.preventDefault();
-      if (!isFullAdmin()) return;
+      if (!isAdminOrSupervisor()) return;
       const name = document.getElementById('new-category-input').value.trim();
       if (!name) return;
       state.categories.push({
@@ -3094,7 +2051,50 @@
       saveState();
       renderAdminCategories();
       renderCategoriesBars();
-      showToast('تمت إضافة الفئة', 'success');
+      showToast('تمت إضافة الفئة الرئيسية', 'success');
+    }
+
+    function openEditCategoryModal(catId) {
+      const cat = state.categories.find(c => c.id === catId);
+      if (!cat) return;
+      document.getElementById('editCatIdInput').value = cat.id;
+      document.getElementById('editCatNameInput').value = cat.name;
+      openModal('editCategoryModal');
+    }
+
+    function saveEditedCategory(e) {
+      e.preventDefault();
+      const catId = document.getElementById('editCatIdInput').value;
+      const newName = document.getElementById('editCatNameInput').value.trim();
+      if (!newName) return;
+      const cat = state.categories.find(c => c.id === catId);
+      if (!cat) return;
+      const oldName = cat.name;
+      cat.name = newName;
+      state.products.forEach(p => {
+        if (p.category === oldName) p.category = newName;
+      });
+      if (selectedCategory === oldName) selectedCategory = newName;
+      saveState();
+      closeModal('editCategoryModal');
+      renderAdminCategories();
+      renderCategoriesBars();
+      renderPosGrid();
+      renderInventory();
+      showToast('تم تعديل اسم الفئة الرئيسية وتحديث المنتجات المرتبطة', 'success');
+    }
+
+    function moveMainCategory(catId, dir) {
+      const idx = state.categories.findIndex(c => c.id === catId);
+      if (idx === -1) return;
+      const targetIdx = idx + dir;
+      if (targetIdx < 0 || targetIdx >= state.categories.length) return;
+      const temp = state.categories[idx];
+      state.categories[idx] = state.categories[targetIdx];
+      state.categories[targetIdx] = temp;
+      saveState();
+      renderAdminCategories();
+      renderCategoriesBars();
     }
 
     function toggleCategoryVisibility(catId) {
@@ -3108,31 +2108,129 @@
     }
 
     function deleteMainCategory(catId) {
-      askConfirm('حذف الفئة', 'هل أنت متأكد من حذف هذه الفئة؟', () => {
+      askConfirm('حذف الفئة', 'هل أنت متأكد من حذف هذه الفئة الرئيسية؟', () => {
+        const target = state.categories.find(c => c.id === catId);
         state.categories = state.categories.filter(c => c.id !== catId);
+        if (target && selectedCategory === target.name) {
+          selectedCategory = 'ALL';
+          selectedSubCategory = 'ALL';
+        }
         saveState();
         renderAdminCategories();
         renderCategoriesBars();
         renderPosGrid();
+        showToast('تم حذف الفئة الرئيسية', 'success');
+      });
+    }
+
+    function addSubCategoryToMain(catId) {
+      const inp = document.getElementById(`subcat-input-${catId}`);
+      const subName = (inp?.value || '').trim();
+      if (!subName) {
+        showToast('اكتب اسم الفئة الفرعية أولاً', 'error');
+        return;
+      }
+      const cat = state.categories.find(c => c.id === catId);
+      if (!cat) return;
+      if (!Array.isArray(cat.subCategories)) cat.subCategories = [];
+      if (!cat.subCategories.includes(subName)) {
+        cat.subCategories.push(subName);
+        saveState();
+      }
+      if (inp) inp.value = '';
+      renderAdminCategories();
+      renderCategoriesBars();
+      showToast('تمت إضافة الفئة الفرعية', 'success');
+    }
+
+    function openEditSubCategoryModal(catId, subIndex) {
+      const cat = state.categories.find(c => c.id === catId);
+      if (!cat || !Array.isArray(cat.subCategories) || cat.subCategories[subIndex] === undefined) return;
+      document.getElementById('editSubCatIdInput').value = cat.id;
+      document.getElementById('editSubCatIndexInput').value = subIndex;
+      document.getElementById('editSubCatNameInput').value = cat.subCategories[subIndex];
+      openModal('editSubCategoryModal');
+    }
+
+    function saveEditedSubCategory(e) {
+      e.preventDefault();
+      const catId = document.getElementById('editSubCatIdInput').value;
+      const subIdx = parseInt(document.getElementById('editSubCatIndexInput').value, 10);
+      const newSubName = document.getElementById('editSubCatNameInput').value.trim();
+      if (!newSubName) return;
+      const cat = state.categories.find(c => c.id === catId);
+      if (!cat || !Array.isArray(cat.subCategories) || cat.subCategories[subIdx] === undefined) return;
+
+      const oldSubName = cat.subCategories[subIdx];
+      cat.subCategories[subIdx] = newSubName;
+      state.products.forEach(p => {
+        if (p.category === cat.name && p.subCategory === oldSubName) {
+          p.subCategory = newSubName;
+        }
+      });
+      if (selectedSubCategory === oldSubName) selectedSubCategory = newSubName;
+
+      saveState();
+      closeModal('editSubCategoryModal');
+      renderAdminCategories();
+      renderCategoriesBars();
+      renderPosGrid();
+      renderInventory();
+      showToast('تم تعديل الفئة الفرعية وتحديث المنتجات المرتبطة', 'success');
+    }
+
+    function deleteSubCategoryFromMain(catId, subIndex) {
+      const cat = state.categories.find(c => c.id === catId);
+      if (!cat || !Array.isArray(cat.subCategories)) return;
+      const removed = cat.subCategories[subIndex];
+      askConfirm('حذف الفئة الفرعية', `هل أنت متأكد من حذف الفئة الفرعية "${removed}"؟`, () => {
+        cat.subCategories.splice(subIndex, 1);
+        if (selectedSubCategory === removed) selectedSubCategory = 'ALL';
+        saveState();
+        renderAdminCategories();
+        renderCategoriesBars();
+        renderPosGrid();
+        showToast('تم حذف الفئة الفرعية', 'success');
       });
     }
 
     function renderAdminCategories() {
       const box = document.getElementById('admin-categories-list');
       if (!box) return;
-      box.innerHTML = state.categories.map(c => `
-        <div class="rounded-2xl border border-slate-200 p-4 bg-slate-50 space-y-2.5">
-          <div class="flex items-center justify-between gap-2">
+      box.innerHTML = state.categories.map((c, idx) => `
+        <div class="rounded-2xl border border-slate-200 p-4 bg-slate-50 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
             <span class="font-black text-sm text-marine-900">${escapeHtml(c.name)}</span>
-            <div class="flex items-center gap-1.5">
+            <div class="flex flex-wrap items-center gap-1">
+              <button type="button" onclick="moveMainCategory('${c.id}', -1)" ${idx === 0 ? 'disabled' : ''} title="تحريك لأعلى" class="px-2 py-1 rounded-lg bg-white border border-slate-300 text-xs font-black disabled:opacity-40">▲</button>
+              <button type="button" onclick="moveMainCategory('${c.id}', 1)" ${idx === state.categories.length - 1 ? 'disabled' : ''} title="تحريك لأسفل" class="px-2 py-1 rounded-lg bg-white border border-slate-300 text-xs font-black disabled:opacity-40">▼</button>
               <button type="button" onclick="toggleCategoryVisibility('${c.id}')" class="px-2.5 py-1 rounded-lg text-xs font-bold ${c.hiddenForCashier ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'}">
                 ${c.hiddenForCashier ? 'مخفي للكاشير' : 'ظاهر للكاشير'}
               </button>
-              <button type="button" onclick="deleteMainCategory('${c.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold">حذف</button>
+              <button type="button" onclick="openEditCategoryModal('${c.id}')" class="px-2.5 py-1 rounded-lg bg-amber-200 hover:bg-amber-300 text-marine-900 text-xs font-extrabold">تعديل</button>
+              <button type="button" onclick="deleteMainCategory('${c.id}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-extrabold">حذف</button>
             </div>
           </div>
-          <div class="flex flex-wrap gap-1.5">
-            ${(c.subCategories || []).map(sc => `<span class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-semibold">${escapeHtml(sc)}</span>`).join('')}
+
+          <div class="space-y-2">
+            <div class="text-[11px] font-bold text-slate-500">الفئات الفرعية:</div>
+            <div class="flex flex-wrap gap-1.5">
+              ${(c.subCategories || []).length
+                ? (c.subCategories || []).map((sc, sIdx) => `
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-800">
+                    <span>${escapeHtml(sc)}</span>
+                    <button type="button" onclick="openEditSubCategoryModal('${c.id}', ${sIdx})" title="تعديل الفئة الفرعية" class="text-amber-700 hover:text-amber-900 font-black">✎</button>
+                    <button type="button" onclick="deleteSubCategoryFromMain('${c.id}', ${sIdx})" title="حذف الفئة الفرعية" class="text-rose-600 hover:text-rose-800 font-black">✕</button>
+                  </span>
+                `).join('')
+                : '<span class="text-xs text-slate-400">لا توجد فئات فرعية بعد</span>'}
+            </div>
+            <div class="flex items-center gap-2 pt-1">
+              <input id="subcat-input-${c.id}" type="text" onkeydown="if(event.key==='Enter'){event.preventDefault();addSubCategoryToMain('${c.id}');}" placeholder="إضافة فئة فرعية داخل ${escapeAttr(c.name)}..." class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold" />
+              <button type="button" onclick="addSubCategoryToMain('${c.id}')" class="px-3 py-1.5 rounded-xl bg-marine-800 hover:bg-marine-900 text-white text-xs font-extrabold shrink-0">
+                + فرعية
+              </button>
+            </div>
           </div>
         </div>
       `).join('');
