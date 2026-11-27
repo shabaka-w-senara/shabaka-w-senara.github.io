@@ -252,22 +252,57 @@
                   <label class="block text-[10px] font-extrabold text-slate-600 mb-0.5">الخصم (ج.م)</label>
                   <input id="cartDiscount" type="number" step="0.01" min="0" value="0" oninput="updateCartTotals()" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-extrabold text-rose-600 bg-slate-50" />
                 </div>
-                <div>
-                  <label class="block text-[10px] font-extrabold text-slate-600 mb-0.5">طريقة الدفع</label>
-                  <select id="cartPaymentMethod" onchange="handlePaymentMethodChange()" class="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-extrabold bg-slate-50"></select>
+                <div class="flex flex-col justify-end">
+                  <div class="px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-center">
+                    <span class="block text-[9px] font-bold text-slate-500">طريقة الدفع المختارة</span>
+                    <span id="selectedPaymentBadge" class="text-[11px] font-black text-navy">💵 نقدي (كاش)</span>
+                  </div>
                 </div>
               </div>
 
-              <!-- حقل اختياري: الرقم المرجعي لإنستاباي -->
-              <div id="instapayRefBox" class="hidden p-2 rounded-xl bg-purple-50 border border-purple-200 space-y-1">
-                <label class="block text-[10px] font-extrabold text-purple-900">الرقم المرجعي للمعاملة — إنستاباي (اختياري)</label>
-                <input id="cartInstapayRef" type="text" placeholder="أدخل الرقم المرجعي إن وُجد..." class="w-full rounded-lg border border-purple-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-500" />
+              <!-- أزرار طرق الدفع الرئيسية -->
+              <div class="space-y-1.5">
+                <label class="block text-[10px] font-extrabold text-slate-600">اختر طريقة الدفع:</label>
+                <div id="posMainPaymentButtons" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  <button type="button" id="payBtn_cash" onclick="selectPosPaymentCategory('cash')" class="py-2 px-2 rounded-xl text-[11px] font-black border-2 border-navy bg-navy text-gold shadow transition">
+                    💵 كاش
+                  </button>
+                  <button type="button" id="payBtn_wallet" onclick="selectPosPaymentCategory('wallet')" class="py-2 px-2 rounded-xl text-[11px] font-black border border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 transition">
+                    📱 محفظة إلكترونية
+                  </button>
+                  <button type="button" id="payBtn_instapay" onclick="selectPosPaymentCategory('instapay')" class="py-2 px-2 rounded-xl text-[11px] font-black border border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 transition">
+                    ⚡ إنستاباي
+                  </button>
+                  <button type="button" id="payBtn_credit" onclick="selectPosPaymentCategory('credit')" class="py-2 px-2 rounded-xl text-[11px] font-black border border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 transition">
+                    📒 آجل
+                  </button>
+                </div>
+                <!-- أزرار طرق الدفع المخصصة الإضافية إن وُجدت -->
+                <div id="posExtraPaymentButtons" class="flex flex-wrap gap-1.5"></div>
               </div>
 
-              <!-- حقل اختياري: رقم الهاتف المحوّل منه للمحافظ الإلكترونية -->
-              <div id="walletPhoneBox" class="hidden p-2 rounded-xl bg-sky-50 border border-sky-200 space-y-1">
-                <label class="block text-[10px] font-extrabold text-sky-900">رقم الهاتف المحوَّل منه — المحفظة الإلكترونية (اختياري)</label>
-                <input id="cartWalletSenderPhone" type="tel" inputmode="tel" placeholder="أدخل رقم الهاتف المحوّل منه إن وُجد..." class="w-full rounded-lg border border-sky-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-sky-500" />
+              <!-- أزرار المحافظ الإلكترونية الفرعية + خانة رقم الهاتف المحوّل منه -->
+              <div id="walletSubMethodsBox" class="hidden p-2.5 rounded-xl bg-sky-50 border border-sky-200 space-y-2">
+                <label class="block text-[10px] font-extrabold text-sky-950">اختر المحفظة الإلكترونية:</label>
+                <div id="walletSubButtonsGrid" class="flex flex-wrap gap-1.5"></div>
+                <div>
+                  <label class="block text-[10px] font-extrabold text-sky-900 mb-0.5">رقم الهاتف المحوَّل منه (اختياري)</label>
+                  <input id="cartWalletSenderPhone" type="tel" inputmode="tel" placeholder="أدخل رقم الهاتف المحوّل منه إن وُجد..." class="w-full rounded-lg border border-sky-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-sky-500" />
+                </div>
+              </div>
+
+              <!-- خانات إنستاباي: الرقم المرجعي + رقم الهاتف المحوّل منه -->
+              <div id="instapayRefBox" class="hidden p-2.5 rounded-xl bg-purple-50 border border-purple-200 space-y-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  <div>
+                    <label class="block text-[10px] font-extrabold text-purple-900 mb-0.5">الرقم المرجعي للمعاملة (اختياري)</label>
+                    <input id="cartInstapayRef" type="text" placeholder="الرقم المرجعي..." class="w-full rounded-lg border border-purple-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-500" />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-extrabold text-purple-900 mb-0.5">رقم الهاتف المحوَّل منه (اختياري)</label>
+                    <input id="cartInstapaySenderPhone" type="tel" inputmode="tel" placeholder="رقم الهاتف المحوّل منه..." class="w-full rounded-lg border border-purple-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-500" />
+                  </div>
+                </div>
               </div>
 
               <!-- قسم العميل النقدي المباشر (يظهر في الدفع النقدي والإلكتروني) -->
@@ -1169,7 +1204,7 @@
       ],
       paymentMethods: [
         { id: 'cash', name: 'نقدي (كاش)', type: 'cash', accCategoryId: 'acc_cash' },
-        { id: 'instapay', name: 'إنستاباي (InstaPay)', type: 'wallet', accCategoryId: 'acc_wallet' },
+        { id: 'instapay', name: 'إنستاباي (InstaPay)', type: 'instapay', accCategoryId: 'acc_wallet' },
         { id: 'vodafone', name: 'فودافون كاش', type: 'wallet', accCategoryId: 'acc_wallet' },
         { id: 'etisalat', name: 'اتصالات كاش', type: 'wallet', accCategoryId: 'acc_wallet' },
         { id: 'orange', name: 'أورنج كاش', type: 'wallet', accCategoryId: 'acc_wallet' },
@@ -1185,6 +1220,8 @@
     let activeShiftSession = null;
     let cart = [];
     let selectedPosCategory = 'all';
+    let selectedPosPaymentGroup = 'cash';
+    let selectedPosPaymentMethodId = 'cash';
     let currentViewingInvoiceId = null;
     let loadedReturnInvoice = null;
     let deferredInstallPrompt = null;
@@ -1628,28 +1665,32 @@
       document.getElementById('cartDiscount').value = 0;
       document.getElementById('cartAmountPaid').value = 0;
       document.getElementById('cartInstapayRef').value = '';
+      document.getElementById('cartInstapaySenderPhone').value = '';
       document.getElementById('cartWalletSenderPhone').value = '';
+      selectPosPaymentCategory('cash');
       renderCart();
     }
 
     function renderCart() {
-      const box = document.getElementById('posCartItems');
+      const container = document.getElementById('posCartItems');
+      if (!container) return;
+
       if (!cart.length) {
-        box.innerHTML = '<div class="text-center py-5 text-[11px] font-bold text-slate-400">السلة فارغة — اضغط على أي منتج لإضافته</div>';
+        container.innerHTML = '<div class="text-center py-6 text-xs font-bold text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">السلة فارغة — اختر أصنافاً من القائمة لإضافتها</div>';
         updateCartTotals();
         return;
       }
 
-      box.innerHTML = cart.map((item, idx) => `
-        <div class="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-1.5">
+      container.innerHTML = cart.map((item, idx) => `
+        <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
           <div class="min-w-0 flex-1">
-            <p class="text-[11px] font-black text-slate-900 truncate">${item.name}</p>
-            <p class="text-[10px] text-slate-500">${formatNum(item.price)} ج.م / ${item.unit}</p>
+            <h4 class="text-xs font-black text-slate-900 truncate">${item.name}</h4>
+            <p class="text-[10px] font-bold text-slate-500">${formatNum(item.price)} ج.م / ${item.unit || 'قطعة'}</p>
           </div>
           <div class="flex items-center gap-1 shrink-0">
-            <input type="number" step="0.001" min="0.001" value="${item.qty}" onchange="updateCartItemQty(${idx}, this.value)" class="w-14 rounded border border-slate-300 px-1 py-0.5 text-center text-[11px] font-black bg-white" title="الكمية (يدعم الكسور)" />
-            <span class="text-[11px] font-black text-slate-900 w-14 text-left">${formatNum(item.price * item.qty)}</span>
-            <button type="button" onclick="removeCartItem(${idx})" class="text-rose-500 hover:text-rose-700 font-black px-0.5 text-xs">✕</button>
+            <input type="number" step="0.001" min="0.001" value="${item.qty}" onchange="updateCartItemQty(${idx}, this.value)" class="w-16 rounded-lg border border-slate-300 bg-white px-1.5 py-1 text-center text-xs font-black text-slate-900" />
+            <span class="text-xs font-black text-emerald-700 w-16 text-left">${formatNum(item.price * item.qty)}</span>
+            <button type="button" onclick="removeCartItem(${idx})" class="w-6 h-6 rounded-lg bg-rose-100 text-rose-700 font-black text-xs hover:bg-rose-200">✕</button>
           </div>
         </div>
       `).join('');
@@ -1657,23 +1698,106 @@
       updateCartTotals();
     }
 
+    function isInstapayMethod(pm) {
+      if (!pm) return false;
+      const n = (pm.name || '').toLowerCase();
+      return pm.id === 'instapay' || pm.type === 'instapay' || n.includes('instapay') || n.includes('انستاباي') || n.includes('إنستاباي');
+    }
+
+    function isWalletSubMethod(pm) {
+      if (!pm || isInstapayMethod(pm)) return false;
+      const cat = getAccountingCategoryObj(pm);
+      return pm.type === 'wallet' || (cat && cat.effect === 'wallet');
+    }
+
+    function isCreditMethod(pm) {
+      if (!pm) return false;
+      const cat = getAccountingCategoryObj(pm);
+      return pm.id === 'credit' || pm.type === 'credit' || (cat && cat.effect === 'credit');
+    }
+
+    function isCashMethod(pm) {
+      if (!pm) return false;
+      const cat = getAccountingCategoryObj(pm);
+      return pm.id === 'cash' || pm.type === 'cash' || (cat && cat.effect === 'cash');
+    }
+
     function populatePaymentMethods() {
-      const sel = document.getElementById('cartPaymentMethod');
-      const current = sel.value;
-      sel.innerHTML = state.paymentMethods.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-      if (current && state.paymentMethods.some(m => m.id === current)) sel.value = current;
+      const wallets = state.paymentMethods.filter(isWalletSubMethod);
+      const walletGrid = document.getElementById('walletSubButtonsGrid');
+      if (walletGrid) {
+        walletGrid.innerHTML = wallets.length
+          ? wallets.map(w => {
+              const active = selectedPosPaymentMethodId === w.id;
+              return `<button type="button" onclick="selectWalletSubMethod('${w.id}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black border transition ${active ? 'bg-sky-700 text-white border-sky-800 shadow' : 'bg-white text-sky-950 border-sky-300 hover:bg-sky-100'}">${w.name}</button>`;
+            }).join('')
+          : '<span class="text-[11px] text-slate-500">لا توجد محافظ مضافة</span>';
+      }
+
+      const extraContainer = document.getElementById('posExtraPaymentButtons');
+      if (extraContainer) {
+        const extraCashMethods = state.paymentMethods.filter(pm => pm.id !== 'cash' && isCashMethod(pm));
+        extraContainer.innerHTML = extraCashMethods.map(pm => {
+          const active = selectedPosPaymentMethodId === pm.id;
+          return `<button type="button" onclick="selectCustomPaymentMethod('${pm.id}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black border transition ${active ? 'bg-navy text-gold border-navy shadow' : 'bg-slate-50 text-slate-800 border-slate-300 hover:bg-slate-100'}">💳 ${pm.name}</button>`;
+        }).join('');
+      }
+
       handlePaymentMethodChange();
     }
 
-    function handlePaymentMethodChange() {
-      const methodId = document.getElementById('cartPaymentMethod').value;
-      const methodObj = state.paymentMethods.find(m => m.id === methodId);
-      const isCredit = methodId === 'credit' || (methodObj && methodObj.type === 'credit');
-      const isInstapay = methodId === 'instapay';
-      const isWalletPhone = ['vodafone', 'etisalat', 'orange', 'wepay'].includes(methodId) || (methodObj && methodObj.type === 'wallet' && !isInstapay);
+    function selectPosPaymentCategory(group) {
+      selectedPosPaymentGroup = group;
+      if (group === 'cash') {
+        const cashObj = state.paymentMethods.find(pm => pm.id === 'cash') || state.paymentMethods.find(isCashMethod) || { id: 'cash', name: 'نقدي (كاش)', type: 'cash' };
+        selectedPosPaymentMethodId = cashObj.id;
+      } else if (group === 'wallet') {
+        const wallets = state.paymentMethods.filter(isWalletSubMethod);
+        if (!wallets.some(w => w.id === selectedPosPaymentMethodId)) {
+          selectedPosPaymentMethodId = wallets[0] ? wallets[0].id : 'vodafone';
+        }
+      } else if (group === 'instapay') {
+        const instaObj = state.paymentMethods.find(isInstapayMethod) || { id: 'instapay', name: 'إنستاباي (InstaPay)', type: 'instapay' };
+        selectedPosPaymentMethodId = instaObj.id;
+      } else if (group === 'credit') {
+        const creditObj = state.paymentMethods.find(isCreditMethod) || { id: 'credit', name: 'آجل / على الحساب', type: 'credit' };
+        selectedPosPaymentMethodId = creditObj.id;
+      }
+      populatePaymentMethods();
+    }
 
-      document.getElementById('instapayRefBox').classList.toggle('hidden', !isInstapay);
-      document.getElementById('walletPhoneBox').classList.toggle('hidden', !isWalletPhone);
+    function selectWalletSubMethod(methodId) {
+      selectedPosPaymentGroup = 'wallet';
+      selectedPosPaymentMethodId = methodId;
+      populatePaymentMethods();
+    }
+
+    function selectCustomPaymentMethod(methodId) {
+      selectedPosPaymentGroup = 'custom';
+      selectedPosPaymentMethodId = methodId;
+      populatePaymentMethods();
+    }
+
+    function handlePaymentMethodChange() {
+      const methodObj = state.paymentMethods.find(m => m.id === selectedPosPaymentMethodId) || state.paymentMethods[0];
+      const isCredit = isCreditMethod(methodObj);
+      const isInsta = isInstapayMethod(methodObj);
+      const isWallet = !isCredit && !isInsta && isWalletSubMethod(methodObj);
+
+      ['cash', 'wallet', 'instapay', 'credit'].forEach(g => {
+        const btn = document.getElementById('payBtn_' + g);
+        if (!btn) return;
+        const active = selectedPosPaymentGroup === g;
+        btn.className = active
+          ? 'py-2 px-2 rounded-xl text-[11px] font-black border-2 border-navy bg-navy text-gold shadow transition'
+          : 'py-2 px-2 rounded-xl text-[11px] font-black border border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 transition';
+      });
+
+      const badge = document.getElementById('selectedPaymentBadge');
+      if (badge && methodObj) badge.textContent = methodObj.name;
+
+      document.getElementById('walletSubMethodsBox').classList.toggle('hidden', !isWallet);
+      document.getElementById('instapayRefBox').classList.toggle('hidden', !isInsta);
 
       document.getElementById('cashCustomerBox').classList.toggle('hidden', isCredit);
       document.getElementById('creditCustomerBox').classList.toggle('hidden', !isCredit);
@@ -1714,7 +1838,7 @@
       const change = Math.max(0, paid - grand);
       document.getElementById('cartChangeDue').textContent = formatNum(change) + ' ج.م';
 
-      if (document.getElementById('cartPaymentMethod').value === 'credit') {
+      if (selectedPosPaymentGroup === 'credit') {
         updateCreditCustomerPreview();
       }
     }
@@ -1786,14 +1910,18 @@
       const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
       const discount = parseFloat(document.getElementById('cartDiscount').value) || 0;
       const total = Math.max(0, subtotal - discount);
-      const methodId = document.getElementById('cartPaymentMethod').value;
-      const methodObj = state.paymentMethods.find(m => m.id === methodId) || { id: 'cash', name: 'نقدي (كاش)', type: 'cash' };
-      const isCreditSale = methodId === 'credit' || methodObj.type === 'credit';
+      const methodObj = state.paymentMethods.find(m => m.id === selectedPosPaymentMethodId) || { id: 'cash', name: 'نقدي (كاش)', type: 'cash' };
+      const isCreditSale = isCreditMethod(methodObj);
+      const isInsta = isInstapayMethod(methodObj);
+      const isWallet = !isCreditSale && !isInsta && isWalletSubMethod(methodObj);
+      const normalizedPayType = isCreditSale ? 'credit' : (isInsta || isWallet) ? 'wallet' : 'cash';
 
-      const instapayRef = methodId === 'instapay' ? (document.getElementById('cartInstapayRef').value || '').trim() : '';
-      const walletSenderPhone = !isCreditSale && methodObj.type === 'wallet' && methodId !== 'instapay'
-        ? (document.getElementById('cartWalletSenderPhone').value || '').trim()
-        : '';
+      const instapayRef = isInsta ? (document.getElementById('cartInstapayRef').value || '').trim() : '';
+      const walletSenderPhone = isInsta
+        ? (document.getElementById('cartInstapaySenderPhone').value || '').trim()
+        : isWallet
+          ? (document.getElementById('cartWalletSenderPhone').value || '').trim()
+          : '';
 
       let customerId = null;
       let customerName = 'عميل نقدي';
@@ -1835,7 +1963,7 @@
         shiftSessionId: activeShiftSession ? activeShiftSession.id : '',
         paymentMethodId: methodObj.id,
         paymentMethodName: methodObj.name,
-        paymentType: methodObj.type,
+        paymentType: normalizedPayType,
         instapayRef: instapayRef,
         walletSenderPhone: walletSenderPhone,
         customerId: customerId,
@@ -1857,7 +1985,9 @@
       document.getElementById('cartAmountPaid').value = 0;
       document.getElementById('cartCashCustomerName').value = '';
       document.getElementById('cartInstapayRef').value = '';
+      document.getElementById('cartInstapaySenderPhone').value = '';
       document.getElementById('cartWalletSenderPhone').value = '';
+      selectPosPaymentCategory('cash');
       renderCart();
       renderPosProducts();
 
