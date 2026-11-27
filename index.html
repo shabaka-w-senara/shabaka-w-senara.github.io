@@ -299,8 +299,13 @@
                 <input id="cart-discount-input" type="number" min="0" step="0.01" value="0" oninput="updateCartSummary()" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-bold" />
               </div>
               <div>
-                <label class="block text-xs font-extrabold text-slate-700 mb-1.5">الكمية المراد إرجاعها (يدعم الكسور والوزن) *</label>
-                <input id="ret-qty-input" type="number" min="0.001" step="any" value="1" required oninput="updateReturnPreview()" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm font-extrabold" />
+                <label class="block text-xs font-bold text-slate-700 mb-1">طريقة الدفع</label>
+                <select id="cart-payment-method" onchange="onPaymentMethodChange()" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-bold">
+                  <option value="كاش">كاش</option>
+                  <option value="محفظة إلكترونية">محفظة إلكترونية</option>
+                  <option value="إنستاباي">إنستاباي</option>
+                  <option value="آجل / ذمم">آجل / ذمم</option>
+                </select>
               </div>
             </div>
 
@@ -364,8 +369,8 @@
                 </div>
               </div>
               <div>
-                <label class="block text-xs font-extrabold text-slate-700 mb-1.5">الكمية المراد إرجاعها *</label>
-                <input id="ret-qty-input" type="number" min="1" value="1" required oninput="updateReturnPreview()" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm font-extrabold" />
+                <label class="block text-xs font-extrabold text-slate-700 mb-1.5">الكمية المراد إرجاعها (يدعم الكسور والوزن) *</label>
+                <input id="ret-qty-input" type="number" min="0.001" step="any" value="1" required oninput="updateReturnPreview()" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm font-extrabold" />
               </div>
             </div>
 
@@ -910,6 +915,26 @@
         </div>
       </form>
     </div>
+  </div>
+
+  <!-- ================= نافذة عرض وطباعة الفاتورة A4 وإرسال واتساب ================= -->
+  <div id="invoiceModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl space-y-4 my-auto print-sheet">
+      <div class="no-print flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+        <span class="text-sm font-black text-marine-900">معاينة الفاتورة الضريبية / التجارية</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-marine-800 hover:bg-marine-900 text-white text-xs font-extrabold shadow">
+            طباعة A4
+          </button>
+          <button type="button" onclick="sendActiveInvoiceWhatsapp()" style="background-color:#25D366;" class="px-3.5 py-2 rounded-xl hover:opacity-90 text-white text-xs font-extrabold shadow">
+            إرسال واتساب
+          </button>
+          <button type="button" onclick="closeModal('invoiceModal')" class="px-3.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-extrabold">
+            إغلاق
+          </button>
+        </div>
+      </div>
+
       <!-- ترويسة الفاتورة مع اللوجو أعلى اسم المتجر والعنوان ورقم التليفون -->
       <div class="text-center border-b border-slate-200 pb-4 space-y-1.5">
         <img id="inv-doc-logo" src="https://placehold.co/84x84/0b2239/f0be4d?text=SW" onerror="this.src='https://placehold.co/84x84/0b2239/f0be4d?text=SW'" alt="لوجو المتجر" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover mx-auto border border-slate-200" />
@@ -937,6 +962,18 @@
       </div>
 
       <div id="inv-doc-totals" class="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-1.5 text-xs sm:text-sm"></div>
+    </div>
+  </div>
+
+  <!-- ================= نافذة تأكيد العمليات ================= -->
+  <div id="confirmModal" class="no-print hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <h3 id="confirmModalTitle" class="text-base font-black text-marine-900">تأكيد</h3>
+      <p id="confirmModalMessage" class="text-xs sm:text-sm text-slate-600 leading-relaxed"></p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="resolveConfirm(false)" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">إلغاء</button>
+        <button type="button" onclick="resolveConfirm(true)" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold">تأكيد</button>
+      </div>
     </div>
   </div>
 
@@ -1095,7 +1132,33 @@
 
     function loadState() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const candidateKeys = [
+          STORAGE_KEY,
+          'shabaka_sennara_pos_v2',
+          'shabaka_sennara_pos',
+          'pos_app_state_v1',
+          'pos_state'
+        ];
+        let raw = null;
+        for (const k of candidateKeys) {
+          const val = localStorage.getItem(k);
+          if (val && val.trim().startsWith('{')) {
+            raw = val;
+            break;
+          }
+        }
+        if (!raw) {
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && (k.includes('shabaka') || k.includes('sennara') || k.includes('pos'))) {
+              const val = localStorage.getItem(k);
+              if (val && val.includes('"products"') && val.includes('"staff"')) {
+                raw = val;
+                break;
+              }
+            }
+          }
+        }
         if (raw) {
           const parsed = JSON.parse(raw);
           const def = createDefaultState();
@@ -1114,6 +1177,7 @@
             expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
             shiftClosures: Array.isArray(parsed.shiftClosures) ? parsed.shiftClosures : []
           };
+          saveState();
         }
       } catch (e) {
         state = createDefaultState();
@@ -1841,11 +1905,6 @@
       for (const item of cart) {
         const prod = state.products.find(p => p.id === item.id);
         prod.stock = Math.max(0, Number((Number(prod.stock || 0) - Number(item.qty || 0)).toFixed(3)));
-      }
-      }
-      for (const item of cart) {
-        const prod = state.products.find(p => p.id === item.id);
-        prod.stock = Number(prod.stock || 0) - item.qty;
       }
 
       if (cust) {
