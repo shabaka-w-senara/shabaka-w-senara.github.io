@@ -8,9 +8,11 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link id="dynamic-manifest" rel="manifest" href="" />
+  <meta name="application-name" content="شبكة وصنارة" />
+  <meta name="apple-mobile-web-app-title" content="شبكة وصنارة" />
+  <link id="dynamic-manifest" rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22%D8%B4%D8%A8%D9%83%D8%A9%20%D9%88%D8%B5%D9%86%D8%A7%D8%B1%D8%A9%22%2C%22short_name%22%3A%22%D8%B4%D8%A8%D9%83%D8%A9%20%D9%88%D8%B5%D9%86%D8%A7%D8%B1%D8%A9%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230B192C%22%2C%22theme_color%22%3A%22%230B192C%22%7D" />
   <link id="dynamic-apple-icon" rel="apple-touch-icon" href="" />
-  <link id="dynamic-favicon" rel="icon" href="" />
+  <link id="dynamic-favicon" rel="icon" type="image/png" href="" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
@@ -769,17 +771,18 @@
         <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
           <div>
             <label class="block text-[11px] font-extrabold text-slate-700 mb-1">اسم طريقة الدفع الجديدة *</label>
-            <input id="newPayMethodNameInput" type="text" placeholder="مثال: فيزا بنك مصر / فوري / تحويل بنكي..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold bg-white" />
+            <input id="newPayMethodNameInput" type="text" placeholder="مثال: فودافون كاش / فيزا / تحويل بنكي..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold bg-white" />
           </div>
           <div>
-            <label class="block text-[11px] font-extrabold text-slate-700 mb-1">التصنيف المحاسبي (اختر أو أضف تصنيفاً محاسبياً جديداً) *</label>
+            <label class="block text-[11px] font-extrabold text-slate-700 mb-1">نوع طريقة الدفع / التصنيف المحاسبي (التي تتبع لها في سلة الفاتورة) *</label>
             <div class="flex flex-col sm:flex-row gap-1.5">
               <select id="newPayMethodTypeSelect" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-extrabold bg-white"></select>
               <input id="quickNewAccCatInput" type="text" placeholder="أو اكتب تصنيفاً محاسبياً جديداً هنا..." class="flex-1 rounded-lg border border-amber-300 px-3 py-2 text-xs font-bold bg-amber-50/40" />
-              <select id="quickNewAccCatEffect" class="rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-extrabold bg-white" title="الأثر على الدرج">
-                <option value="wallet">أثر: محفظة / بنك</option>
-                <option value="cash">أثر: نقدي بالدرج</option>
-                <option value="credit">أثر: آجل / ذمم</option>
+              <select id="quickNewAccCatEffect" class="rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-extrabold bg-white" title="النوع في سلة الفاتورة">
+                <option value="wallet">يتبع: المحافظ الإلكترونية</option>
+                <option value="instapay">يتبع: إنستاباي</option>
+                <option value="cash">يتبع: كاش (نقدي بالدرج)</option>
+                <option value="credit">يتبع: آجل / على الحساب</option>
               </select>
             </div>
           </div>
@@ -1142,9 +1145,10 @@
       <div class="flex flex-col sm:flex-row gap-1.5">
         <input id="modalNewAccCatName" type="text" placeholder="اسم التصنيف المحاسبي الجديد..." class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold" />
         <select id="modalNewAccCatEffect" class="rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-extrabold bg-slate-50">
-          <option value="wallet">أثر: محفظة / بنك</option>
-          <option value="cash">أثر: نقدي بالدرج</option>
-          <option value="credit">أثر: آجل / ذمم</option>
+          <option value="wallet">يتبع: المحافظ الإلكترونية</option>
+          <option value="instapay">يتبع: إنستاباي</option>
+          <option value="cash">يتبع: كاش (نقدي بالدرج)</option>
+          <option value="credit">يتبع: آجل / على الحساب</option>
         </select>
         <button type="button" onclick="addAccountingCategoryFromModal()" class="px-3.5 py-2 rounded-lg bg-navy text-gold font-black text-xs">+ إضافة</button>
       </div>
@@ -1199,12 +1203,13 @@
       denominations: [5, 10, 20, 50, 100, 200, 500],
       accountingCategories: [
         { id: 'acc_cash', name: 'نقدي (يدخل الدرج)', effect: 'cash' },
-        { id: 'acc_wallet', name: 'محفظة إلكترونية / تحويل بنكي', effect: 'wallet' },
+        { id: 'acc_wallet', name: 'محفظة إلكترونية', effect: 'wallet' },
+        { id: 'acc_instapay', name: 'إنستاباي (InstaPay)', effect: 'instapay' },
         { id: 'acc_credit', name: 'آجل / على الحساب', effect: 'credit' }
       ],
       paymentMethods: [
         { id: 'cash', name: 'نقدي (كاش)', type: 'cash', accCategoryId: 'acc_cash' },
-        { id: 'instapay', name: 'إنستاباي (InstaPay)', type: 'instapay', accCategoryId: 'acc_wallet' },
+        { id: 'instapay', name: 'إنستاباي (InstaPay)', type: 'instapay', accCategoryId: 'acc_instapay' },
         { id: 'vodafone', name: 'فودافون كاش', type: 'wallet', accCategoryId: 'acc_wallet' },
         { id: 'etisalat', name: 'اتصالات كاش', type: 'wallet', accCategoryId: 'acc_wallet' },
         { id: 'orange', name: 'أورنج كاش', type: 'wallet', accCategoryId: 'acc_wallet' },
@@ -1235,11 +1240,18 @@
           merged.staff = (merged.staff || []).map(s => ({ openingCustody: 0, ...s }));
           if (!Array.isArray(merged.accountingCategories) || !merged.accountingCategories.length) {
             merged.accountingCategories = structuredClone(DEFAULT_STATE.accountingCategories);
+          } else if (!merged.accountingCategories.some(c => c.effect === 'instapay')) {
+            merged.accountingCategories.splice(2, 0, { id: 'acc_instapay', name: 'إنستاباي (InstaPay)', effect: 'instapay' });
           }
-          merged.paymentMethods = (merged.paymentMethods || []).map(pm => ({
-            accCategoryId: pm.accCategoryId || (pm.type === 'cash' ? 'acc_cash' : pm.type === 'credit' ? 'acc_credit' : 'acc_wallet'),
-            ...pm
-          }));
+          merged.paymentMethods = (merged.paymentMethods || []).map(pm => {
+            const isInsta = pm.id === 'instapay' || pm.type === 'instapay' || /instapay|انستاباي|إنستاباي/i.test(pm.name || '');
+            const defaultCatId = pm.type === 'cash' ? 'acc_cash' : pm.type === 'credit' ? 'acc_credit' : isInsta ? 'acc_instapay' : 'acc_wallet';
+            return {
+              accCategoryId: isInsta ? 'acc_instapay' : (pm.accCategoryId || defaultCatId),
+              type: isInsta ? 'instapay' : (pm.type || 'wallet'),
+              ...pm
+            };
+          });
           return merged;
         }
         for (let i = 0; i < localStorage.length; i++) {
@@ -1306,6 +1318,48 @@
     }
 
     // ==================== PWA & اللوجو ====================
+    function generatePngAppIconDataUrl(size, logoDataUrl, callback) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0B192C';
+      ctx.fillRect(0, 0, size, size);
+
+      if (logoDataUrl) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const pad = Math.round(size * 0.08);
+          ctx.drawImage(img, pad, pad, size - pad * 2, size - pad * 2);
+          try {
+            callback(canvas.toDataURL('image/png'));
+          } catch (e) {
+            callback(logoDataUrl);
+          }
+        };
+        img.onerror = () => {
+          ctx.fillStyle = '#D4AF37';
+          ctx.font = `bold ${Math.round(size * 0.5)}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('🎣', size / 2, size / 2);
+          callback(canvas.toDataURL('image/png'));
+        };
+        img.src = logoDataUrl;
+      } else {
+        ctx.strokeStyle = '#D4AF37';
+        ctx.lineWidth = Math.max(4, Math.round(size * 0.04));
+        ctx.strokeRect(ctx.lineWidth, ctx.lineWidth, size - ctx.lineWidth * 2, size - ctx.lineWidth * 2);
+        ctx.fillStyle = '#D4AF37';
+        ctx.font = `bold ${Math.round(size * 0.48)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🎣', size / 2, size / 2);
+        callback(canvas.toDataURL('image/png'));
+      }
+    }
+
     function setupPwaAndBranding() {
       const name = state.store.name || 'شبكة وصنارة';
       const tagline = state.store.tagline || '';
@@ -1336,67 +1390,46 @@
         }
       });
 
-      const iconHref = logo || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="36" fill="#0B192C"/><text x="96" y="122" font-size="96" text-anchor="middle">🎣</text></svg>');
-      document.getElementById('dynamic-apple-icon').href = iconHref;
-      document.getElementById('dynamic-favicon').href = iconHref;
+      generatePngAppIconDataUrl(192, logo, (png192) => {
+        const appleIcon = document.getElementById('dynamic-apple-icon');
+        const favIcon = document.getElementById('dynamic-favicon');
+        if (appleIcon) appleIcon.href = png192;
+        if (favIcon) favIcon.href = png192;
 
-      const manifestObj = {
-        name: name,
-        short_name: name,
-        start_url: './',
-        display: 'standalone',
-        background_color: '#0B192C',
-        theme_color: '#0B192C',
-        icons: [
-          { src: iconHref, sizes: '192x192', type: logo ? 'image/png' : 'image/svg+xml' },
-          { src: iconHref, sizes: '512x512', type: logo ? 'image/png' : 'image/svg+xml' }
-        ]
-      };
-      const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
-      document.getElementById('dynamic-manifest').href = URL.createObjectURL(manifestBlob);
-    }
+        const baseUrl = window.location.href.split('#')[0].split('?')[0];
+        const scopeUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
+        const manifestObj = {
+          id: scopeUrl || './',
+          name: name,
+          short_name: name,
+          start_url: baseUrl || './',
+          scope: scopeUrl || './',
+          display: 'standalone',
+          orientation: 'portrait',
+          background_color: '#0B192C',
+          theme_color: '#0B192C',
+          icons: [
+            { src: png192, sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: png192, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          ]
+        };
+        const manifestLink = document.getElementById('dynamic-manifest');
+        if (manifestLink) {
+          manifestLink.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifestObj));
+        }
+      });
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredInstallPrompt = e;
-      const banner = document.getElementById('pwaInstallBanner');
-      if (banner) banner.classList.remove('hidden');
-    });
-
-    async function triggerPwaInstall() {
-      if (!deferredInstallPrompt) return;
-      deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
-      deferredInstallPrompt = null;
-      document.getElementById('pwaInstallBanner').classList.add('hidden');
-    }
-
-    // ==================== بوابة الدخول والصلاحيات ====================
-    function populateGateUsers() {
-      const cashierSel = document.getElementById('gateCashierSelect');
-      const adminSel = document.getElementById('gateAdminSelect');
-      const cashiers = state.staff.filter(s => s.role === 'cashier');
-      const admins = state.staff.filter(s => s.role === 'admin' || s.role === 'supervisor');
-
-      cashierSel.innerHTML = cashiers.length
-        ? cashiers.map(c => `<option value="${c.id}">${c.name} (${getShiftLabel(c.shift)}) — عهدة: ${formatNum(c.openingCustody || 0)} ج.م</option>`).join('')
-        : '<option value="">لا يوجد حساب كاشير</option>';
-
-      adminSel.innerHTML = admins.length
-        ? admins.map(a => `<option value="${a.id}">${a.name} — ${a.role === 'supervisor' ? 'مشرف' : 'إدارة'} (${getShiftLabel(a.shift)})</option>`).join('')
-        : '<option value="">لا يوجد حساب إدارة</option>';
-
-      syncGateOpeningCashForSelectedCashier();
-
-      const savedCashierPin = localStorage.getItem('saved_cashier_pin');
-      if (savedCashierPin) {
-        document.getElementById('gateCashierPin').value = savedCashierPin;
-        document.getElementById('rememberCashierPin').checked = true;
-      }
-      const savedAdminPin = localStorage.getItem('saved_admin_pin');
-      if (savedAdminPin) {
-        document.getElementById('gateAdminPin').value = savedAdminPin;
-        document.getElementById('rememberAdminPin').checked = true;
+      if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+        const swCode = `
+          self.addEventListener('install', (e) => { self.skipWaiting(); });
+          self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
+          self.addEventListener('fetch', (e) => {
+            if (e.request.method !== 'GET') return;
+            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+          });
+        `;
+        const swBlob = new Blob([swCode], { type: 'application/javascript' });
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
       }
     }
 
@@ -1676,7 +1709,7 @@
       if (!container) return;
 
       if (!cart.length) {
-        container.innerHTML = '<div class="text-center py-6 text-xs font-bold text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">السلة فارغة — اختر أصنافاً من القائمة لإضافتها</div>';
+        container.innerHTML = '<div class="text-center py-6 text-xs font-bold text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">السلة فارغة — اضغط على أي صنف لإضافته</div>';
         updateCartTotals();
         return;
       }
@@ -1684,12 +1717,12 @@
       container.innerHTML = cart.map((item, idx) => `
         <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
           <div class="min-w-0 flex-1">
-            <h4 class="text-xs font-black text-slate-900 truncate">${item.name}</h4>
-            <p class="text-[10px] font-bold text-slate-500">${formatNum(item.price)} ج.م / ${item.unit || 'قطعة'}</p>
+            <h5 class="text-xs font-black text-slate-900 truncate">${item.name}</h5>
+            <span class="text-[10px] font-bold text-slate-500">${formatNum(item.price)} ج.م / ${item.unit || 'قطعة'}</span>
           </div>
           <div class="flex items-center gap-1 shrink-0">
             <input type="number" step="0.001" min="0.001" value="${item.qty}" onchange="updateCartItemQty(${idx}, this.value)" class="w-16 rounded-lg border border-slate-300 bg-white px-1.5 py-1 text-center text-xs font-black text-slate-900" />
-            <span class="text-xs font-black text-emerald-700 w-16 text-left">${formatNum(item.price * item.qty)}</span>
+            <span class="text-[11px] font-black text-emerald-700 w-16 text-left">${formatNum(item.price * item.qty)}</span>
             <button type="button" onclick="removeCartItem(${idx})" class="w-6 h-6 rounded-lg bg-rose-100 text-rose-700 font-black text-xs hover:bg-rose-200">✕</button>
           </div>
         </div>
@@ -1698,28 +1731,30 @@
       updateCartTotals();
     }
 
+    function getMethodEffectiveGroup(pm) {
+      if (!pm) return 'cash';
+      const cat = getAccountingCategoryObj(pm);
+      const eff = (cat && cat.effect) || pm.type || 'cash';
+      if (eff === 'credit' || pm.id === 'credit') return 'credit';
+      if (eff === 'instapay' || pm.id === 'instapay' || /instapay|انستاباي|إنستاباي/i.test(pm.name || '')) return 'instapay';
+      if (eff === 'wallet') return 'wallet';
+      return 'cash';
+    }
+
     function isInstapayMethod(pm) {
-      if (!pm) return false;
-      const n = (pm.name || '').toLowerCase();
-      return pm.id === 'instapay' || pm.type === 'instapay' || n.includes('instapay') || n.includes('انستاباي') || n.includes('إنستاباي');
+      return getMethodEffectiveGroup(pm) === 'instapay';
     }
 
     function isWalletSubMethod(pm) {
-      if (!pm || isInstapayMethod(pm)) return false;
-      const cat = getAccountingCategoryObj(pm);
-      return pm.type === 'wallet' || (cat && cat.effect === 'wallet');
+      return getMethodEffectiveGroup(pm) === 'wallet';
     }
 
     function isCreditMethod(pm) {
-      if (!pm) return false;
-      const cat = getAccountingCategoryObj(pm);
-      return pm.id === 'credit' || pm.type === 'credit' || (cat && cat.effect === 'credit');
+      return getMethodEffectiveGroup(pm) === 'credit';
     }
 
     function isCashMethod(pm) {
-      if (!pm) return false;
-      const cat = getAccountingCategoryObj(pm);
-      return pm.id === 'cash' || pm.type === 'cash' || (cat && cat.effect === 'cash');
+      return getMethodEffectiveGroup(pm) === 'cash';
     }
 
     function populatePaymentMethods() {
@@ -1754,7 +1789,7 @@
       } else if (group === 'wallet') {
         const wallets = state.paymentMethods.filter(isWalletSubMethod);
         if (!wallets.some(w => w.id === selectedPosPaymentMethodId)) {
-          selectedPosPaymentMethodId = wallets[0] ? wallets[0].id : 'vodafone';
+          selectedPosPaymentMethodId = wallets[0] ? wallets[0].id : '';
         }
       } else if (group === 'instapay') {
         const instaObj = state.paymentMethods.find(isInstapayMethod) || { id: 'instapay', name: 'إنستاباي (InstaPay)', type: 'instapay' };
@@ -1773,21 +1808,36 @@
     }
 
     function selectCustomPaymentMethod(methodId) {
-      selectedPosPaymentGroup = 'custom';
+      selectedPosPaymentGroup = 'cash';
       selectedPosPaymentMethodId = methodId;
       populatePaymentMethods();
     }
 
     function handlePaymentMethodChange() {
-      const methodObj = state.paymentMethods.find(m => m.id === selectedPosPaymentMethodId) || state.paymentMethods[0];
-      const isCredit = isCreditMethod(methodObj);
-      const isInsta = isInstapayMethod(methodObj);
-      const isWallet = !isCredit && !isInsta && isWalletSubMethod(methodObj);
+      let methodObj = state.paymentMethods.find(m => m.id === selectedPosPaymentMethodId);
+      if (!methodObj) {
+        if (selectedPosPaymentGroup === 'wallet') {
+          methodObj = state.paymentMethods.find(isWalletSubMethod) || { id: 'wallet', name: 'محفظة إلكترونية', type: 'wallet' };
+        } else if (selectedPosPaymentGroup === 'instapay') {
+          methodObj = state.paymentMethods.find(isInstapayMethod) || { id: 'instapay', name: 'إنستاباي (InstaPay)', type: 'instapay' };
+        } else if (selectedPosPaymentGroup === 'credit') {
+          methodObj = state.paymentMethods.find(isCreditMethod) || { id: 'credit', name: 'آجل / على الحساب', type: 'credit' };
+        } else {
+          methodObj = state.paymentMethods.find(isCashMethod) || { id: 'cash', name: 'نقدي (كاش)', type: 'cash' };
+        }
+        selectedPosPaymentMethodId = methodObj.id;
+      }
+
+      const activeGroup = selectedPosPaymentGroup;
+      const isCash = activeGroup === 'cash';
+      const isWallet = activeGroup === 'wallet';
+      const isInsta = activeGroup === 'instapay';
+      const isCredit = activeGroup === 'credit';
 
       ['cash', 'wallet', 'instapay', 'credit'].forEach(g => {
         const btn = document.getElementById('payBtn_' + g);
         if (!btn) return;
-        const active = selectedPosPaymentGroup === g;
+        const active = activeGroup === g;
         btn.className = active
           ? 'py-2 px-2 rounded-xl text-[11px] font-black border-2 border-navy bg-navy text-gold shadow transition'
           : 'py-2 px-2 rounded-xl text-[11px] font-black border border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 transition';
@@ -1801,7 +1851,7 @@
 
       document.getElementById('cashCustomerBox').classList.toggle('hidden', isCredit);
       document.getElementById('creditCustomerBox').classList.toggle('hidden', !isCredit);
-      document.getElementById('cashTenderedSection').classList.toggle('hidden', isCredit);
+      document.getElementById('cashTenderedSection').classList.toggle('hidden', !isCash);
 
       if (isCredit) {
         populateCreditCustomersDropdown();
@@ -1811,12 +1861,18 @@
 
     function populateCreditCustomersDropdown() {
       const sel = document.getElementById('cartCreditCustomerSelect');
-      sel.innerHTML = state.customers.map(c => `<option value="${c.id}">${c.name} (مديونية: ${formatNum(c.debt)} ج.م)</option>`).join('');
+      if (!sel) return;
+      if (!state.customers.length) {
+        sel.innerHTML = '<option value="">لا يوجد عملاء آجل — أضف عميلاً أولاً</option>';
+      } else {
+        sel.innerHTML = state.customers.map(c => `<option value="${c.id}">${c.name} (مديونية: ${formatNum(c.debt)} ج.م)</option>`).join('');
+      }
       updateCreditCustomerPreview();
     }
 
     function updateCreditCustomerPreview() {
-      const custId = document.getElementById('cartCreditCustomerSelect').value;
+      const sel = document.getElementById('cartCreditCustomerSelect');
+      const custId = sel ? sel.value : '';
       const cust = state.customers.find(c => c.id === custId);
       const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
       const discount = parseFloat(document.getElementById('cartDiscount').value) || 0;
@@ -1911,9 +1967,9 @@
       const discount = parseFloat(document.getElementById('cartDiscount').value) || 0;
       const total = Math.max(0, subtotal - discount);
       const methodObj = state.paymentMethods.find(m => m.id === selectedPosPaymentMethodId) || { id: 'cash', name: 'نقدي (كاش)', type: 'cash' };
-      const isCreditSale = isCreditMethod(methodObj);
-      const isInsta = isInstapayMethod(methodObj);
-      const isWallet = !isCreditSale && !isInsta && isWalletSubMethod(methodObj);
+      const isCreditSale = selectedPosPaymentGroup === 'credit' || isCreditMethod(methodObj);
+      const isInsta = selectedPosPaymentGroup === 'instapay' || isInstapayMethod(methodObj);
+      const isWallet = !isCreditSale && !isInsta && (selectedPosPaymentGroup === 'wallet' || isWalletSubMethod(methodObj));
       const normalizedPayType = isCreditSale ? 'credit' : (isInsta || isWallet) ? 'wallet' : 'cash';
 
       const instapayRef = isInsta ? (document.getElementById('cartInstapayRef').value || '').trim() : '';
@@ -3039,7 +3095,9 @@
           ? 'bg-emerald-100 text-emerald-800'
           : cat.effect === 'credit'
             ? 'bg-amber-100 text-amber-900'
-            : 'bg-sky-100 text-sky-800';
+            : cat.effect === 'instapay'
+              ? 'bg-purple-100 text-purple-900'
+              : 'bg-sky-100 text-sky-800';
         return `
           <tr class="hover:bg-slate-50">
             <td class="p-2.5 font-black text-slate-900">${pm.name}</td>
@@ -3152,7 +3210,7 @@
         <div class="p-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
           <div class="flex-1 min-w-0">
             <input id="accCatEditName_${idx}" type="text" value="${cat.name}" class="w-full rounded border border-slate-300 px-2 py-1 text-xs font-extrabold bg-white" />
-            <span class="text-[10px] font-bold text-slate-500">الأثر: ${cat.effect === 'cash' ? 'نقدي بالدرج' : cat.effect === 'credit' ? 'آجل / ذمم' : 'محفظة / بنك'}</span>
+            <span class="text-[10px] font-bold text-slate-500">الأثر: ${cat.effect === 'cash' ? 'كاش (نقدي بالدرج)' : cat.effect === 'credit' ? 'آجل / ذمم' : cat.effect === 'instapay' ? 'إنستاباي' : 'محفظة إلكترونية'}</span>
           </div>
           <div class="flex items-center gap-1 shrink-0">
             <button type="button" onclick="updateAccountingCategory(${idx})" class="px-2 py-1 rounded bg-emerald-600 text-white text-[10px] font-extrabold">حفظ</button>
@@ -3545,6 +3603,55 @@
       state.shiftClosings = [];
       saveState();
       showToast('🧹 تم مسح سجلات الفواتير والشيفتات');
+    }
+
+    function populateGateUsers() {
+      const cashierSel = document.getElementById('gateCashierSelect');
+      const adminSel = document.getElementById('gateAdminSelect');
+      const cashiers = state.staff.filter(s => s.role === 'cashier');
+      const admins = state.staff.filter(s => s.role === 'admin' || s.role === 'supervisor');
+
+      if (cashierSel) {
+        const list = cashiers.length ? cashiers : state.staff;
+        cashierSel.innerHTML = list.map(u => `<option value="${u.id}">${u.name} (${getShiftLabel(u.shift)})</option>`).join('');
+        syncGateOpeningCashForSelectedCashier();
+      }
+      if (adminSel) {
+        const list = admins.length ? admins : state.staff;
+        adminSel.innerHTML = list.map(u => `<option value="${u.id}">${u.name} (${getRoleLabel(u.role)})</option>`).join('');
+      }
+
+      const savedCashierPin = localStorage.getItem('saved_cashier_pin');
+      if (savedCashierPin) {
+        const inp = document.getElementById('gateCashierPin');
+        const chk = document.getElementById('rememberCashierPin');
+        if (inp) inp.value = savedCashierPin;
+        if (chk) chk.checked = true;
+      }
+
+      const savedAdminPin = localStorage.getItem('saved_admin_pin');
+      if (savedAdminPin) {
+        const inp = document.getElementById('gateAdminPin');
+        const chk = document.getElementById('rememberAdminPin');
+        if (inp) inp.value = savedAdminPin;
+        if (chk) chk.checked = true;
+      }
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const banner = document.getElementById('pwaInstallBanner');
+      if (banner) banner.classList.remove('hidden');
+    });
+
+    async function triggerPwaInstall() {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      const banner = document.getElementById('pwaInstallBanner');
+      if (banner) banner.classList.add('hidden');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
