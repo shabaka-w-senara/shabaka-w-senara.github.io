@@ -1386,12 +1386,16 @@
         favIcon.href = icon192;
       }
 
+      const pageUrl = window.location.href.split('#')[0].split('?')[0];
+      const scopeUrl = pageUrl.substring(0, pageUrl.lastIndexOf('/') + 1) || pageUrl;
+
       const manifestObj = {
+        id: pageUrl,
         name: state?.store?.name || 'شبكة وصنارة',
         short_name: (state?.store?.name || 'شبكة وصنارة').slice(0, 14),
         description: state?.store?.desc || 'نظام نقاط البيع والمحاسبة',
-        start_url: './',
-        scope: './',
+        start_url: pageUrl,
+        scope: scopeUrl,
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#0b2239',
@@ -1402,15 +1406,15 @@
       };
 
       try {
-        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
-        const manifestUrl = URL.createObjectURL(manifestBlob);
+        const manifestJson = JSON.stringify(manifestObj);
+        const manifestDataUrl = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(manifestJson);
         let link = document.querySelector('link[rel="manifest"]');
         if (!link) {
           link = document.createElement('link');
           link.rel = 'manifest';
           document.head.appendChild(link);
         }
-        link.href = manifestUrl;
+        link.href = manifestDataUrl;
       } catch (e) {}
 
       if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
