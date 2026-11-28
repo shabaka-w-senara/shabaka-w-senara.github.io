@@ -126,6 +126,7 @@
             <h1 id="headerStoreName" class="text-sm sm:text-base font-black text-gold leading-tight truncate">شبكة وصنارة</h1>
             <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">شيفت نشط</span>
             <span id="networkStatusBadge" class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-sky-500/20 text-sky-200 border border-sky-400/40">🟢 متصل</span>
+            <span id="cloudSyncBadge" onclick="syncCloudNow(true)" title="اضغط للمزامنة الفورية" class="cursor-pointer px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-slate-700 text-slate-300 border border-slate-500/40">☁️ محلي</span>
           </div>
           <p class="text-[10px] sm:text-[11px] text-slate-300 truncate">
             <strong id="headerUserName" class="text-white">—</strong> •
@@ -656,6 +657,40 @@
 
     <!-- 6. قسم الإدارة والصلاحيات والفئات -->
     <section id="sec-admin" class="tab-section hidden space-y-4">
+      <!-- قسم المزامنة السحابية اللحظية بين الكمبيوتر والهاتف -->
+      <div class="bg-white p-3 sm:p-4 rounded-2xl shadow-sm border-2 border-sky-400 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sky-200 pb-2.5">
+          <div>
+            <h2 class="text-sm sm:text-base font-black text-sky-950">☁️ المزامنة السحابية اللحظية بين الكمبيوتر وتطبيق الهاتف</h2>
+            <p class="text-[11px] text-slate-600">اربط الكمبيوتر وهواتف الكاشير بقاعدة بيانات سحابية واحدة لتتزامن الفواتير والمخزون وإقفال الدرج لحظياً مع استمرار العمل بدون إنترنت</p>
+          </div>
+          <span id="adminCloudStatusText" class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black">وضع محلي (غير مربوط بالسحابة بعد)</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-extrabold text-slate-700 mb-1">رابط قاعدة بيانات Firebase Realtime Database *</label>
+            <input id="adminFirebaseUrlInput" type="url" dir="ltr" placeholder="https://your-project-default-rtdb.firebaseio.com" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold bg-slate-50 text-left" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-slate-700 mb-1">معرّف الفرع / المتجر المشترك</label>
+            <input id="adminCloudStoreIdInput" type="text" dir="ltr" value="shabaka_main_branch" placeholder="shabaka_main_branch" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold bg-slate-50 text-left" />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" onclick="saveCloudSyncSettings()" class="px-4 py-2 rounded-lg bg-sky-700 hover:bg-sky-800 text-white font-black text-xs shadow">
+            ☁️ حفظ وتفعيل المزامنة اللحظية
+          </button>
+          <button type="button" onclick="syncCloudNow(true)" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs">
+            🔄 مزامنة الآن
+          </button>
+          <button type="button" onclick="pushLocalStateToCloud(true)" class="px-3.5 py-2 rounded-lg bg-amber-100 text-amber-950 border border-amber-300 font-extrabold text-xs">
+            ⬆️ رفع بيانات هذا الجهاز للسحابة
+          </button>
+        </div>
+      </div>
+
       <!-- قسم إدارة عهدة البداية للكاشير (إضافة / تعديل / حذف) -->
       <div class="bg-white p-3 sm:p-4 rounded-2xl shadow-sm border-2 border-emerald-400 space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200 pb-2.5">
@@ -1166,6 +1201,7 @@
 
   <script>
     const STORAGE_KEY = 'shabaka_senara_pos_v5';
+    const CLOUD_CONFIG_KEY = 'shabaka_senara_cloud_cfg_v1';
 
     const DEFAULT_STATE = {
       store: {
@@ -1219,7 +1255,8 @@
         { id: 'credit', name: 'آجل / على الحساب', type: 'credit', accCategoryId: 'acc_credit' }
       ],
       invoiceCounter: 1001,
-      shiftCounter: 1
+      shiftCounter: 1,
+      _updatedAt: 0
     };
 
     let state = loadState();
@@ -1232,38 +1269,41 @@
     let currentViewingInvoiceId = null;
     let loadedReturnInvoice = null;
     let deferredInstallPrompt = null;
+    let cloudSyncInProgress = false;
+    let cloudPendingPush = false;
+
+    function normalizeLoadedState(parsed) {
+      const merged = { ...structuredClone(DEFAULT_STATE), ...parsed };
+      merged.staff = (merged.staff || []).map(s => ({ openingCustody: 0, ...s }));
+      if (!Array.isArray(merged.accountingCategories) || !merged.accountingCategories.length) {
+        merged.accountingCategories = structuredClone(DEFAULT_STATE.accountingCategories);
+      } else if (!merged.accountingCategories.some(c => c.effect === 'instapay')) {
+        merged.accountingCategories.splice(2, 0, { id: 'acc_instapay', name: 'إنستاباي (InstaPay)', effect: 'instapay' });
+      }
+      merged.paymentMethods = (merged.paymentMethods || []).map(pm => {
+        const isInsta = pm.id === 'instapay' || pm.type === 'instapay' || /instapay|انستاباي|إنستاباي/i.test(pm.name || '');
+        const defaultCatId = pm.type === 'cash' ? 'acc_cash' : pm.type === 'credit' ? 'acc_credit' : isInsta ? 'acc_instapay' : 'acc_wallet';
+        return {
+          accCategoryId: isInsta ? 'acc_instapay' : (pm.accCategoryId || defaultCatId),
+          type: isInsta ? 'instapay' : (pm.type || 'wallet'),
+          ...pm
+        };
+      });
+      return merged;
+    }
 
     function loadState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-          const parsed = JSON.parse(raw);
-          const merged = { ...structuredClone(DEFAULT_STATE), ...parsed };
-          merged.staff = (merged.staff || []).map(s => ({ openingCustody: 0, ...s }));
-          if (!Array.isArray(merged.accountingCategories) || !merged.accountingCategories.length) {
-            merged.accountingCategories = structuredClone(DEFAULT_STATE.accountingCategories);
-          } else if (!merged.accountingCategories.some(c => c.effect === 'instapay')) {
-            merged.accountingCategories.splice(2, 0, { id: 'acc_instapay', name: 'إنستاباي (InstaPay)', effect: 'instapay' });
-          }
-          merged.paymentMethods = (merged.paymentMethods || []).map(pm => {
-            const isInsta = pm.id === 'instapay' || pm.type === 'instapay' || /instapay|انستاباي|إنستاباي/i.test(pm.name || '');
-            const defaultCatId = pm.type === 'cash' ? 'acc_cash' : pm.type === 'credit' ? 'acc_credit' : isInsta ? 'acc_instapay' : 'acc_wallet';
-            return {
-              accCategoryId: isInsta ? 'acc_instapay' : (pm.accCategoryId || defaultCatId),
-              type: isInsta ? 'instapay' : (pm.type || 'wallet'),
-              ...pm
-            };
-          });
-          return merged;
+          return normalizeLoadedState(JSON.parse(raw));
         }
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k && k.includes('shabaka') && k !== STORAGE_KEY) {
+          if (k && k.includes('shabaka') && k !== STORAGE_KEY && k !== CLOUD_CONFIG_KEY) {
             const old = JSON.parse(localStorage.getItem(k));
             if (old && old.products) {
-              const merged = { ...structuredClone(DEFAULT_STATE), ...old };
-              merged.staff = (merged.staff || []).map(s => ({ openingCustody: 0, ...s }));
-              return merged;
+              return normalizeLoadedState(old);
             }
           }
         }
@@ -1271,11 +1311,165 @@
       return structuredClone(DEFAULT_STATE);
     }
 
-    function saveState() {
+    function saveState(skipCloudPush = false) {
       try {
+        state._updatedAt = Date.now();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (!skipCloudPush) {
+          cloudPendingPush = true;
+          pushLocalStateToCloud(false);
+        }
       } catch (e) {
         showToast('تنبيه: مساحة التخزين المحلية ممتلئة');
+      }
+    }
+
+    // ==================== المزامنة السحابية اللحظية (Firebase Realtime DB) ====================
+    function getCloudConfig() {
+      try {
+        const raw = localStorage.getItem(CLOUD_CONFIG_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return { url: '', storeId: 'shabaka_main_branch' };
+    }
+
+    function updateCloudBadgeUI(status, text) {
+      const badge = document.getElementById('cloudSyncBadge');
+      const adminTxt = document.getElementById('adminCloudStatusText');
+      if (badge) {
+        badge.textContent = text;
+        if (status === 'synced') {
+          badge.className = 'cursor-pointer px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/25 text-emerald-200 border border-emerald-400/50';
+        } else if (status === 'syncing') {
+          badge.className = 'cursor-pointer px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-sky-500/25 text-sky-200 border border-sky-400/50';
+        } else if (status === 'offline') {
+          badge.className = 'cursor-pointer px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-500/25 text-amber-200 border border-amber-400/50';
+        } else {
+          badge.className = 'cursor-pointer px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-slate-700 text-slate-300 border border-slate-500/40';
+        }
+      }
+      if (adminTxt) {
+        adminTxt.textContent = status === 'synced'
+          ? '🟢 متصل ومتزامن لحظياً مع السحابة'
+          : status === 'offline'
+            ? '🟠 بانتظار الإنترنت لرفع التحديثات المعلقة'
+            : 'وضع محلي (أدخل رابط Firebase لتفعيل المزامنة)';
+      }
+    }
+
+    function saveCloudSyncSettings() {
+      let url = (document.getElementById('adminFirebaseUrlInput').value || '').trim().replace(/\/+$/, '');
+      const storeId = (document.getElementById('adminCloudStoreIdInput').value || 'shabaka_main_branch').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+      if (!url) {
+        localStorage.removeItem(CLOUD_CONFIG_KEY);
+        updateCloudBadgeUI('local', '☁️ محلي');
+        showToast('تم إيقاف المزامنة السحابية والعمل محلياً');
+        return;
+      }
+      if (!url.startsWith('https://')) {
+        showToast('⚠️ يجب أن يبدأ رابط Firebase بـ https://');
+        return;
+      }
+      localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify({ url, storeId: storeId || 'shabaka_main_branch' }));
+      showToast('☁️ تم حفظ إعدادات المزامنة اللحظية — جاري الربط...');
+      syncCloudNow(true);
+    }
+
+    async function pushLocalStateToCloud(manualFeedback = false) {
+      const cfg = getCloudConfig();
+      if (!cfg.url) return;
+      if (!navigator.onLine) {
+        cloudPendingPush = true;
+        updateCloudBadgeUI('offline', '☁️ معلّق (أوفلاين)');
+        return;
+      }
+      try {
+        updateCloudBadgeUI('syncing', '☁️ جاري الرفع...');
+        const endpoint = `${cfg.url}/pos_stores/${cfg.storeId}.json`;
+        const res = await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(state)
+        });
+        if (res.ok) {
+          cloudPendingPush = false;
+          updateCloudBadgeUI('synced', '☁️ متزامن لحظياً');
+          if (manualFeedback) showToast('✅ تم رفع جميع بيانات هذا الجهاز للسحابة بنجاح');
+        } else {
+          updateCloudBadgeUI('offline', '☁️ تعذر الربط');
+          if (manualFeedback) showToast('❌ تأكد من صلاحيات القراءة والكتابة في Firebase Rules');
+        }
+      } catch (e) {
+        cloudPendingPush = true;
+        updateCloudBadgeUI('offline', '☁️ تعذر الاتصال');
+        if (manualFeedback) showToast('❌ تعذر الاتصال بقاعدة البيانات السحابية');
+      }
+    }
+
+    async function syncCloudNow(manualFeedback = false) {
+      const cfg = getCloudConfig();
+      if (!cfg.url) {
+        updateCloudBadgeUI('local', '☁️ محلي');
+        if (manualFeedback) showToast('أدخل رابط Firebase في تبويب الإدارة لتفعيل المزامنة');
+        return;
+      }
+      if (!navigator.onLine) {
+        updateCloudBadgeUI('offline', '☁️ أوفلاين');
+        return;
+      }
+      if (cloudSyncInProgress) return;
+      cloudSyncInProgress = true;
+
+      try {
+        if (cloudPendingPush) {
+          await pushLocalStateToCloud(false);
+        }
+        const endpoint = `${cfg.url}/pos_stores/${cfg.storeId}.json`;
+        const res = await fetch(endpoint, { cache: 'no-store' });
+        if (!res.ok) {
+          updateCloudBadgeUI('offline', '☁️ خطأ ربط');
+          cloudSyncInProgress = false;
+          return;
+        }
+        const remote = await res.json();
+        if (!remote) {
+          await pushLocalStateToCloud(false);
+        } else if (Number(remote._updatedAt || 0) > Number(state._updatedAt || 0)) {
+          state = normalizeLoadedState(remote);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          setupPwaAndBranding();
+          if (currentUser) {
+            refreshCurrentActiveView();
+          } else {
+            populateGateUsers();
+          }
+          if (manualFeedback) showToast('🔄 تم جلب أحدث البيانات من السحابة');
+        } else if (manualFeedback) {
+          showToast('✅ بياناتك محدثة ومتطابقة مع السحابة');
+        }
+        updateCloudBadgeUI('synced', '☁️ متزامن لحظياً');
+      } catch (e) {
+        updateCloudBadgeUI('offline', '☁️ أوفلاين');
+      } finally {
+        cloudSyncInProgress = false;
+      }
+    }
+
+    function refreshCurrentActiveView() {
+      if (!document.getElementById('sec-pos').classList.contains('hidden')) {
+        renderPosCategories();
+        renderPosProducts();
+        populatePaymentMethods();
+      } else if (!document.getElementById('sec-inventory').classList.contains('hidden')) {
+        renderInventory();
+      } else if (!document.getElementById('sec-customers').classList.contains('hidden')) {
+        renderCustomersAndCashSection();
+      } else if (!document.getElementById('sec-suppliers').classList.contains('hidden')) {
+        renderSuppliersAndPurchases();
+      } else if (!document.getElementById('sec-reports').classList.contains('hidden')) {
+        renderReportsSection();
+      } else if (!document.getElementById('sec-admin').classList.contains('hidden')) {
+        renderAdminSection();
       }
     }
 
@@ -1421,7 +1615,7 @@
       const badge = document.getElementById('networkStatusBadge');
       if (!badge) return;
       if (navigator.onLine) {
-        badge.textContent = '🟢 متصل • تحديث لحظي';
+        badge.textContent = '🟢 متصل';
         badge.className = 'px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/20 text-emerald-200 border border-emerald-400/40';
       } else {
         badge.textContent = '🟠 وضع الأوفلاين (بدون نت)';
@@ -1431,14 +1625,16 @@
 
     window.addEventListener('online', () => {
       updateNetworkStatusIndicator();
-      showToast('🟢 عاد الاتصال بالإنترنت — جاري فحص التحديثات اللحظية');
+      showToast('🟢 عاد الاتصال بالإنترنت — جاري مزامنة البيانات والتحديثات');
+      syncCloudNow(false);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration().then(r => r && r.update().catch(() => {}));
       }
     });
     window.addEventListener('offline', () => {
       updateNetworkStatusIndicator();
-      showToast('🟠 انقطع الإنترنت — التطبيق يعمل أوفلاين وبياناتك محفوظة بأمان');
+      updateCloudBadgeUI('offline', '☁️ أوفلاين');
+      showToast('🟠 انقطع الإنترنت — التطبيق يعمل أوفلاين وسيتم الرفع فور عودة النت');
     });
 
     function downloadPwaBuildFiles() {
@@ -1594,6 +1790,7 @@ self.addEventListener('fetch', (event) => {
       applyRolePermissions();
       document.getElementById('loginGate').classList.add('hidden');
       switchTab('pos');
+      syncCloudNow(false);
       showToast(`أهلاً بك ${user.name} (${getShiftLabel(user.shift)})`);
     }
 
@@ -3133,6 +3330,13 @@ self.addEventListener('fetch', (event) => {
 
     // ==================== الإدارة والصلاحيات والعهدة والفئات ====================
     function renderAdminSection() {
+      const cfg = getCloudConfig();
+      const fbInp = document.getElementById('adminFirebaseUrlInput');
+      const storeIdInp = document.getElementById('adminCloudStoreIdInput');
+      if (fbInp) fbInp.value = cfg.url || '';
+      if (storeIdInp) storeIdInp.value = cfg.storeId || 'shabaka_main_branch';
+      updateCloudBadgeUI(cfg.url ? (navigator.onLine ? 'synced' : 'offline') : 'local', cfg.url ? '☁️ متزامن لحظياً' : '☁️ محلي');
+
       document.getElementById('adminStoreNameInput').value = state.store.name || '';
       document.getElementById('adminStoreTaglineInput').value = state.store.tagline || '';
       document.getElementById('adminStoreAddressInput').value = state.store.address || '';
@@ -3666,7 +3870,7 @@ self.addEventListener('fetch', (event) => {
         try {
           const parsed = JSON.parse(reader.result);
           if (parsed && parsed.products) {
-            state = { ...structuredClone(DEFAULT_STATE), ...parsed };
+            state = normalizeLoadedState(parsed);
             saveState();
             setupPwaAndBranding();
             renderAdminSection();
@@ -3741,7 +3945,40 @@ self.addEventListener('fetch', (event) => {
     window.addEventListener('DOMContentLoaded', () => {
       setupPwaAndBranding();
       populateGateUsers();
+      syncCloudNow(false);
+      setInterval(() => syncCloudNow(false), 6000);
     });
   </script>
 </body>
 </html>
+```
+```markdown:خطوات إنشاء رابط المزامنة السحابية المجاني (Firebase) في دقيقتين:firebase_cloud_sync_guide.md
+# خطوات إنشاء رابط المزامنة السحابية المجاني (Firebase) لربط الكمبيوتر وتطبيق الهاتف لحظياً
+
+> **ملاحظة:** لا تحتاج لإعادة بناء ملف الـ `APK` بعد تحديث `index.html` على GitHub؛ بمجرد استبدال `index.html` في GitHub سيحصل التطبيق على التحديث تلقائياً.
+
+## أولاً: إنشاء قاعدة بيانات Firebase مجانية في دقيقتين
+
+1. افتح موقع Firebase بحساب Google الخاص بك:
+   `https://console.firebase.google.com`
+2. اضغط على **Create a project** (إنشاء مشروع) ← اكتب أي اسم مثل `shabaka-senara` ← اضغط **Continue** ثم **Create project**.
+3. من القائمة الجانبية اليسرى، اضغط على **Build** ثم اختر **Realtime Database**.
+4. اضغط على زر **Create Database**.
+5. اختر أقرب موقع خادم واضغط **Next**، ثم اختر **Start in test mode** واضغط **Enable**.
+6. ستفتح لك صفحة قاعدة البيانات؛ انسخ الرابط الموجود في الأعلى (يشبه: `https://shabaka-senara-default-rtdb.firebaseio.com`).
+
+## ثانياً: ربط الكمبيوتر والهاتف بنفس الرابط
+
+1. افتح النظام على **الكمبيوتر** ← ادخل بحساب الإدارة ← افتح تبويب **⚙️ الإدارة والعهدة والفئات**.
+2. في أول قسم **«☁️ المزامنة السحابية اللحظية بين الكمبيوتر وتطبيق الهاتف»**:
+   - الصق الرابط الذي نسخته في خانة **رابط قاعدة بيانات Firebase**.
+   - اترك **معرّف الفرع** كما هو (`shabaka_main_branch`).
+   - اضغط **☁️ حفظ وتفعيل المزامنة اللحظية** ثم اضغط **⬆️ رفع بيانات هذا الجهاز للسحابة**.
+3. افتح التطبيق على **الهاتف** ← ادخل بحساب الإدارة ← افتح تبويب **⚙️ الإدارة** ← الصق نفس الرابط واضغط **☁️ حفظ وتفعيل المزامنة اللحظية** ثم **🔄 مزامنة الآن**.
+
+من هذه اللحظة: أي فاتورة أو مصروف أو إقفال درج يسجله الموظف على الهاتف سيظهر أمامك لحظياً على الكمبيوتر، وإذا انقطع الإنترنت على الهاتف سيواصل الكاشير العمل أوفلاين وتُرفع الفواتير تلقائياً للسحابة فور عودة الإنترنت.
+```
+
+### ملخص ما تم إضافته:
+1. تحديث **`index.html`** لدعم المزامنة السحابية الفورية عبر **Firebase Realtime Database** كل 6 ثوانٍ وعند كل عملية بيع أو مصروف أو إقفال درج، مع الحفاظ على العمل الكامل بدون إنترنت والرفع التلقائي فور عودة الاتصال.
+2. إرفاق الدليل **`firebase_cloud_sync_guide.md`** لإنشاء رابط Firebase المجاني وربط الكمبيوتر وتطبيق الهاتف به في دقيقتين.
